@@ -1,0 +1,8 @@
+/* Native preview retains the previous frame underneath the incoming frame. */
+@keyframes pi-qwen-reveal { from { opacity: 0; } to { opacity: 1; } }
+.pi-qwen-developing .livePreview img:last-child {
+    animation: pi-qwen-reveal 450ms ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+    .pi-qwen-developing .livePreview img:last-child { animation: none; }
+}

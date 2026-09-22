@@ -1,0 +1,12 @@
+{
+  "name": "PROJECT INVISIBLE \u2014 Qwen-Image-2.1",
+  "live_forge": "",
+  "steps": 40,
+  "true_cfg_scale": 1.0,
+  "profile": "auto",
+  "weights_revision": "b3179ad355be050328e483a9dfdd9e60cd62adfa",
+  "comfy_revision": "ace0edeb3791a594ddfa36ed5f41a178a394e921",
+  "moire_cleanup": true,
+  "moire_strength": 1.0,
+  "spectrum": false
+}

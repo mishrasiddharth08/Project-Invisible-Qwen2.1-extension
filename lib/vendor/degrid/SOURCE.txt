@@ -1,0 +1,3 @@
+https://github.com/lunaaispace-eng/ComfyUI-DeGrid
+Revision: 5699bc33f71e1be12523fdea105cc9c2abfe1cd0
+Core and license preserved verbatim.

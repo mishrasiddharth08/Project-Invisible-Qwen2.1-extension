@@ -1,0 +1,2 @@
+# Preserve release bytes so MANIFEST.json verifies on Windows and Linux.
+* -text

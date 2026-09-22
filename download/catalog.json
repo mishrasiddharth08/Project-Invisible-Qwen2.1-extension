@@ -1,0 +1,10 @@
+{
+  "qwen_image_2.1_bf16.safetensors": "diffusion_models/qwen_image_2.1_bf16.safetensors",
+  "qwen_image_2.1_int8_convrot.safetensors": "diffusion_models/qwen_image_2.1_int8_convrot.safetensors",
+  "qwen3.5_9b_qwen_image_2.1_pe_i2i.int8_convrot.safetensors": "text_encoders/qwen3.5_9b_qwen_image_2.1_pe_i2i.int8_convrot.safetensors",
+  "qwen3.5_9b_qwen_image_2.1_pe_t2i.int8_convrot.safetensors": "text_encoders/qwen3.5_9b_qwen_image_2.1_pe_t2i.int8_convrot.safetensors",
+  "qwen3vl_8b_bf16.safetensors": "text_encoders/qwen3vl_8b_bf16.safetensors",
+  "qwen3vl_8b_int8_convrot.safetensors": "text_encoders/qwen3vl_8b_int8_convrot.safetensors",
+  "qwen3vl_8b_w4a8.safetensors": "text_encoders/qwen3vl_8b_w4a8.safetensors",
+  "qwen_image_2.1_vae_bf16.safetensors": "vae/qwen_image_2.1_vae_bf16.safetensors"
+}
