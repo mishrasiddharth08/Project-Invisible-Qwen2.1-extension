@@ -6,9 +6,8 @@ These files and folders should be at the top level of the repository:
 
 ```text
 .github/
+.gitattributes
 .gitignore
-CHANGELOG.md
-CHANGELOG.md
 CHANGELOG.md
 CONTRIBUTING.md
 GITHUB_DESCRIPTION.md
@@ -19,11 +18,7 @@ MANIFEST.json
 NOTICE
 README.md
 UPDATE_SAFETY.md
-UPDATE_SAFETY.md
-UPDATE_SAFETY.md
 VALIDATION.md
-verify_integrity.py
-verify_integrity.py
 verify_integrity.py
 __init__.py
 config.json
