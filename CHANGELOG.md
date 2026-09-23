@@ -1,16 +1,42 @@
-# Changelog
+# Update history
 
-## 2026-09-23 — follow-up
-
-- Empty negative prompts now use effective CFG 1 instead of raising an error; native CFG with a real negative prompt remains unchanged.
-- Regression suite: 87 tests passed.
+Newest updates appear first. Dates use YYYY-MM-DD. These entries describe published changes, not guarantees for every device or adapter.
 
 ## 2026-09-23
 
-- Ordinary LoRA adapters now use additive hooks on quantized linear layers instead of incompatible PEFT replacement.
-- One native Forge CFG slider controls generation; the legacy saved argument slot remains hidden for compatibility.
-- Release a failed inference pipeline before retrying.
-- Portable Forge-root fallback; no author-specific drive path in release configuration.
-- Add source integrity verification and update/backup instructions.
-- Publish readable extension source at repository root, replacing the old RAR distribution. The old archive remains available through Git history.
-- First public release testing claim remains text-to-image only; other modes are experimental or unconfirmed.
+### Fixed
+
+- **Empty negative prompt:** CFG above 1 now falls back to effective CFG 1 with a terminal notice instead of stopping generation. Saved metadata records the effective value. A real negative prompt preserves the selected native CFG.
+- **Quantized LoRA loading:** ordinary supported LoRA adapters use additive hooks instead of incompatible PEFT layer replacement.
+- **Duplicate CFG control:** removed the extension slider; Forge's native CFG Scale controls generation.
+- **Failed generation cleanup:** release a failed worker pipeline before another attempt.
+- **Portable installation:** removed the author's drive path from the release configuration and added a Forge-root fallback.
+
+### Repository and documentation
+
+- Published extension source at the repository root instead of distributing only a RAR archive. The previous archive remains in Git history.
+- Added beginner installation instructions, complete-terminal-error issue guidance, and honest testing limitations.
+- Added `verify_integrity.py`, source checksums, and [update/backup instructions](UPDATE_SAFETY.md).
+- Added thanks to the r/SECourses community alongside u/malcolmrey and r/malcolmrey.
+
+### Verification
+
+- **87 Qwen automated tests passed**, including native CFG behavior and quantized adapter regression checks.
+- Source integrity checks passed for the published files.
+- Text-to-image was previously confirmed by the author. A fresh real generation with the latest fixes remains unverified; other modes and optional features remain experimental or unconfirmed.
+
+### How to apply
+
+1. Let the current generation finish, then stop Forge.
+2. Back up the extension outside the Forge folder.
+3. Update this extension's files from the repository.
+4. Restart Forge and refresh the browser with **Ctrl+F5**.
+5. Try a small text-to-image generation first.
+
+### Separate companion fix
+
+The local Model Autolink extension received a checkpoint-list snapshot fix for a model-switching error; its 9 tests passed. **That companion patch is not included in this Qwen repository.** The Qwen test count is 87, not 96.
+
+### Compatibility limits
+
+No Forge core files were changed. Extension-local dependencies and a separate worker reduce interference, but Forge's Python, PyTorch and UI hooks remain shared dependencies. Future Forge compatibility cannot be guaranteed.
