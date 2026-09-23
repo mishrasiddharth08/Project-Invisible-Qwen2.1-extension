@@ -562,12 +562,16 @@ class RuntimeAcceptanceTests(unittest.TestCase):
     def test_cfg_above_one_requires_negative_prompt(self):
         p = self.p()
         p.cfg_scale = 2
-        with self.assertRaisesRegex(ValueError, "negative"):
-            self.run_generate(p, true_cfg=1)
+        self.run_generate(p, true_cfg=9)
+        self.assertEqual(self.pipe.calls[0]["true_cfg_scale"], 1)
+        self.assertIsNone(self.pipe.calls[0]["negative_prompt"])
+        self.assertEqual(p.cfg_scale, 1)
+        p = self.p()
+        p.cfg_scale = 2
         p.negative_prompt = "blurry"
         self.run_generate(p, true_cfg=1)
-        self.assertEqual(self.pipe.calls[0]["negative_prompt"], "blurry")
-        self.assertEqual(self.pipe.calls[0]["true_cfg_scale"], 2)
+        self.assertEqual(self.pipe.calls[-1]["negative_prompt"], "blurry")
+        self.assertEqual(self.pipe.calls[-1]["true_cfg_scale"], 2)
 
     def test_rgba_result_is_preserved(self):
         _p, result = self.run_generate(task="rgba")

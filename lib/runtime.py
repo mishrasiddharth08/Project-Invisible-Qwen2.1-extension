@@ -66,7 +66,10 @@ def generate(p, selected, options):
         prompt,adapters=adapter.parse(prompt, options.get('community',False))
         negative=p.negative_prompt if isinstance(p.negative_prompt,str) else p.negative_prompt[0]
         cfg=float(getattr(p,'cfg_scale',1.0))
-        if cfg>1 and not negative.strip(): raise ValueError('CFG > 1 requires a real negative prompt and doubles compute.')
+        if cfg>1 and not negative.strip():
+            print('[PI-Qwen21] No negative prompt: using CFG 1 for this generation.')
+            cfg=1.0
+            p.cfg_scale=cfg  # Keep saved generation metadata consistent with actual inference.
         primary=list(getattr(p,'init_images',None) or [])[:1]
         img2img_type=getattr(processing,'StableDiffusionProcessingImg2Img',None)
         is_edit=isinstance(p,img2img_type) if isinstance(img2img_type,type) else bool(primary)

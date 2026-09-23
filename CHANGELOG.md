@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09-23 — follow-up
+
+- Empty negative prompts now use effective CFG 1 instead of raising an error; native CFG with a real negative prompt remains unchanged.
+- Regression suite: 87 tests passed.
+
 ## 2026-09-23
 
 - Ordinary LoRA adapters now use additive hooks on quantized linear layers instead of incompatible PEFT replacement.
