@@ -4,6 +4,15 @@ An independent, unofficial extension that adds Qwen-Image-2.1 to the normal Forg
 
 > This is my first public project and I am still learning. Please forgive any mistakes or rough edges. Kind, complete bug reports will help improve the project for everyone.
 
+## Latest update — September 23, 2026
+
+- Fixed quantized LoRA loading and empty-negative-prompt CFG errors.
+- Kept one native CFG slider and improved failed-pipeline cleanup.
+- Added portable paths, source verification, and update/backup guidance.
+- **Verified:** 87 automated Qwen tests passed. Restart Forge after updating.
+
+See the [dated update history](CHANGELOG.md) for details, installation steps and testing limits.
+
 ## The Project Invisible idea
 
 The extension should feel like built-in Forge support:
