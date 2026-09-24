@@ -123,6 +123,44 @@ class ExtendedAdapterTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'shape mismatch'):
             adapter._install_full(model, {'linear.diff': torch.zeros(2, 2)}, 1, [])
 
+    def test_embedding_pre_hook_survives_forward_replacement(self):
+        """Issue #4 regression: diffusers offload hooks replace forward with a
+        wrapper that calls the originally saved function, bypassing anything
+        patched onto forward afterwards. The device guard must be a registered
+        pre-hook so _call_impl still runs it."""
+        class PackedEmbedding(torch.nn.Embedding):
+            quant_format = 'int8_tensorwise'
+
+            def __init__(self):
+                super().__init__(4, 4)
+                # packed Forge weight: plain attribute holding QuantizedTensor-like data
+                object.__setattr__(self, 'weight',
+                    SimpleNamespace(_qdata=torch.zeros(4, 4, dtype=torch.int8), _params=None))
+
+            def forward(self, input):
+                return 'forward-ran'
+
+        model = torch.nn.Module()
+        model.add_module('embed', PackedEmbedding())
+        from pi_qwen21.lib import components
+        components._harden_embedding_forward(model)
+        # Simulate diffusers' hook machinery capturing the original forward
+        # and replacing it (hooks.py: new_forward -> function_reference.forward)
+        original = model.embed.forward
+        model.embed.forward = lambda input: original(input)
+        moved = []
+        model.embed._apply = lambda fn: moved.append(True)
+        # indices on cpu, packed data on cpu -> no move, no crash
+        model.embed.weight._qdata = torch.zeros(4, 4, dtype=torch.int8, device='cpu')
+        model.embed(torch.tensor([0, 1]))
+        self.assertFalse(moved)
+        # put qdata on a different device reference to prove the guard fires
+        far = SimpleNamespace(device='cuda:0', to=lambda *a, **k: None)
+        model.embed.weight._qdata = far
+        model.embed(torch.tensor([0, 1]))
+        self.assertTrue(moved)   # pre-hook ran even though forward was replaced
+
+
 
 class DequantizeFormatTests(unittest.TestCase):
     def descriptor(self, fmt):

@@ -43,22 +43,28 @@ def _harden_embedding_forward(model):
     Forge's manual-cast Embedding forward can run the eager dequantize kernel
     while the packed weights were offloaded back to the CPU and the token
     indices live on the GPU, which crashes with a device mismatch
-    (Issue #2). Moving the packed parameter with the hardened subclass-safe
-    _apply right before the original forward unblocks the kernel without
-    touching Forge core files.
+    (Issue #2). A forward pre-hook moves the packed parameter with the
+    hardened subclass-safe _apply before the forward runs.
+
+    A pre-hook is used instead of wrapping ``forward`` because diffusers'
+    offload hooks replace ``module.forward`` with their own wrapper that
+    calls the originally saved function, silently dropping anything that
+    patched ``forward`` afterwards (Issue #4). Registered hooks live in
+    ``_forward_pre_hooks`` and run inside ``nn.Module._call_impl`` before
+    any forward replacement, so no offload machinery can bypass them.
     """
     import torch
     for module in model.modules():
         if not isinstance(module, torch.nn.Embedding) or not getattr(module,'quant_format',None):
             continue
-        original=module.forward
-        def forward(input,module=module,original=original):
+        def guard(module,args):
+            if not args:
+                return
             weight=getattr(module,'weight',None)
             qdata=getattr(weight,'_qdata',None)
-            if qdata is not None and qdata.device!=input.device:
-                module._apply(lambda t: t.to(input.device,non_blocking=False))
-            return original(input)
-        module.forward=forward
+            if qdata is not None and qdata.device!=args[0].device:
+                module._apply(lambda t: t.to(args[0].device,non_blocking=False))
+        module.register_forward_pre_hook(guard)
     return model
 
 def _descriptor(value):

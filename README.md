@@ -9,9 +9,9 @@ An independent, unofficial extension that adds Qwen-Image-2.1 to the normal Forg
 - Quantized model files now run on every NVIDIA and AMD card: on GPUs without Forge's packed-kernel support (AMD ROCm, older CUDA torch builds, fp16-only NVIDIA cards) the extension unpacks them to plain BF16 in system RAM and runs normally. Capable NVIDIA cards keep the fast packed kernels.
 - All packed formats are supported (int8/int8-convrot, W4A8, FP8 E4M3/E5M2, MXFP8, NVFP4, ConvRot-W4A4) for DiT, text encoder and VAE.
 - Adapter support widened: factorized LoKr, LoHa and full-difference adapters work alongside ordinary LoRA and plain LoKr.
-- Fixed the remaining quantized-offloading device-mismatch crash reported in Issue #2 (packed Embedding forward guard + safer offload mode for quantized loads).
+- Fixed the remaining quantized-offloading device-mismatch crash reported in Issues #2 and #4: the device guard now uses a forward pre-hook that diffusers' offload hooks cannot bypass, and quantized loads use a safer offload mode.
 - Duplicate extension copies are now detected with a startup warning (Issue #3); README documents both install paths.
-- **Verified:** 109 automated Qwen tests passed. Restart Forge after updating.
+- **Verified:** 110 automated Qwen tests passed. Restart Forge after updating.
 
 See the [dated update history](CHANGELOG.md) for details, installation steps and testing limits.
 

@@ -6,7 +6,7 @@ Newest updates appear first. Dates use YYYY-MM-DD. These entries describe publis
 
 ### Fixed
 
-- **Device mismatch during quantized offloading fully resolved (Issue #2):** the reporter's logs showed one remaining crash path — Forge's packed-Embedding forward ran its dequantize kernel while the packed weights had been offloaded to the CPU and the token indices lived on the GPU. The extension now moves packed Embedding data to the indices' device right before each call, and quantized loads no longer use group offload, whose parameter swapping is incompatible with packed subclasses. Verified against the reporter's worker.log (RTX 4070 Ti, CUDA 13 torch build).
+- **Device mismatch during quantized offloading fully resolved (Issue #2 / Issue #4):** the reporter's logs showed two remaining crash paths — Forge's packed-Embedding forward ran its dequantize kernel while the packed weights had been offloaded to the CPU and the token indices lived on the GPU, and diffusers' offload hook framework silently bypassed the previous forward patch by replacing `forward` with its own wrapper. The device guard is now a registered forward pre-hook, which runs inside PyTorch's call machinery before any forward replacement and cannot be bypassed. Quantized loads also no longer use group offload, whose parameter swapping is incompatible with packed subclasses. Verified against both reporter worker.logs (RTX 4070 Ti, CUDA 13 torch build).
 
 - **All packed quantization formats supported for DiT, text encoder and VAE inputs:** files using `int8_tensorwise` (with or without ConvRot), `asym_w4a8_int8` (W4A8), `float8_e4m3fn`, `float8_e5m2`, `mxfp8`, `nvfp4` and `convrot_w4a4` now load on every NVIDIA and AMD card. Capable NVIDIA cards run the fast packed kernels; elsewhere the extension unpacks the weights to plain BF16 in system RAM automatically. CPU round-trip accuracy was verified for every format.
 
@@ -18,7 +18,7 @@ Newest updates appear first. Dates use YYYY-MM-DD. These entries describe publis
 
 ### Verification
 
-- **109 Qwen automated tests passed** (the previous 102 plus seven new regression tests: packed-format round-trips for FP8/MXFP8/NVFP4/ConvRot-W4A4, factorized LoKr reconstruction, LoHa Hadamard deltas, full-difference application, malformed-adapter atomicity, and kind detection for every adapter family).
+- **110 Qwen automated tests passed** (the previous 109 plus a new regression test that reproduces the Issue #4 failure exactly: a diffusers-style forward replacement installed after hardening can no longer bypass the packed-Embedding device guard).
 
 ## 2026-09-23
 
