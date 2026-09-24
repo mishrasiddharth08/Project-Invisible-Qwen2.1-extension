@@ -70,6 +70,8 @@ def generate(p, selected, options):
         # Featured speed LoRAs are distilled for few-step CFG-1 sampling.
         speed_name=options.get('speed_lora') if options.get('speed_enabled') else None
         speed_entry=downloads.FEATURED.get(speed_name) if speed_name else None
+        if options.get('speed_enabled') and speed_entry is None:
+            print('[PI-Qwen21] Speed boost is ticked but no speed LoRA is selected or recognized (dropdown may show "(none)"). Running the full step schedule - pick a downloaded LoRA under Qwen Controls > Speed boost LoRA.')
         speed_adapter=None
         if speed_entry:
             speed_path=downloads.featured_path(speed_name)

@@ -10,6 +10,7 @@ An independent, unofficial extension that adds Qwen-Image-2.1 to the normal Forg
 - All packed formats are supported (int8/int8-convrot, W4A8, FP8 E4M3/E5M2, MXFP8, NVFP4, ConvRot-W4A4) for DiT, text encoder and VAE.
 - Adapter support widened: factorized LoKr, LoHa and full-difference adapters work alongside ordinary LoRA and plain LoKr.
 - Pressing the Speed-LoRA download button without picking a LoRA now shows a clear message instead of a crash in the Forge console.
+- The few-step speed schedule can no longer be silently skipped: if the Speed boost box is ticked but no downloaded speed LoRA is selected, the console now tells you exactly which control to set.
 - Fixed the remaining quantized-offloading device-mismatch crash reported in Issues #2 and #4: the device guard now uses a forward pre-hook that diffusers' offload hooks cannot bypass, and quantized loads use a safer offload mode.
 - Duplicate extension copies are now detected with a startup warning (Issue #3); README documents both install paths.
 - **Verified:** 110 automated Qwen tests passed. Restart Forge after updating.
