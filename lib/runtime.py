@@ -6,6 +6,7 @@ import threading
 from pathlib import Path
 from .assets import config, hardware_profile, bucket, identity
 from ..download.manager import resolve
+from ..download import manager as downloads
 from ..lora import adapter
 from .prompts import parse as parse_rewrite
 from .progress import ForgeProgress
@@ -66,6 +67,17 @@ def generate(p, selected, options):
         prompt,adapters=adapter.parse(prompt, options.get('community',False))
         negative=p.negative_prompt if isinstance(p.negative_prompt,str) else p.negative_prompt[0]
         cfg=float(getattr(p,'cfg_scale',1.0))
+        # Featured speed LoRAs are distilled for few-step CFG-1 sampling.
+        speed_name=options.get('speed_lora') if options.get('speed_enabled') else None
+        speed_entry=downloads.FEATURED.get(speed_name) if speed_name else None
+        speed_adapter=None
+        if speed_entry:
+            speed_path=downloads.featured_path(speed_name)
+            if not speed_path or not speed_path.is_file() or speed_path.stat().st_size<=8:
+                raise ValueError(speed_name+' is not downloaded yet. Open Qwen Controls > Speed boost LoRA and approve the one-time download, or untick the box. Generate never downloads files.')
+            if cfg>1: print('[PI-Qwen21] Speed LoRA selected: using CFG 1 as required by the distillation.')
+            cfg=1.0
+            speed_adapter=(str(speed_path), float(options.get('speed_strength',speed_entry['strength'])))
         if cfg>1 and not negative.strip():
             print('[PI-Qwen21] No negative prompt: using CFG 1 for this generation.')
             cfg=1.0
@@ -103,6 +115,10 @@ def generate(p, selected, options):
             side=min(requested_side,side) if side else requested_side
             p.width,p.height=bucket(p.width,p.height,side)
             p.steps=max(1,int(getattr(p,'steps',None) or options.get('steps',40))); p.cfg_scale=cfg
+            if speed_entry and p.steps>speed_entry['steps']:
+                # Distilled LoRAs follow their few-step schedule; more steps degrade output.
+                p.steps=int(speed_entry['steps'])
+                print(f"[PI-Qwen21] Speed LoRA schedule: using {p.steps} steps.")
             p.sampler_name='Euler'
             seed=int(p.seed if p.seed is not None else -1)
             if seed<0: seed=random.randrange(2**32)
@@ -111,7 +127,8 @@ def generate(p, selected, options):
             total=max(1,int(p.batch_size))*max(1,int(p.n_iter))
             shared.state.job_count=total
             try:
-                adapter.apply(pipe,adapters)
+                if speed_adapter: adapter.apply(pipe,list(adapters)+[speed_adapter])
+                else: adapter.apply(pipe,adapters)
                 for i in range(total):
                     if shared.state.interrupted or shared.state.skipped: break
                     current_seed=(seed+i)%2**32
@@ -141,6 +158,7 @@ def generate(p, selected, options):
                     info+=f', Qwen moire cleanup: {cleanup:g}'
                     info+=f', DeGrid: {"auto" if cleanup else "off"}'
                     info+=f", Spectrum requested: {bool(options.get('spectrum',False))}"
+                    if speed_entry: info+=f", Speed LoRA: {speed_name} ({speed_adapter[1]:g})"
                     if not getattr(p,'do_not_save_samples',False) and shared.opts.samples_save:
                         images.save_image(result,p.outpath_samples,'',current_seed,prompt,extension='png',info=info,p=p)
                     output.append(result); seeds.append(current_seed); infos.append(info)

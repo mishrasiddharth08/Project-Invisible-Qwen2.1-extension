@@ -79,6 +79,18 @@ class Script(scripts.Script):
                 spectrum=gr.Checkbox(value=False,label='Spectrum speedup (experimental; may change details)')
                 community=gr.Checkbox(value=False,label='Allow compatible community distillation LoRAs')
                 consent=gr.State(False)  # Generate is always local-only.
+                with gr.Accordion('Speed boost LoRA (optional)',open=False):
+                    speed_enabled=gr.Checkbox(value=False,label='Enable Speed boost LoRA (generates in 4-6 steps instead of 40)')
+                    speed_choices=['(none)']+list(manager.FEATURED_CHOICES)
+                    speed_name=gr.Dropdown(speed_choices,value='(none)',label='Which speed LoRA')
+                    speed_strength=gr.Slider(0.0,1.5,value=1.0,step=0.05,label='Speed LoRA strength')
+                    gr.Markdown(manager.featured_instructions())
+                    speed_approved=gr.Checkbox(value=False,label='I accept the LoRA license and authorize this one-time download')
+                    speed_button=gr.Button('Download selected speed LoRA')
+                    speed_status=gr.Markdown()
+                    speed_button.click(fn=manager.download_featured,inputs=[speed_name,speed_approved],outputs=[speed_status])
+                    speed_enabled.change(fn=lambda on: (gr.update(interactive=on),gr.update(interactive=on)),inputs=[speed_enabled],outputs=[speed_name,speed_strength],queue=False)
+                    gr.Markdown('Note: enabling this uses CFG 1 and the LoRA\'s own few-step schedule. Strength 1.0 is the tested default; Spectrum and native CFG above 1 are ignored while it is active.')
                 with gr.Accordion('Prompt helper',open=False):
                     gr.Textbox(value=(ROOT/'prompts/system_prompt_t2i.txt').read_text(encoding='utf8'),label='Official instructions for your language model',lines=4,interactive=False)
                     gr.Markdown('Paste the resulting JSON into the normal prompt field.')
@@ -94,7 +106,7 @@ class Script(scripts.Script):
                 method.change(fn=lambda value:(gr.update(visible=value.startswith('Manual')),gr.update(visible=value=='Automatic')),inputs=[method],outputs=[manual,automatic],queue=False)
         self._box=box
         PANELS.append(box)
-        return [task,steps,cfg,profile,side,offload,community,consent,mask,*refs,spectrum,degrid]
+        return [task,steps,cfg,profile,side,offload,community,consent,mask,*refs,spectrum,degrid,speed_enabled,speed_name,speed_strength]
 
 try:
     forge.install()

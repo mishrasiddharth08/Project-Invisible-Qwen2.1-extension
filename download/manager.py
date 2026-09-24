@@ -7,6 +7,71 @@ SUPPORT='Processor and configuration files (already included)'
 CATALOG=json.loads(Path(__file__).with_name('catalog.json').read_text())
 CHOICES=[name for names in NAMES.values() for name in names]+[SUPPORT]
 
+# Featured acceleration LoRAs. Every entry lives in its own official Hugging
+# Face repository; files are fetched only after the user enables the feature
+# and approves the download. Strengths/schedules follow the upstream cards.
+FEATURED={
+    'Viggle Turbo (4 steps)': dict(
+        repo='Viggle/Qwen-Image-2.1-viggle-turbo',
+        file='Qwen-Image-2.1-viggle-turbo-4step-lora-r64.safetensors',
+        steps=4, cfg=1.0, strength=1.0,
+        source='https://huggingface.co/Viggle/Qwen-Image-2.1-viggle-turbo'),
+    'Viggle Turbo v0.2 (5 steps)': dict(
+        repo='Viggle/Qwen-Image-2.1-viggle-turbo',
+        file='Qwen-Image-2.1-viggle-turbo-v0.2-5step-lora-r128.safetensors',
+        steps=5, cfg=1.0, strength=1.0,
+        source='https://huggingface.co/Viggle/Qwen-Image-2.1-viggle-turbo'),
+    'Viggle Turbo v0.2.1 (6 steps)': dict(
+        repo='Viggle/Qwen-Image-2.1-viggle-turbo',
+        file='Qwen-Image-2.1-viggle-turbo-v0.2.1-6step-lora-r128.safetensors',
+        steps=6, cfg=1.0, strength=1.0,
+        source='https://huggingface.co/Viggle/Qwen-Image-2.1-viggle-turbo'),
+}
+FEATURED_CHOICES=list(FEATURED)
+
+def featured_folder():
+    return models_root()/'Qwen-Image-2.1'/'featured-loras'
+
+def find_local_featured():
+    """Match featured LoRAs already saved anywhere under the Lora folders (incl. subfolders)."""
+    by_name={Path(p).name:p for p in scan()['lora']}
+    return {name:by_name[entry['file']] for name,entry in FEATURED.items()
+            if entry['file'] in by_name}
+
+def featured_path(name):
+    """Existing local copy anywhere (featured folder or Lora folders), else the planned target."""
+    entry=FEATURED.get(name)
+    if not entry: return None
+    local=featured_folder()/entry['file']
+    if local.is_file() and local.stat().st_size>8: return local
+    found=find_local_featured().get(name)
+    if found: return Path(found)
+    return local
+
+def download_featured(name, approved=False):
+    """Fetch one featured LoRA after explicit approval. Never called by Generate."""
+    entry=FEATURED.get(name)
+    if entry is None: raise ValueError('Unknown featured LoRA: '+str(name))
+    if not approved: raise ValueError('Accept the LoRA license and authorize the download first.')
+    existing=featured_path(name)
+    if existing and existing.is_file() and existing.stat().st_size>8:
+        return 'Reused existing '+entry['file']+' ('+str(existing)+')'
+    target=featured_folder()/entry['file']
+    target.parent.mkdir(parents=True,exist_ok=True)
+    from huggingface_hub import hf_hub_download
+    hf_hub_download(entry['repo'],entry['file'],local_dir=str(target.parent))
+    if not target.is_file() or target.stat().st_size<=8:
+        raise ValueError('Download did not produce '+entry['file'])
+    return 'Downloaded '+entry['file']+' from '+entry['source']
+
+def featured_instructions():
+    rows=['These optional LoRAs trade full quality for much faster generation (4-6 steps instead of 40).']
+    rows.append('They download from the official Hugging Face repositories listed below, only after you approve.')
+    for name,entry in FEATURED.items():
+        rows.append(f"- [{name}]({entry['source']}): `{entry['file']}` — {entry['steps']} steps, CFG {entry['cfg']:g}")
+    rows.append('Files are stored in `'+str(featured_folder())+'`.')
+    return '\n'.join(rows)
+
 def support_folder():
     local=models_root()/'Qwen-Image-2.1'/'official'
     bundled=Path(__file__).resolve().parents[1]/'resources'/'qwen21'

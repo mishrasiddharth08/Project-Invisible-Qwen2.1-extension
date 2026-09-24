@@ -5,7 +5,6 @@ from . import runtime
 
 LABEL='PROJECT INVISIBLE — Qwen-Image-2.1 (official)'
 KEYS=('task','steps','true_cfg','profile','side','offload','community','consent','mask')
-
 def selected(p=None):
     from modules import shared,sd_models
     value=(getattr(p,'override_settings',{}) or {}).get('sd_model_checkpoint',shared.opts.sd_model_checkpoint)
@@ -49,6 +48,10 @@ def options(runner,p):
             result.update(zip(KEYS,values[:len(KEYS)])); result['refs']=values[len(KEYS):len(KEYS)+9]
             if len(values)>len(KEYS)+9: result['spectrum']=bool(values[len(KEYS)+9])
             if len(values)>len(KEYS)+10: result['moire_cleanup']=bool(values[len(KEYS)+10])
+            if len(values)>len(KEYS)+11:
+                result['speed_enabled']=bool(values[len(KEYS)+11])
+                result['speed_lora']=str(values[len(KEYS)+12] or '')
+                result['speed_strength']=float(values[len(KEYS)+13])
             break
     return result
 

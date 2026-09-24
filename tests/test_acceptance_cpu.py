@@ -635,6 +635,127 @@ class RuntimeAcceptanceTests(unittest.TestCase):
         self.assertIn("Qwen moire cleanup: 0.4", scaled.info)
 
 
+class SpeedLoraAcceptanceTests(unittest.TestCase):
+    def setUp(self):
+        runtime._pipe = None
+        runtime._key = None
+
+    def tearDown(self):
+        runtime._pipe = None
+        runtime._key = None
+
+    def test_catalog_entries_have_required_fields(self):
+        from pi_qwen21.download import manager
+        for name, entry in manager.FEATURED.items():
+            self.assertTrue(entry["repo"], name)
+            self.assertTrue(entry["file"].endswith(".safetensors"), name)
+            self.assertGreaterEqual(entry["steps"], 2, name)
+            self.assertEqual(entry["cfg"], 1.0, name)
+            self.assertTrue(entry["source"].startswith("https://huggingface.co/"), name)
+
+    def test_download_requires_explicit_approval(self):
+        from pi_qwen21.download import manager
+        name = manager.FEATURED_CHOICES[0]
+        with self.assertRaisesRegex(ValueError, "license"):
+            manager.download_featured(name, approved=False)
+
+    def test_missing_speed_lora_stops_generation_without_downloading(self):
+        from pi_qwen21.download import manager
+        name = list(manager.FEATURED)[0]
+        p = types.SimpleNamespace(
+            prompt="x", negative_prompt="", width=1024, height=1024,
+            steps=40, cfg_scale=1, seed=1, batch_size=1, n_iter=1,
+            init_images=[], do_not_save_samples=True, outpath_samples="",
+            override_settings={},
+        )
+        modules_mod = types.ModuleType("modules")
+        processing = types.ModuleType("modules.processing")
+        shared = types.ModuleType("modules.shared")
+        shared.state = types.SimpleNamespace(job_count=0, interrupted=False, skipped=False, nextjob=lambda: None)
+        shared.opts = types.SimpleNamespace(samples_save=False)
+        images_mod = types.ModuleType("modules.images")
+        images_mod.save_image = lambda *a, **kw: None
+        modules_mod.processing, modules_mod.shared, modules_mod.images = processing, shared, images_mod
+        with mock.patch.dict(sys.modules, {
+            "modules": modules_mod, "modules.processing": processing,
+            "modules.shared": shared, "modules.images": images_mod,
+            "torch": types.SimpleNamespace(cuda=FakeCuda, Generator=FakeGenerator),
+        }), mock.patch.object(manager, "featured_path", return_value=None):
+            with self.assertRaisesRegex(ValueError, "never downloads"):
+                runtime.generate(p, "selected", dict(
+                    task="t2i", steps=40, true_cfg=1, profile="24", side=1024,
+                    offload=True, community=False, consent=False, mask=None,
+                    refs=[], speed_enabled=True, speed_lora=name, speed_strength=1.0))
+
+    def test_speed_lora_forces_cfg1_and_few_steps(self):
+        from pi_qwen21.download import manager
+        name = list(manager.FEATURED)[0]
+        entry = manager.FEATURED[name]
+        calls = []
+        with tempfile.TemporaryDirectory() as td:
+            lora_file = Path(td) / "featured.safetensors"
+            lora_file.write_bytes(b"0123456789")
+            self._run_speed_case(name, entry, lora_file, calls)
+
+    def _run_speed_case(self, name, entry, lora_file, calls):
+
+        class SpeedPipe:
+            def unload_lora_weights(self): pass
+
+            def __call__(self, **kwargs):
+                calls.append(kwargs)
+                return types.SimpleNamespace(images=[Image.new("RGB", (8, 8))])
+
+        saved = runtime._pipe
+        try:
+            saved_key = runtime._key
+            p = types.SimpleNamespace(
+                prompt="x", negative_prompt="blurry", width=1024, height=1024,
+                steps=40, cfg_scale=2, seed=1, batch_size=1, n_iter=1,
+                init_images=[], do_not_save_samples=True, outpath_samples="",
+                override_settings={},
+            )
+            state = types.SimpleNamespace(
+                job_count=0, interrupted=False, skipped=False, nextjob=lambda: None)
+            modules_mod = types.ModuleType("modules")
+            processing = types.ModuleType("modules.processing")
+            processing.Processed = lambda p, images, seed, info, **kw: types.SimpleNamespace(info=info, images=images)
+            shared = types.ModuleType("modules.shared")
+            shared.state = state
+            shared.opts = types.SimpleNamespace(samples_save=False)
+            images_mod = types.ModuleType("modules.images")
+            images_mod.save_image = lambda *a, **kw: None
+            modules_mod.processing, modules_mod.shared, modules_mod.images = processing, shared, images_mod
+            infos = []
+            processing.Processed = lambda p, images, seed, info, **kw: (infos.append(info), types.SimpleNamespace(info=info, images=images))[1]
+            fake_torch = types.SimpleNamespace(
+                cuda=FakeCuda, Generator=FakeGenerator,
+                cuda_module=types.SimpleNamespace(OutOfMemoryError=RuntimeError))
+            with mock.patch.dict(sys.modules, {
+                "modules": modules_mod, "modules.processing": processing,
+                "modules.shared": shared, "modules.images": images_mod,
+                "torch": fake_torch,
+             }), mock.patch.object(runtime, "resolve", return_value={"folder": "f", "files": {}}), \
+                 mock.patch.object(runtime, "load", return_value=SpeedPipe()), \
+                 mock.patch.object(runtime.adapter, "parse", side_effect=lambda t, c: (t, [])), \
+                 mock.patch.object(runtime.adapter, "apply") as apply_adapter, \
+                 mock.patch.object(manager, "featured_path", return_value=lora_file):
+                runtime.generate(p, "selected", dict(
+                    task="t2i", steps=40, true_cfg=2, profile="24", side=1024,
+                    offload=True, community=False, consent=False, mask=None, refs=[],
+                    speed_enabled=True, speed_lora=name, speed_strength=0.8))
+            self.assertEqual(p.steps, entry["steps"], "few-step schedule must override user steps")
+            self.assertEqual(p.cfg_scale, 1.0, "speed LoRA must force CFG 1")
+            self.assertEqual(calls[0]["true_cfg_scale"], 1.0)
+            self.assertEqual(calls[0]["num_inference_steps"], entry["steps"])
+            applied = apply_adapter.call_args.args[1]
+            self.assertEqual(applied[-1], (str(lora_file), 0.8))
+            self.assertTrue(any("Speed LoRA: " + name in i for i in infos))
+        finally:
+            runtime._pipe = saved
+            runtime._key = saved_key
+
+
 class ForgeIsolationAcceptanceTests(unittest.TestCase):
     def test_unselected_checkpoint_uses_original_forge_processing(self):
         forge = importlib.import_module("pi_qwen21.lib.forge")

@@ -4,12 +4,11 @@ An independent, unofficial extension that adds Qwen-Image-2.1 to the normal Forg
 
 > This is my first public project and I am still learning. Please forgive any mistakes or rough edges. Kind, complete bug reports will help improve the project for everyone.
 
-## Latest update — September 23, 2026
+## Latest update — September 24, 2026
 
-- Fixed quantized LoRA loading and empty-negative-prompt CFG errors.
-- Kept one native CFG slider and improved failed-pipeline cleanup.
-- Added portable paths, source verification, and update/backup guidance.
-- **Verified:** 87 automated Qwen tests passed. Restart Forge after updating.
+- **Renamed community DiT files now work (Issue #1):** weights from mirrors like Civitai (e.g. `qwenImage21INT8INT4_int8.safetensors`) are recognized by their internal structure, not just filename.
+- **New: Speed boost LoRA (optional):** tick the checkbox in Qwen Controls > Advanced, pick an official Viggle Turbo LoRA (4/5/6 steps), set its strength with a slider, and approve the one-time Hugging Face download. Existing copies in your Lora folders (including subfolders) are found and reused automatically — no download needed.
+- **Verified:** 93 automated Qwen tests passed. Restart Forge after updating.
 
 See the [dated update history](CHANGELOG.md) for details, installation steps and testing limits.
 
