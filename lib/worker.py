@@ -144,9 +144,13 @@ def main():
             if op == "init":
                 with contextlib.redirect_stdout(log), contextlib.redirect_stderr(log):
                     prof=command.get('prof') or {}
-                    bf16=getattr(torch.cuda,'is_bf16_supported',lambda: False)()
-                    if _quantized(command['bundle'],prof) and (getattr(torch.version,'hip',None) or not bf16):
-                        raise ValueError('This GPU supports Qwen-Image-2.1 BF16 component files only; ConvRot/W4A8 Forge kernels require BF16-capable NVIDIA CUDA')
+                    try:
+                        alias_assets=__import__(alias+'.lib.assets',fromlist=['quant_capable'])
+                        capable=alias_assets.quant_capable(torch)
+                    except Exception:
+                        capable=False
+                    if _quantized(command['bundle'],prof) and not capable:
+                        raise ValueError('This GPU supports Qwen-Image-2.1 BF16 component files only; ConvRot/W4A8 Forge kernels require BF16-capable NVIDIA CUDA with a CUDA 13+ PyTorch build')
                     dtype=_compute_dtype(torch)
                     params=inspect.signature(components.pipeline).parameters
                     pipe = components.pipeline(command["bundle"],dtype=dtype) if 'dtype' in params else components.pipeline(command["bundle"])

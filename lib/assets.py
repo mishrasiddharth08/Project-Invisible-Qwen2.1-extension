@@ -140,15 +140,35 @@ def bucket(width, height, side=0):
     return w,h
 
 
+def quant_capable(torch):
+    """True only when Forge's packed ConvRot/W4A8 kernels can run on this setup.
+
+    Mirrors backend/quant_ops.py: the comfy-kitchen 'cuda' backend is disabled
+    when PyTorch has no CUDA, or when the torch build targets CUDA < 13. The
+    kernels also require bf16 compute. Everything else (ROCm, old torch builds,
+    fp16-only cards) must use the universal bf16 files.
+    """
+    if bool(getattr(getattr(torch, 'version', None), 'hip', None)):
+        return False
+    cuda = getattr(getattr(torch, 'version', None), 'cuda', None)
+    if not cuda:
+        return False
+    try:
+        if tuple(map(int, str(cuda).split('.'))) < (13,):
+            return False
+    except ValueError:
+        return False
+    if not torch.cuda.is_available():
+        return False
+    check = getattr(torch.cuda, 'is_bf16_supported', None)
+    return bool(check()) if callable(check) else False
+
 def hardware_profile(torch, override='auto'):
-    """ROCm shares torch.cuda; packed Neo kernels are not assumed portable."""
+    """Pick component precisions the actual GPU can execute."""
     if not torch.cuda.is_available():
         raise ValueError('Qwen 2.1 needs a supported NVIDIA CUDA or AMD ROCm PyTorch GPU. DirectML and CPU-only execution are not supported.')
     gb = torch.cuda.get_device_properties(0).total_memory / 2**30
     result = profile(gb, override)
-    hip = bool(getattr(getattr(torch, 'version', None), 'hip', None))
-    check = getattr(torch.cuda, 'is_bf16_supported', None)
-    bf16 = bool(check()) if callable(check) else False
-    if hip or not bf16:
+    if not quant_capable(torch):
         result.update(dit='bf16', te='bf16', portable=True)
     return result

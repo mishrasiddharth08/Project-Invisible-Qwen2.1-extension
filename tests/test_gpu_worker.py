@@ -11,7 +11,7 @@ worker=importlib.util.module_from_spec(spec);spec.loader.exec_module(worker)
 if 'pi_qwen21' not in sys.modules:
     package_spec=importlib.util.spec_from_file_location('pi_qwen21',ROOT/'__init__.py',submodule_search_locations=[str(ROOT)])
     package=importlib.util.module_from_spec(package_spec);sys.modules['pi_qwen21']=package;package_spec.loader.exec_module(package)
-from pi_qwen21.lib.assets import hardware_profile
+from pi_qwen21.lib.assets import hardware_profile, quant_capable
 
 
 class FakeCuda:
@@ -37,8 +37,9 @@ class Pipe:
 
 
 class GPUWorkerTests(unittest.TestCase):
-    def torch(self,available=True,bf16=True,hip=None,gb=24):
-        return types.SimpleNamespace(cuda=FakeCuda(available,bf16,gb),version=types.SimpleNamespace(hip=hip),
+    def torch(self,available=True,bf16=True,hip=None,gb=24,cuda='13.0'):
+        return types.SimpleNamespace(cuda=FakeCuda(available,bf16,gb),
+                                     version=types.SimpleNamespace(hip=hip,cuda=cuda),
                                      bfloat16='bf16',float16='fp16')
 
     def test_dtype_prefers_bf16_and_falls_back_to_fp16(self):
@@ -65,6 +66,27 @@ class GPUWorkerTests(unittest.TestCase):
     def test_hardware_profile_4gb_and_6gb_choose_recovery_sides(self):
         self.assertEqual(hardware_profile(self.torch(gb=4))['side'],512)
         self.assertEqual(hardware_profile(self.torch(gb=6))['side'],768)
+
+    def test_quant_capable_requires_cuda13_bf16_nvidia(self):
+        self.assertTrue(quant_capable(self.torch(gb=12)))
+        self.assertFalse(quant_capable(self.torch(hip='6.2',gb=12)))
+        self.assertFalse(quant_capable(self.torch(bf16=False,gb=12)))
+        self.assertFalse(quant_capable(self.torch(available=False,gb=12)))
+
+    def test_quant_capable_rejects_old_cuda_torch_builds(self):
+        self.assertFalse(quant_capable(self.torch(cuda='12.8',gb=12)))
+        self.assertFalse(quant_capable(self.torch(cuda=None,gb=12)))
+        self.assertFalse(quant_capable(self.torch(cuda='not-a-version',gb=12)))
+
+    def test_hardware_profile_old_cuda_torch_forces_bf16_fallback(self):
+        result=hardware_profile(self.torch(cuda='12.4',gb=12))
+        self.assertEqual((result['dit'],result['te']),('bf16','bf16'))
+        self.assertTrue(result['portable'])
+
+    def test_hardware_profile_keeps_quant_on_capable_cuda13_card(self):
+        result=hardware_profile(self.torch(gb=12))
+        self.assertEqual(result['dit'],'int8_convrot')
+        self.assertNotIn('portable',result)
 
     def test_low_memory_uses_leaf_group_offload_and_enables_vae_memory_features(self):
         pipe=Pipe();worker._prepare_pipe(pipe,{'te':'w4a8','side':1024},True)

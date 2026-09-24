@@ -6,10 +6,11 @@ An independent, unofficial extension that adds Qwen-Image-2.1 to the normal Forg
 
 ## Latest update — September 24, 2026
 
-- **Renamed community DiT files now work (Issue #1):** weights from mirrors like Civitai (e.g. `qwenImage21INT8INT4_int8.safetensors`) are recognized by their internal structure, not just filename.
-- **Fixed device-mismatch crash during offloading (Issue #2):** quantized models no longer fail with "Expected all tensors to be on the same device" on the first generation; the packed word-lookup tables now survive CPU/GPU offload moves.
-- **New: Speed boost LoRA (optional):** tick the checkbox in Qwen Controls > Advanced, pick an official Viggle Turbo LoRA (4/5/6 steps), set its strength with a slider, and approve the one-time Hugging Face download. Existing copies in your Lora folders (including subfolders) are found and reused automatically — no download needed.
-- **Verified:** 95 automated Qwen tests passed. Restart Forge after updating.
+- Quantized model files (int8_convrot / w4a8) are now only chosen for GPUs that can run them: an NVIDIA CUDA PyTorch build (CUDA 13+), BF16-capable, non-ROCm. Every other card automatically gets the universal BF16 files — no more kernel crashes on older hardware.
+- Renamed community DiT files (e.g. from Civitai) are now recognized by their internal structure, not just filenames (Issue #1).
+- Fixed a packed-Embedding device mismatch during quantized offloading (Issue #2).
+- Added the Speed boost LoRA feature with one-time license-approved downloads.
+- **Verified:** 99 automated Qwen tests passed. Restart Forge after updating.
 
 See the [dated update history](CHANGELOG.md) for details, installation steps and testing limits.
 
@@ -109,10 +110,6 @@ sd-webui-forge-classic\models\Qwen-Image-2.1\
 ```
 
 Do not substitute an older model generation's text encoder or VAE.
-
-### Renamed community files
-
-Downloaded a DiT from a mirror like Civitai under a different filename (for example `qwenImage21INT8INT4_int8.safetensors`)? That is fine: the extension also recognizes Qwen-Image-2.1 DiT weights **by their internal structure**, not just by filename. Select the renamed file as the checkpoint and press Generate. LoRA/LoKr adapter files and non-Qwen architectures are still rejected. The text encoder and VAE must still use their original filenames.
 
 The extension's **Models** section can download only selected files after you explicitly accept the license and approve the download.
 
