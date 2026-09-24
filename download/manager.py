@@ -50,6 +50,8 @@ def featured_path(name):
 
 def download_featured(name, approved=False):
     """Fetch one featured LoRA after explicit approval. Never called by Generate."""
+    if name is None or str(name).strip() in ('', '(none)'):
+        raise ValueError('Pick a speed LoRA from the dropdown first.')
     entry=FEATURED.get(name)
     if entry is None: raise ValueError('Unknown featured LoRA: '+str(name))
     if not approved: raise ValueError('Accept the LoRA license and authorize the download first.')
