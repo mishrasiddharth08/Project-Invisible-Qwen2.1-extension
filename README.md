@@ -6,6 +6,7 @@ An independent, unofficial extension that adds Qwen-Image-2.1 to the normal Forg
 
 ## Latest update — September 24, 2026
 
+- **Control panel reorganized:** the accordion now leads with a quick-start card, Output and Quality; VRAM/memory options, Speed boost, the prompt helper and model downloads moved into clearly labeled Advanced tabs (Performance / Speed boost / Prompt helper / Model Setup), each control with a plain-language explanation underneath. Nothing was removed - same features, tidier layout, matching the Ideogram 4 extension.
 - Quantized model files now run on every NVIDIA and AMD card: on GPUs without Forge's packed-kernel support (AMD ROCm, older CUDA torch builds, fp16-only NVIDIA cards) the extension unpacks them to plain BF16 in system RAM and runs normally. Capable NVIDIA cards keep the fast packed kernels.
 - All packed formats are supported (int8/int8-convrot, W4A8, FP8 E4M3/E5M2, MXFP8, NVFP4, ConvRot-W4A4) for DiT, text encoder and VAE.
 - Adapter support widened: factorized LoKr, LoHa and full-difference adapters work alongside ordinary LoRA and plain LoKr.

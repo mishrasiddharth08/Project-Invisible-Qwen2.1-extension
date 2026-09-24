@@ -2,6 +2,12 @@
 
 Newest updates appear first. Dates use YYYY-MM-DD. These entries describe published changes, not guarantees for every device or adapter.
 
+## 2026-09-24 (2)
+
+### Changed
+
+- **Control panel reorganized** to match the layout used by Project Invisible — Ideogram 4: the top of the accordion now shows only a quick-start card, the Output choice and the Quality choice. Everything rarely touched (VRAM profile, maximum size, GPU-memory saving, Spectrum, community LoRAs, Speed boost, prompt helper, model downloads) moved into labeled **Advanced tabs**: Performance, Speed boost, Prompt helper and Model Setup. Every dropdown, checkbox, radio and slider now has a one-line plain-language explanation under it, buttons are compact, and status messages are styled consistently. No controls were removed and no behavior changed - only placement and wording.
+
 ## 2026-09-24
 
 ### Fixed

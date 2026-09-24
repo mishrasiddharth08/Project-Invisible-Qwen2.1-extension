@@ -6,3 +6,9 @@
 @media (prefers-reduced-motion: reduce) {
     .pi-qwen-developing .livePreview img:last-child { animation: none; }
 }
+
+/* Panel layout: keep the quickstart/status cards compact and the tabs tight. */
+.pi-q21-panel { border-color: var(--border-color-primary); }
+.pi-q21-output { margin-bottom: 6px; }
+.pi-q21-status { font-size: 0.9em; opacity: 0.9; }
+.pi-q21-tools .tab-nav { margin-bottom: 6px; }
