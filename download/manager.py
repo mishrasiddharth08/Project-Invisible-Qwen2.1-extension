@@ -123,7 +123,8 @@ def resolve(selected=None, confirmed=False, prof=None):
     for kind in ('dit','te'):
         alternatives=([f'qwen_image_2.1_int8_convrot.safetensors'] if kind=='dit' else
                       (['qwen3vl_8b_int8_convrot.safetensors','qwen3vl_8b_w4a8.safetensors'] if prof['te']!='w4a8' else []))
-        if prof.get('portable'): alternatives=[]
+        # Quantized files are usable on every card: unsupported GPUs unpack
+        # them to bf16 in system RAM at load time (lib/components.py).
         if not files[kind]: files[kind]=next((p for p in inventory[kind] if Path(p).name.lower() in alternatives),None)
     if single:
         files['dit']=str(selected)

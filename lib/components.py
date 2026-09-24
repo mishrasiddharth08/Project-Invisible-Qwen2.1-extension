@@ -117,7 +117,62 @@ def _normalize_component(sd,kind):
                 normalized[parent+'.proj.comfy_quant']=descriptor
     return normalized
 
-def load_component(cls, config_dir, path, kind, dtype=None):
+def _dequantize_component(sd,kind,dtype):
+    """Unpack packed quantized weights into plain tensors on CPU.
+
+    Forge's fast packed kernels (cuBLASLt INT8 IMMA) only exist for NVIDIA
+    CUDA. On ROCm, older torch builds or fp16-only cards the same files can
+    still run after materializing their weights to ``dtype`` in system RAM.
+    Uses comfy-kitchen's eager dequantize, which needs no GPU at all. The
+    memory footprint afterwards matches the universal bf16 files exactly.
+    """
+    import torch
+    from comfy_kitchen.tensor import TensorWiseINT8Layout,AsymW4A8Int8Layout
+    def take(layer,suffixes):
+        for suffix in suffixes:
+            key=layer+'.'+suffix
+            if key in sd: return sd.pop(key)
+        return None
+    restored=0
+    for key in [k for k in sd if k.endswith('.comfy_quant')]:
+        layer=key[:-len('.comfy_quant')]
+        desc=_descriptor(sd.pop(key))
+        fmt=desc.get('format')
+        wkey=layer+'.weight'
+        if wkey not in sd:
+            raise ValueError(f'Quantization descriptor without packed weight: {key}')
+        qdata=sd[wkey]
+        shape=tuple(qdata.shape)
+        if fmt=='int8_tensorwise':
+            scale=take(layer,('weight_scale','_scale'))
+            if scale is None:
+                raise ValueError(f'Missing packed INT8 scale: {layer}')
+            params=TensorWiseINT8Layout.Params(
+                scale=scale,orig_dtype=dtype,orig_shape=shape,
+                is_weight=True,convrot=bool(desc.get('convrot')),
+                convrot_groupsize=int(desc.get('convrot_groupsize',256)))
+            weight=TensorWiseINT8Layout.dequantize(qdata,params)
+        elif fmt=='asym_w4a8_int8':
+            s_rel=take(layer,('weight_scale','_s_rel','weight_s_rel'))
+            s_channel=take(layer,('weight_s_channel','_s_channel'))
+            if s_rel is None or s_channel is None:
+                raise ValueError(f'Missing packed W4A8 scales: {layer}')
+            params=AsymW4A8Int8Layout.Params(
+                scale=s_rel,orig_dtype=dtype,orig_shape=shape,
+                s_channel=s_channel,
+                correction=take(layer,('weight_correction','_correction')),
+                codebook=take(layer,('weight_codebook','_codebook')),
+                group_size=int(desc.get('group_size',16)))
+            weight=AsymW4A8Int8Layout.dequantize(qdata,params)
+        else:
+            raise ValueError(f'Cannot dequantize unsupported 2.1 format {fmt}: {key}')
+        sd[wkey]=weight.to(dtype).contiguous()
+        restored+=1
+    if not restored:
+        raise ValueError(f'No packed weights found for dequantized {kind} load')
+    return sd
+
+def load_component(cls, config_dir, path, kind, dtype=None, dequantize=False):
     import torch
     dtype=dtype or torch.bfloat16
     from accelerate import init_empty_weights
@@ -153,6 +208,13 @@ def load_component(cls, config_dir, path, kind, dtype=None):
             formats.add(fmt)
         if not formats or formats-{'int8_tensorwise','asym_w4a8_int8'} or formats-set(QUANT_ALGOS):
             raise ValueError('Unsupported 2.1 quantization descriptors: '+str(formats))
+        if dequantize:
+            # This GPU cannot run the packed kernels (ROCm, CUDA < 13 torch
+            # build, fp16-only card). Materialize weights to plain bf16 and
+            # load like the universal bf16 files instead.
+            sd=_dequantize_component(sd,kind,dtype)
+            quant=False
+    if quant:
         qc=detect_quantization(sd,is_unet=kind=='transformer')
         if not qc: raise ValueError('Neo did not recognize this quantization layout')
         qc=dict(qc);qc.pop('TE',None)
@@ -190,7 +252,7 @@ def load_component(cls, config_dir, path, kind, dtype=None):
     model.eval().requires_grad_(False)
     return model
 
-def pipeline(bundle,dtype=None):
+def pipeline(bundle,dtype=None,dequantize=False):
     import torch
     dtype=dtype or torch.bfloat16
     from diffusers import QwenImage21Pipeline,QwenImage21Transformer2DModel,AutoencoderKLQwenImage21,FlowMatchEulerDiscreteScheduler
@@ -199,7 +261,7 @@ def pipeline(bundle,dtype=None):
     if not files:
         return QwenImage21Pipeline.from_pretrained(str(folder),torch_dtype=dtype,local_files_only=True)
     classes={'transformer':QwenImage21Transformer2DModel,'text_encoder':Qwen3VLForConditionalGeneration,'vae':AutoencoderKLQwenImage21}
-    parts={k:load_component(cls,folder/k,files[k],k,dtype=dtype) for k,cls in classes.items()}
+    parts={k:load_component(cls,folder/k,files[k],k,dtype=dtype,dequantize=dequantize) for k,cls in classes.items()}
     parts['processor']=Qwen3VLProcessor.from_pretrained(str(folder/'processor'),local_files_only=True)
     parts['scheduler']=FlowMatchEulerDiscreteScheduler.from_pretrained(str(folder/'scheduler'),local_files_only=True)
     return QwenImage21Pipeline(**parts)

@@ -144,22 +144,35 @@ def main():
             if op == "init":
                 with contextlib.redirect_stdout(log), contextlib.redirect_stderr(log):
                     prof=command.get('prof') or {}
-                    try:
-                        alias_assets=__import__(alias+'.lib.assets',fromlist=['quant_capable'])
-                        capable=alias_assets.quant_capable(torch)
-                    except Exception:
-                        capable=False
-                    if _quantized(command['bundle'],prof) and not capable:
-                        raise ValueError('This GPU supports Qwen-Image-2.1 BF16 component files only; ConvRot/W4A8 Forge kernels require BF16-capable NVIDIA CUDA with a CUDA 13+ PyTorch build')
+                    dequantize=False
+                    if _quantized(command['bundle'],prof):
+                        try:
+                            alias_assets=__import__(alias+'.lib.assets',fromlist=['quant_capable'])
+                            capable=alias_assets.quant_capable(torch)
+                        except Exception:
+                            capable=False
+                        if not capable:
+                            # ROCm / older CUDA torch build / fp16-only card:
+                            # materialize packed weights to bf16 in system RAM
+                            # instead of refusing the files.
+                            dequantize=True
+                            print('[PI-Qwen21] Packed quantization kernels are unavailable on this GPU; unpacking quantized files to bf16 in system RAM (first load is slower).')
                     dtype=_compute_dtype(torch)
                     params=inspect.signature(components.pipeline).parameters
-                    pipe = components.pipeline(command["bundle"],dtype=dtype) if 'dtype' in params else components.pipeline(command["bundle"])
+                    if 'dequantize' in params:
+                        pipe = components.pipeline(command["bundle"],dtype=dtype,dequantize=dequantize)
+                    elif 'dtype' in params:
+                        if dequantize: raise ValueError('Packed quantized files need a compatible extension and Forge build')
+                        pipe = components.pipeline(command["bundle"],dtype=dtype)
+                    else:
+                        if dequantize: raise ValueError('Packed quantized files need a compatible extension and Forge build')
+                        pipe = components.pipeline(command["bundle"])
                     if (pipe.__class__.__name__ != "QwenImage21Pipeline"
                             or pipe.vae.__class__.__name__ != "AutoencoderKLQwenImage21"
                             or pipe.transformer.__class__.__name__ != "QwenImage21Transformer2DModel"
                             or pipe.text_encoder.__class__.__name__ != "Qwen3VLForConditionalGeneration"):
                         raise ValueError("Loaded component architecture is not official Qwen-Image-2.1")
-                    _prepare_pipe(pipe,prof,command.get('offload',True),_quantized(command['bundle'],prof))
+                    _prepare_pipe(pipe,prof,command.get('offload',True),_quantized(command['bundle'],prof) and not dequantize)
                 emit("initialized")
                 continue
             if op != "generate" or pipe is None:

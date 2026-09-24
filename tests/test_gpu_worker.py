@@ -107,5 +107,15 @@ class GPUWorkerTests(unittest.TestCase):
         self.assertEqual(direct.mode,'cuda')
         self.assertFalse(direct.vae.tiled)
 
+    def test_dequantized_load_still_gets_low_memory_group_offload(self):
+        # After unpacking to plain bf16 the weights are ordinary tensors, so
+        # every offload mode is safe again (the quantized guard only blocked
+        # the accelerate-sequential fallback for packed subclass weights).
+        pipe=Pipe();worker._prepare_pipe(pipe,{'te':'w4a8','side':1024},True,quantized=False)
+        self.assertEqual(pipe.mode,'group')
+        plain_no_group=Pipe();plain_no_group.enable_group_offload=None
+        worker._prepare_pipe(plain_no_group,{'te':'w4a8','side':1024},True,quantized=False)
+        self.assertEqual(plain_no_group.mode,'sequential')
+
 
 if __name__=='__main__': unittest.main(verbosity=2)

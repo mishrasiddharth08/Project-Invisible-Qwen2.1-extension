@@ -6,13 +6,13 @@ Newest updates appear first. Dates use YYYY-MM-DD. These entries describe publis
 
 ### Fixed
 
-- **Quantized files work only on GPUs that can run them (Issue #2 follow-up):** packed ConvRot/W4A8 kernels need an NVIDIA CUDA PyTorch build (CUDA 13 or newer), a BF16-capable card, and must not be ROCm. The hardware profile now checks all three and automatically falls back to the universal BF16 files when any check fails, instead of handing a card a quantized file it cannot execute. The worker also re-checks at load time and explains the requirement if a quantized file is forced. Cards already on BF16 profiles are unaffected.
+- **Quantized files now run on every NVIDIA and AMD card:** packed ConvRot/W4A8 kernels only exist for NVIDIA CUDA (a CUDA 13+ PyTorch build, BF16-capable). Instead of refusing quantized files elsewhere, the extension now unpacks them to plain BF16 in system RAM at load time and runs normally. AMD ROCm, older torch builds and fp16-only NVIDIA cards can use the same smaller downloads as everyone else; the first load is slower and peak system RAM matches the BF16 files. Capable NVIDIA cards still get the fast packed kernels unchanged. The worker logs when unpacking happens.
 
 - **Renamed community DiT files are now recognized (Issue #1):** the extension previously identified model files only by exact filenames. A Qwen-Image-2.1 DiT downloaded from a community mirror (for example Civitai, saved as `qwenImage21INT8INT4_int8.safetensors`) was not recognized, so Forge tried to load it directly and reported "Failed to recognize diffusion model". DiT files are now identified by their internal tensor structure as well as by filename, in both the model scan and checkpoint selection. Adapter (LoRA/LoKr) files and foreign architectures (Flux/SD layouts) are still rejected.
 
 ### Verification
 
-- **99 Qwen automated tests passed** (the previous 95 plus four new regression tests for quantized-kernel capability detection and BF16 fallback).
+- **102 Qwen automated tests passed** (the previous 99 plus three new regression tests: packed-weight unpacking to BF16 on unsupported GPUs, refusal of malformed packs, and restored low-memory offloading after unpacking).
 
 ## 2026-09-23
 

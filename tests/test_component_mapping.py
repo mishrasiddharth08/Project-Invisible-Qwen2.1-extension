@@ -11,11 +11,15 @@ ROOT=Path(__file__).resolve().parents[1]
 if 'pi_qwen21' not in sys.modules:
     spec=importlib.util.spec_from_file_location('pi_qwen21',ROOT/'__init__.py',submodule_search_locations=[str(ROOT)])
     package=importlib.util.module_from_spec(spec);sys.modules['pi_qwen21']=package;spec.loader.exec_module(package)
-from pi_qwen21.lib.components import _map_vae_key,_normalize_component,_embedding_apply,_harden_embedding_apply
+from pi_qwen21.lib.components import _map_vae_key,_normalize_component,_embedding_apply,_harden_embedding_apply,_dequantize_component
 
 
 def descriptor(fmt='int8_tensorwise'):
     return torch.tensor(list(json.dumps({'format':fmt}).encode()),dtype=torch.uint8)
+
+
+def convrot_descriptor():
+    return torch.tensor(list(json.dumps({'format':'int8_tensorwise','convrot':True,'convrot_groupsize':256}).encode()),dtype=torch.uint8)
 
 
 class ComponentMappingTests(unittest.TestCase):
@@ -49,6 +53,32 @@ class ComponentMappingTests(unittest.TestCase):
         out=_normalize_component({'x.img_mlp.gate_up.weight':weight},'transformer')
         self.assertTrue(torch.equal(out['x.img_mlp.gate_layer.weight'],weight[:3]))
         self.assertTrue(torch.equal(out['x.img_mlp.proj.weight'],weight[3:]))
+
+    def test_dequantize_component_unpacks_int8_convrot_to_plain_bf16(self):
+        # Build a real packed tensor through comfy-kitchen, then unpack it
+        # the way unsupported GPUs (ROCm, CUDA<13, fp16-only) must.
+        from comfy_kitchen.tensor import QuantizedTensor
+        weight=torch.randn(256,512,dtype=torch.bfloat16)
+        qt=QuantizedTensor.from_float(weight,'TensorWiseINT8Layout',is_weight=True,per_channel=True,convrot=True,convrot_groupsize=256)
+        sd={'block.attn.to_k.weight':qt._qdata,
+            'block.attn.to_k.weight_scale':qt._params.scale,
+            'block.attn.to_k.comfy_quant':convrot_descriptor()}
+        out=_dequantize_component(sd,'transformer',torch.bfloat16)
+        self.assertEqual(set(out),{'block.attn.to_k.weight'})
+        plain=out['block.attn.to_k.weight']
+        self.assertEqual(plain.dtype,torch.bfloat16)
+        self.assertEqual(tuple(plain.shape),(256,512))
+        self.assertLess((plain.to(torch.float32)-weight.to(torch.float32)).abs().max().item(),0.15)
+
+    def test_dequantize_component_rejects_unknown_format_and_missing_scales(self):
+        with self.assertRaisesRegex(ValueError,'unsupported'):
+            _dequantize_component({'x.weight':torch.zeros(4,4,dtype=torch.int8),
+                                  'x.comfy_quant':descriptor('packed_int4')},'transformer',torch.bfloat16)
+        with self.assertRaisesRegex(ValueError,'INT8 scale'):
+            _dequantize_component({'x.weight':torch.zeros(4,4,dtype=torch.int8),
+                                  'x.comfy_quant':descriptor()},'transformer',torch.bfloat16)
+        with self.assertRaisesRegex(ValueError,'without packed weight'):
+            _dequantize_component({'x.comfy_quant':descriptor()},'transformer',torch.bfloat16)
 
     def test_vae_top_convs_and_singleton_temporal_kernels_map_to_diffusers(self):
         conv1=torch.zeros(128,128,1,1,1)

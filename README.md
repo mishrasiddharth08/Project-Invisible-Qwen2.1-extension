@@ -6,11 +6,11 @@ An independent, unofficial extension that adds Qwen-Image-2.1 to the normal Forg
 
 ## Latest update — September 24, 2026
 
-- Quantized model files (int8_convrot / w4a8) are now only chosen for GPUs that can run them: an NVIDIA CUDA PyTorch build (CUDA 13+), BF16-capable, non-ROCm. Every other card automatically gets the universal BF16 files — no more kernel crashes on older hardware.
+- Quantized model files now run on every NVIDIA and AMD card: on GPUs without Forge's packed-kernel support (AMD ROCm, older CUDA torch builds, fp16-only NVIDIA cards) the extension unpacks them to plain BF16 in system RAM and runs normally. Capable NVIDIA cards keep the fast packed kernels.
 - Renamed community DiT files (e.g. from Civitai) are now recognized by their internal structure, not just filenames (Issue #1).
 - Fixed a packed-Embedding device mismatch during quantized offloading (Issue #2).
 - Added the Speed boost LoRA feature with one-time license-approved downloads.
-- **Verified:** 99 automated Qwen tests passed. Restart Forge after updating.
+- **Verified:** 102 automated Qwen tests passed. Restart Forge after updating.
 
 See the [dated update history](CHANGELOG.md) for details, installation steps and testing limits.
 
