@@ -7,8 +7,9 @@ An independent, unofficial extension that adds Qwen-Image-2.1 to the normal Forg
 ## Latest update — September 24, 2026
 
 - **Renamed community DiT files now work (Issue #1):** weights from mirrors like Civitai (e.g. `qwenImage21INT8INT4_int8.safetensors`) are recognized by their internal structure, not just filename.
+- **Fixed device-mismatch crash during offloading (Issue #2):** quantized models no longer fail with "Expected all tensors to be on the same device" on the first generation; the packed word-lookup tables now survive CPU/GPU offload moves.
 - **New: Speed boost LoRA (optional):** tick the checkbox in Qwen Controls > Advanced, pick an official Viggle Turbo LoRA (4/5/6 steps), set its strength with a slider, and approve the one-time Hugging Face download. Existing copies in your Lora folders (including subfolders) are found and reused automatically — no download needed.
-- **Verified:** 93 automated Qwen tests passed. Restart Forge after updating.
+- **Verified:** 95 automated Qwen tests passed. Restart Forge after updating.
 
 See the [dated update history](CHANGELOG.md) for details, installation steps and testing limits.
 

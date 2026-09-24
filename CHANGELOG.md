@@ -6,11 +6,13 @@ Newest updates appear first. Dates use YYYY-MM-DD. These entries describe publis
 
 ### Fixed
 
+- **Device-mismatch crash during offloading (Issue #2):** quantized models use packed weight formats. The standard PyTorch routine for moving a module between CPU and GPU reassigns `param.data`, which can strip the packed-format wrapper and leave the word-lookup (embedding) table on the wrong device, producing "Expected all tensors to be on the same device" on the first generation. The extension now attaches a subclass-safe move routine to every Embedding of the loaded components before offloading engages, mirroring Forge's own quantized `_apply` behavior. No Forge core files are changed.
+
 - **Renamed community DiT files are now recognized (Issue #1):** the extension previously identified model files only by exact filenames. A Qwen-Image-2.1 DiT downloaded from a community mirror (for example Civitai, saved as `qwenImage21INT8INT4_int8.safetensors`) was not recognized, so Forge tried to load it directly and reported "Failed to recognize diffusion model". DiT files are now identified by their internal tensor structure as well as by filename, in both the model scan and checkpoint selection. Adapter (LoRA/LoKr) files and foreign architectures (Flux/SD layouts) are still rejected.
 
 ### Verification
 
-- **89 Qwen automated tests passed** (the previous 87 plus two new regression tests for renamed-file recognition).
+- **95 Qwen automated tests passed** (the previous 93 plus two new regression tests for the packed-Embedding device move).
 
 ## 2026-09-23
 

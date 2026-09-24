@@ -11,7 +11,7 @@ ROOT=Path(__file__).resolve().parents[1]
 if 'pi_qwen21' not in sys.modules:
     spec=importlib.util.spec_from_file_location('pi_qwen21',ROOT/'__init__.py',submodule_search_locations=[str(ROOT)])
     package=importlib.util.module_from_spec(spec);sys.modules['pi_qwen21']=package;spec.loader.exec_module(package)
-from pi_qwen21.lib.components import _map_vae_key,_normalize_component
+from pi_qwen21.lib.components import _map_vae_key,_normalize_component,_embedding_apply,_harden_embedding_apply
 
 
 def descriptor(fmt='int8_tensorwise'):
@@ -104,6 +104,35 @@ class ComponentMappingTests(unittest.TestCase):
         self.assertIn('model.language_model.norm.weight',out)
         self.assertIs(out['model.visual.patch_embed.proj.weight'],visual)
         self.assertFalse(any(key.startswith('lm_head.') for key in out))
+
+
+class EmbeddingDeviceMoveTests(unittest.TestCase):
+    """Issue #2 regression: packed Embedding weights must survive device moves."""
+
+    def test_hardened_embedding_apply_moves_parameter_intact(self):
+        # Stock nn.Module._apply reassigns param.data, which can strip a custom
+        # Parameter subclass wrapper; the hardened _apply must keep it intact.
+        module = torch.nn.Embedding(4, 3)
+        module._apply = _embedding_apply.__get__(module, type(module))
+        moved = module._apply(lambda p: torch.nn.Parameter(p.clone() + 0, requires_grad=False))
+        self.assertIs(moved, module)
+        self.assertIsInstance(module.weight, torch.nn.Parameter)
+        self.assertEqual(module.weight.shape, (4, 3))
+
+    def test_harden_embedding_apply_covers_nested_modules(self):
+        class Holder(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.embed = torch.nn.Embedding(4, 3)
+
+        model = Holder()
+        returned = _harden_embedding_apply(model)
+        self.assertIs(returned, model)
+        self.assertIsInstance(model.embed.weight, torch.nn.Parameter)
+        # The hardened _apply must keep parameters as Parameters after moving.
+        module = model.embed
+        module._apply(lambda p: torch.nn.Parameter(p.clone(), requires_grad=False))
+        self.assertIsInstance(module.weight, torch.nn.Parameter)
 
 
 if __name__=='__main__': unittest.main(verbosity=2)

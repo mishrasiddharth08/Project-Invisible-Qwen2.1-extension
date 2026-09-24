@@ -3,6 +3,40 @@ import json
 import re
 from pathlib import Path
 
+def _embedding_apply(self, fn, recurse=True):
+    """Move a whole Embedding module without stripping packed weight subclasses.
+
+    The default ``nn.Module._apply`` reassigns ``param.data``, which unwraps
+    QuantizedTensor parameters and leaves the packed data on the original
+    device while the module executes elsewhere (Issue #2 device mismatch).
+    Applying ``fn`` to the full parameter keeps the subclass and its device.
+    Mirrors backend.operations_mixed_precision._quantized_apply.
+    """
+    import torch
+    if recurse:
+        for child in self.children():
+            child._apply(fn)
+    for key, param in list(self._parameters.items()):
+        if param is None:
+            continue
+        moved = fn(param)
+        try:
+            self.register_parameter(key, torch.nn.Parameter(moved, requires_grad=False))
+        except RuntimeError:
+            self.register_parameter(key, torch.nn.Parameter(moved.clone(), requires_grad=False))
+    for key, buf in self._buffers.items():
+        if buf is not None:
+            self._buffers[key] = fn(buf)
+    return self
+
+def _harden_embedding_apply(model):
+    """Attach the subclass-safe move routine to every Embedding of this model."""
+    import torch
+    for module in model.modules():
+        if isinstance(module, torch.nn.Embedding):
+            module._apply = _embedding_apply.__get__(module, type(module))
+    return model
+
 def _descriptor(value):
     try:
         return json.loads(bytes(value.tolist()).decode().rstrip('\0'))
@@ -151,6 +185,8 @@ def load_component(cls, config_dir, path, kind, dtype=None):
     if any(t.is_meta for t in list(model.parameters())+list(model.buffers())):
         raise ValueError('Incomplete 2.1 component: unmaterialized tensors')
     model.to(dtype=dtype)
+    # Packed Embedding parameters must survive device moves during offloading.
+    _harden_embedding_apply(model)
     model.eval().requires_grad_(False)
     return model
 
