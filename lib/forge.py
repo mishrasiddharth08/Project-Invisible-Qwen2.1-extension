@@ -1,6 +1,6 @@
 """Chained, namespaced hooks based on the Ideogram reference adapter."""
 from pathlib import Path
-from .assets import scan, models_root, NAMES
+from .assets import scan, models_root, NAMES, is_dit_file
 from . import runtime
 
 LABEL='PROJECT INVISIBLE — Qwen-Image-2.1 (official)'
@@ -14,6 +14,8 @@ def selected(p=None):
     if ci is not None and getattr(ci,'_pi_qwen21',False): return ci.filename
     filename=getattr(ci,'filename','')
     if Path(filename).name.lower() in NAMES['dit']: return filename
+    # Community mirrors rename DiT files (e.g. Civitai); recognize by contents.
+    if filename and Path(filename).suffix=='.safetensors' and is_dit_file(filename): return filename
     return None
 
 def register():

@@ -83,6 +83,45 @@ class AssetAcceptanceTests(unittest.TestCase):
             self._identity_tree(root, vae_class="AutoencoderKLQwenImage")
             self.assertFalse(assets.identity(root), "old Qwen VAE must be rejected")
 
+    def test_is_dit_file_recognizes_renamed_community_weights(self):
+        qwen_keys = {
+            "transformer_blocks.0.attn.to_q.weight": {"dtype": "BF16", "shape": [1, 1]},
+            "transformer_blocks.0.img_mlp.gate_up.weight": {"dtype": "BF16", "shape": [1, 1]},
+        }
+        with tempfile.TemporaryDirectory() as td:
+            renamed = Path(td) / "qwenImage21INT8INT4_int8.safetensors"
+            write_safetensors(renamed, qwen_keys)
+            self.assertTrue(assets.is_dit_file(renamed), "renamed community DiT must be recognized by contents")
+
+            lora_keys = {k: v for k, v in qwen_keys.items()}
+            lora_keys["transformer_blocks.0.attn.to_q.lora_down.weight"] = {"dtype": "BF16", "shape": [1, 1]}
+            adapter_file = Path(td) / "some_lora.safetensors"
+            write_safetensors(adapter_file, lora_keys)
+            self.assertFalse(assets.is_dit_file(adapter_file), "adapter files must not be treated as DiT weights")
+
+            flux_keys = {"double_blocks.0.img_attn.qkv.weight": {"dtype": "BF16", "shape": [1, 1]}}
+            flux_file = Path(td) / "flux_model.safetensors"
+            write_safetensors(flux_file, flux_keys)
+            self.assertFalse(assets.is_dit_file(flux_file), "foreign architectures must be rejected")
+
+            junk = Path(td) / "junk.safetensors"
+            junk.write_bytes(b"not safetensors")
+            self.assertFalse(assets.is_dit_file(junk), "corrupt files must be rejected")
+
+    def test_scan_includes_renamed_dit_in_standard_folders(self):
+        keys = {
+            "transformer_blocks.0.attn.to_q.weight": {"dtype": "BF16", "shape": [1, 1]},
+            "transformer_blocks.0.img_mlp.gate_up.weight": {"dtype": "BF16", "shape": [1, 1]},
+        }
+        with tempfile.TemporaryDirectory() as td:
+            base = Path(td)
+            renamed = base / "Stable-diffusion" / "qwenImage21INT8INT4_int8.safetensors"
+            write_safetensors(renamed, keys)
+            with mock.patch.object(assets, "models_root", return_value=base), \
+                 mock.patch.dict(sys.modules, {"huggingface_hub": types.SimpleNamespace(snapshot_download=lambda *a, **k: (_ for _ in ()).throw(OSError()))}):
+                inventory = assets.scan()
+            self.assertIn(str(renamed.resolve()), inventory["dit"])
+
 
 class PromptRewriteAcceptanceTests(unittest.TestCase):
     def test_plain_prompt_passes_through(self):

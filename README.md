@@ -110,6 +110,10 @@ sd-webui-forge-classic\models\Qwen-Image-2.1\
 
 Do not substitute an older model generation's text encoder or VAE.
 
+### Renamed community files
+
+Downloaded a DiT from a mirror like Civitai under a different filename (for example `qwenImage21INT8INT4_int8.safetensors`)? That is fine: the extension also recognizes Qwen-Image-2.1 DiT weights **by their internal structure**, not just by filename. Select the renamed file as the checkpoint and press Generate. LoRA/LoKr adapter files and non-Qwen architectures are still rejected. The text encoder and VAE must still use their original filenames.
+
 The extension's **Models** section can download only selected files after you explicitly accept the license and approve the download.
 
 ## First text-to-image test

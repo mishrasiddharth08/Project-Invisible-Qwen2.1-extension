@@ -2,6 +2,16 @@
 
 Newest updates appear first. Dates use YYYY-MM-DD. These entries describe published changes, not guarantees for every device or adapter.
 
+## 2026-09-24
+
+### Fixed
+
+- **Renamed community DiT files are now recognized (Issue #1):** the extension previously identified model files only by exact filenames. A Qwen-Image-2.1 DiT downloaded from a community mirror (for example Civitai, saved as `qwenImage21INT8INT4_int8.safetensors`) was not recognized, so Forge tried to load it directly and reported "Failed to recognize diffusion model". DiT files are now identified by their internal tensor structure as well as by filename, in both the model scan and checkpoint selection. Adapter (LoRA/LoKr) files and foreign architectures (Flux/SD layouts) are still rejected.
+
+### Verification
+
+- **89 Qwen automated tests passed** (the previous 87 plus two new regression tests for renamed-file recognition).
+
 ## 2026-09-23
 
 ### Fixed

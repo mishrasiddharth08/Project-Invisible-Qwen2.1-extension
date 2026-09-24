@@ -28,6 +28,38 @@ def header(path):
             raise ValueError('Invalid safetensors header')
         return json.loads(f.read(n))
 
+_ADAPTER_SUFFIXES = (
+    '.lora_A.weight', '.lora_B.weight', '.lora_down.weight', '.lora_up.weight',
+    '.lokr_w1', '.lokr_w2',
+)
+_FOREIGN_PATTERNS = ('double_blocks', 'single_blocks', 'input_blocks',
+                     'output_blocks', 'middle_block', 'model.diffusion_model.')
+
+def is_dit_file(path):
+    """Recognize a Qwen-Image-2.1 DiT by tensor structure, not by filename.
+
+    Community mirrors (e.g. Civitai) rename the weight file; the internal
+    layout is what identifies the architecture. Requires transformer block
+    attention projections plus a Qwen-2.1-specific MLP naming, and rejects
+    adapter files and other architectures (Flux/SD UNet layouts).
+    """
+    try:
+        h = header(path)
+    except (OSError, ValueError):
+        return False
+    keys = [k for k in h if k != '__metadata__']
+    if not keys:
+        return False
+    lowered = [k.lower() for k in keys]
+    if any(k.endswith(_ADAPTER_SUFFIXES) for k in lowered):
+        return False
+    if any(pat in k for k in lowered for pat in _FOREIGN_PATTERNS):
+        return False
+    blocks = any('transformer_blocks.' in k for k in lowered)
+    attn = any('.attn.to_q.' in k for k in lowered)
+    mlp = any('.img_mlp.' in k or '.txt_mlp.' in k for k in lowered)
+    return blocks and attn and mlp
+
 def identity(folder):
     p = Path(folder)
     try:
@@ -68,6 +100,9 @@ def scan(base=None):
         if not d.is_dir():
             continue
         for p in d.rglob('*.safetensors'):
+            if sub in ('Stable-diffusion', 'diffusion_models') and p.name.lower() not in NAMES['dit'] and is_dit_file(p):
+                # Community mirror under a renamed file (e.g. Civitai).
+                result['dit'].append(str(p.resolve()))
             for kind, names in NAMES.items():
                 if p.name.lower() in names:
                     result[kind].append(str(p.resolve()))
