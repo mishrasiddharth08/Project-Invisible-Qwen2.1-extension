@@ -6,13 +6,19 @@ Newest updates appear first. Dates use YYYY-MM-DD. These entries describe publis
 
 ### Fixed
 
-- **Quantized files now run on every NVIDIA and AMD card:** packed ConvRot/W4A8 kernels only exist for NVIDIA CUDA (a CUDA 13+ PyTorch build, BF16-capable). Instead of refusing quantized files elsewhere, the extension now unpacks them to plain BF16 in system RAM at load time and runs normally. AMD ROCm, older torch builds and fp16-only NVIDIA cards can use the same smaller downloads as everyone else; the first load is slower and peak system RAM matches the BF16 files. Capable NVIDIA cards still get the fast packed kernels unchanged. The worker logs when unpacking happens.
+- **Device mismatch during quantized offloading fully resolved (Issue #2):** the reporter's logs showed one remaining crash path — Forge's packed-Embedding forward ran its dequantize kernel while the packed weights had been offloaded to the CPU and the token indices lived on the GPU. The extension now moves packed Embedding data to the indices' device right before each call, and quantized loads no longer use group offload, whose parameter swapping is incompatible with packed subclasses. Verified against the reporter's worker.log (RTX 4070 Ti, CUDA 13 torch build).
+
+- **All packed quantization formats supported for DiT, text encoder and VAE inputs:** files using `int8_tensorwise` (with or without ConvRot), `asym_w4a8_int8` (W4A8), `float8_e4m3fn`, `float8_e5m2`, `mxfp8`, `nvfp4` and `convrot_w4a4` now load on every NVIDIA and AMD card. Capable NVIDIA cards run the fast packed kernels; elsewhere the extension unpacks the weights to plain BF16 in system RAM automatically. CPU round-trip accuracy was verified for every format.
+
+- **Adapter coverage widened:** factorized LoKr (`lokr_w1_a/b`), LoHa (Hadamard composition, plain and factorized) and full-difference (`.diff`) adapters are now applied alongside ordinary LoRA and plain LoKr, with fused `gate_up` splitting kept for all kinds. Malformed adapters still fail atomically without touching the model.
+
+- **Duplicate extension copies detected (Issue #3):** installing via Forge's "Install from URL" and via a manual ZIP at the same time leaves two working copies that fight over the preset. The extension prints a startup warning listing both folders, and the README now documents both install paths with a never-both warning.
 
 - **Renamed community DiT files are now recognized (Issue #1):** the extension previously identified model files only by exact filenames. A Qwen-Image-2.1 DiT downloaded from a community mirror (for example Civitai, saved as `qwenImage21INT8INT4_int8.safetensors`) was not recognized, so Forge tried to load it directly and reported "Failed to recognize diffusion model". DiT files are now identified by their internal tensor structure as well as by filename, in both the model scan and checkpoint selection. Adapter (LoRA/LoKr) files and foreign architectures (Flux/SD layouts) are still rejected.
 
 ### Verification
 
-- **102 Qwen automated tests passed** (the previous 99 plus three new regression tests: packed-weight unpacking to BF16 on unsupported GPUs, refusal of malformed packs, and restored low-memory offloading after unpacking).
+- **109 Qwen automated tests passed** (the previous 102 plus seven new regression tests: packed-format round-trips for FP8/MXFP8/NVFP4/ConvRot-W4A4, factorized LoKr reconstruction, LoHa Hadamard deltas, full-difference application, malformed-adapter atomicity, and kind detection for every adapter family).
 
 ## 2026-09-23
 

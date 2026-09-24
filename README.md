@@ -7,10 +7,11 @@ An independent, unofficial extension that adds Qwen-Image-2.1 to the normal Forg
 ## Latest update — September 24, 2026
 
 - Quantized model files now run on every NVIDIA and AMD card: on GPUs without Forge's packed-kernel support (AMD ROCm, older CUDA torch builds, fp16-only NVIDIA cards) the extension unpacks them to plain BF16 in system RAM and runs normally. Capable NVIDIA cards keep the fast packed kernels.
-- Renamed community DiT files (e.g. from Civitai) are now recognized by their internal structure, not just filenames (Issue #1).
-- Fixed a packed-Embedding device mismatch during quantized offloading (Issue #2).
-- Added the Speed boost LoRA feature with one-time license-approved downloads.
-- **Verified:** 102 automated Qwen tests passed. Restart Forge after updating.
+- All packed formats are supported (int8/int8-convrot, W4A8, FP8 E4M3/E5M2, MXFP8, NVFP4, ConvRot-W4A4) for DiT, text encoder and VAE.
+- Adapter support widened: factorized LoKr, LoHa and full-difference adapters work alongside ordinary LoRA and plain LoKr.
+- Fixed the remaining quantized-offloading device-mismatch crash reported in Issue #2 (packed Embedding forward guard + safer offload mode for quantized loads).
+- Duplicate extension copies are now detected with a startup warning (Issue #3); README documents both install paths.
+- **Verified:** 109 automated Qwen tests passed. Restart Forge after updating.
 
 See the [dated update history](CHANGELOG.md) for details, installation steps and testing limits.
 
@@ -62,14 +63,20 @@ Model weights are not included in this repository.
 
 ## Beginner installation
 
-1. Download this repository as a ZIP.
-2. Extract it.
-3. Rename the extracted folder to `project-invisible-qwen-image-21`.
-4. Copy it into `sd-webui-forge-classic\extensions\`.
-5. Make sure the extension is not accidentally nested twice.
-6. Start Forge normally. The first start may take longer while local dependencies install.
-7. Restart Forge once if the preset/checkpoint is missing.
-8. After an update, refresh the browser with `Ctrl+F5`.
+Choose **one** of these two ways — never both, or you end up with two copies that fight over the same preset and models:
+
+**Way A — Forge's "Install from URL" (recommended):** paste `https://github.com/mishrasiddharth08/Project-Invisible-Qwen2.1-extension` into Forge's extension installer. Forge names the folder automatically.
+
+**Way B — manual ZIP:** download the repository as a ZIP, extract it, and copy the folder into `sd-webui-forge-classic\extensions\`.
+
+If you accidentally installed twice (two `project-invisible*` folders in `extensions\`), delete one and restart Forge. The extension detects this at startup and prints a warning listing both folders.
+
+After either way:
+
+1. Make sure the extension is not accidentally nested twice.
+2. Start Forge normally. The first start may take longer while local dependencies install.
+3. Restart Forge once if the preset/checkpoint is missing.
+4. After an update, refresh the browser with `Ctrl+F5`.
 
 Correct:
 

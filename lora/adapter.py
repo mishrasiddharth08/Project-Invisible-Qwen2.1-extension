@@ -9,12 +9,21 @@ BAD = re.compile(r'qwen[-_ ]image[-_ ](?:1[._]0|2511)|qwen.?2[._]5|flux|stable.d
 TAGS = re.compile(r'<lora:([^:>]+):([-+\d.eE]+)>')
 
 def _kind(keys):
-    keys = tuple(keys)
-    modules = {k.rsplit('.', 1)[0] for k in keys if k.endswith('.lokr_w1')}
-    if modules and all(m + '.lokr_w2' in keys for m in modules):
-        return 'lokr'
-    a = {k.rsplit('.', 2)[0] for k in keys if k.endswith(('.lora_A.weight', '.lora_down.weight'))}
-    b = {k.rsplit('.', 2)[0] for k in keys if k.endswith(('.lora_B.weight', '.lora_up.weight'))}
+    keys = tuple(k[:-len('.weight')] if k.endswith('.weight') else k for k in keys)
+    def modules_with(suffix):
+        return {k[:-len(suffix)] for k in keys if k.endswith(suffix)}
+    for tag in ('lokr','loha'):
+        plain = modules_with('.'+tag+'_w1')
+        if plain and all(m+'.'+tag+'_w2' in keys for m in plain):
+            return tag
+        f1 = modules_with('.'+tag+'_w1_a')
+        if f1 and all(m+'.'+tag+'_w1_b' in keys and m+'.'+tag+'_w2_a' in keys
+                      and m+'.'+tag+'_w2_b' in keys for m in f1):
+            return tag
+    if modules_with('.diff'):
+        return 'full'
+    a = modules_with('.lora_A') | modules_with('.lora_down')
+    b = modules_with('.lora_B') | modules_with('.lora_up')
     if a and a == b:
         return 'lora'
     return None
@@ -74,16 +83,19 @@ def apply(pipe, adapters):
         if names: pipe.set_adapters(names, adapter_weights=weights)
         return
     names=[]; weights=[]
+    from safetensors.torch import load_file
     for i,(path,weight) in enumerate(adapters):
         h = header(path)
-        if _kind(k for k in h if k != '__metadata__') == 'lokr':
-            from safetensors.torch import load_file
-            _install_lokr(pipe.transformer, load_file(path, device='cpu'), weight,
-                          pipe._pi_qwen21_lokr_handles)
-            continue
-        from safetensors.torch import load_file
-        _install_lora(pipe.transformer, load_file(path, device='cpu'), weight,
-                      pipe._pi_qwen21_lokr_handles)
+        kind=_kind(k for k in h if k != '__metadata__')
+        state=load_file(path, device='cpu')
+        if kind=='lokr':
+            _install_lokr(pipe.transformer, state, weight, pipe._pi_qwen21_lokr_handles)
+        elif kind=='loha':
+            _install_loha(pipe.transformer, state, weight, pipe._pi_qwen21_lokr_handles)
+        elif kind=='full':
+            _install_full(pipe.transformer, state, weight, pipe._pi_qwen21_lokr_handles)
+        else:
+            _install_lora(pipe.transformer, state, weight, pipe._pi_qwen21_lokr_handles)
     if names: pipe.set_adapters(names, adapter_weights=weights)
 
 def _install_lora(model, state, strength, handles):
@@ -151,19 +163,29 @@ def _install_lokr(model, state, strength, handles):
     modules = dict(model.named_modules())
     groups = {}
     for key, value in state.items():
-        if key.endswith(('.lokr_w1', '.lokr_w2', '.alpha')):
-            base, leaf = key.rsplit('.', 1)
-            groups.setdefault(base, {})[leaf] = value
+        for suffix in ('.lokr_w1','.lokr_w2','.lokr_w1_a','.lokr_w1_b','.lokr_w2_a','.lokr_w2_b','.alpha'):
+            if key.endswith(suffix):
+                base, leaf = key.rsplit('.', 1)
+                groups.setdefault(base, {})[leaf] = value
+                break
     applied = 0
     errors = []
     first_handle = len(handles)
     for raw, sides in groups.items():
-        if 'lokr_w1' not in sides or 'lokr_w2' not in sides:
+        def factor(name):
+            # LyCORIS factorized storage: lokr_w1 = w1_a @ w1_b, likewise w2.
+            if name in sides:
+                return sides[name]
+            a, b = sides.get(name+'_a'), sides.get(name+'_b')
+            if a is None or b is None or a.ndim != 2 or b.ndim != 2 or a.shape[1] != b.shape[0]:
+                return None
+            return a @ b
+        w1 = factor('lokr_w1'); w2 = factor('lokr_w2')
+        if w1 is None or w2 is None:
             errors.append(raw + ': incomplete lokr_w1/lokr_w2 pair'); continue
         path = raw
         for prefix in ('model.diffusion_model.', 'diffusion_model.', 'transformer.'):
             if path.startswith(prefix): path = path[len(prefix):]
-        w1 = sides['lokr_w1']; w2 = sides['lokr_w2']
         targets = [(path, w1, w2)]
         if path.endswith('.img_mlp.gate_up'):
             if w1.ndim != 2 or w1.shape[0] % 2:
@@ -206,6 +228,105 @@ def _install_lokr(model, state, strength, handles):
         detail = '; '.join(errors[:3]) or 'no supported LoKr pairs'
         raise ValueError('Qwen-Image-2.1 LoKr was not applied: ' + detail)
     return applied
+
+def _install_loha(model, state, strength, handles):
+    """LoKr with Hadamard-product factors (LyCORIS LoHa), plain and factorized."""
+    import torch
+    import torch.nn.functional as F
+    modules = dict(model.named_modules())
+    groups = {}
+    for key, value in state.items():
+        for suffix in ('.loha_w1','.loha_w2','.loha_w1_a','.loha_w1_b','.loha_w2_a','.loha_w2_b','.alpha'):
+            if key.endswith(suffix):
+                base, leaf = key.rsplit('.', 1)
+                groups.setdefault(base, {})[leaf] = value
+                break
+    applied = 0
+    errors = []
+    first_handle = len(handles)
+    for raw, sides in groups.items():
+        def factor_pair(name):
+            # LyCORIS factorized storage: loha_w1 = w1_a @ w1_b, likewise w2.
+            if name in sides:
+                return sides[name]
+            a, b = sides.get(name+'_a'), sides.get(name+'_b')
+            if a is None or b is None or a.ndim != 2 or b.ndim != 2 or a.shape[1] != b.shape[0]:
+                return None
+            return a @ b
+        w1 = factor_pair('loha_w1'); w2 = factor_pair('loha_w2')
+        if w1 is None or w2 is None:
+            errors.append(raw + ': incomplete loha_w1/loha_w2 pair'); continue
+        path = raw
+        for prefix in ('model.diffusion_model.', 'diffusion_model.', 'transformer.'):
+            if path.startswith(prefix): path = path[len(prefix):]
+        targets = [(path, w1, w2)]
+        if path.endswith('.img_mlp.gate_up'):
+            if w1.shape[0] % 2:
+                errors.append(raw + ': fused gate_up cannot be split evenly'); continue
+            parent = path[:-len('gate_up')]
+            first, second = w1.chunk(2, dim=0)
+            targets = [(parent + 'gate_layer', first, w2),
+                       (parent + 'proj', second, w2)]
+        alpha = float(sides.get('alpha', w1.shape[0] if w1.ndim==2 else 1))
+        scale = alpha / max(1, w1.shape[0] if w1.ndim==2 else 1)
+        for target, a, b in targets:
+            module = modules.get(target)
+            if module is None:
+                errors.append(raw + ': missing target ' + target); continue
+            if a.ndim != 2 or b.ndim != 2 or a.shape[1] != b.shape[0]:
+                errors.append(raw + ': LoHa factors do not chain'); continue
+            def hook(_module, args, output, a=a, b=b, factor=float(strength)*scale):
+                if not args or not isinstance(output, torch.Tensor): return output
+                x = args[0]
+                if not isinstance(x, torch.Tensor): return output
+                aa = a.to(device=output.device, dtype=output.dtype)
+                bb = b.to(device=output.device, dtype=output.dtype)
+                # Hadamard composition: (x @ w1) * (x @ w2) per LyCORIS LoHa.
+                side1 = F.linear(x, aa)
+                side2 = F.linear(x, bb)
+                delta = side1 * side2
+                if delta.shape != output.shape:
+                    return output
+                return output + delta * factor
+            handles.append(module.register_forward_hook(hook)); applied += 1
+    if errors or not applied:
+        for handle in handles[first_handle:]:
+            try: handle.remove()
+            except Exception: pass
+        del handles[first_handle:]
+        detail = '; '.join(errors[:3]) or 'no supported LoHa pairs'
+        raise ValueError('Qwen-Image-2.1 LoHa was not applied: ' + detail)
+    return applied
+
+def _install_full(model, state, strength, handles):
+    """Full-difference adapters: `.diff` holds the entire weight delta."""
+    import torch
+    planned = []
+    for key, value in state.items():
+        if not key.endswith('.diff'): continue
+        path = key[:-len('.diff')]
+        for prefix in ('model.diffusion_model.', 'diffusion_model.', 'transformer.'):
+            if path.startswith(prefix): path = path[len(prefix):]
+        try: module = model.get_submodule(path)
+        except AttributeError:
+            raise ValueError('Missing full-diff target: ' + path)
+        weight = getattr(module, 'weight', None)
+        if weight is None or tuple(weight.shape) != tuple(value.shape):
+            raise ValueError('Full-diff shape mismatch: ' + path)
+        planned.append((module, value))
+    if not planned: raise ValueError('No supported full-diff tensors')
+    start = len(handles)
+    try:
+        for module, delta in planned:
+            def hook(_module, args, output, delta=delta, factor=float(strength)):
+                if not isinstance(output, torch.Tensor): return output
+                return output + delta.to(device=output.device, dtype=output.dtype) * factor
+            handles.append(module.register_forward_hook(hook))
+    except Exception:
+        for handle in handles[start:]: handle.remove()
+        del handles[start:]
+        raise
+    return len(planned)
 
 def install_cards(selected):
     try:

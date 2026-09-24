@@ -22,7 +22,7 @@ def _compute_dtype(torch):
 
 def _quantized(bundle,prof=None):
     values=list((bundle.get('files') or {}).values())
-    return any(any(tag in str(value).lower() for tag in ('int8','w4a8','convrot')) for value in values if value)
+    return any(any(tag in str(value).lower() for tag in ('int8','w4a8','convrot','fp8','nvfp4','mxfp8')) for value in values if value)
 
 def _prepare_pipe(pipe,prof,offload,quantized=False):
     # Qwen 2.1 tiled decoding introduces colored seams and damages alpha.
@@ -35,7 +35,11 @@ def _prepare_pipe(pipe,prof,offload,quantized=False):
     prof=prof or {}
     low=prof.get('te')=='w4a8' or int(prof.get('side',9999) or 9999)<=1024
     grouped=getattr(pipe,'enable_group_offload',None)
-    if low and callable(grouped):
+    if low and not quantized and callable(grouped):
+        # Group offload swaps parameters behind the module's back, which can
+        # leave packed QuantizedTensor weights on the CPU while inputs run on
+        # the GPU (Issue #2 device mismatch). Quantized loads use model
+        # offload, whose whole-model moves preserve packed subclasses.
         grouped(onload_device='cuda',offload_device='cpu',offload_type='leaf_level',use_stream=False)
         pipe._pi_offload_mode='group'
         return

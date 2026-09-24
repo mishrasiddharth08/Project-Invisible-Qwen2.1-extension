@@ -9,6 +9,37 @@ if 'pi_qwen21' not in sys.modules:
     spec=importlib.util.spec_from_file_location('pi_qwen21',ROOT/'__init__.py',submodule_search_locations=[str(ROOT)])
     package=importlib.util.module_from_spec(spec); sys.modules['pi_qwen21']=package; spec.loader.exec_module(package)
 
+def _warn_duplicate_copies():
+    """Detect a second installed copy of this extension in the same folder.
+
+    Forge's own "Install from URL" names the folder after the repository
+    (Project-Invisible-Qwen2.1-extension) while the README's manual steps use
+    project-invisible-qwen-image-21. Installing both ways leaves two working
+    copies; Forge loads both because the folder names differ. Warn instead of
+    guessing which copy to keep.
+    """
+    try:
+        marker=__file__.replace('\\','/').lower()
+        for sibling in ROOT.parent.iterdir():
+            if not sibling.is_dir() or sibling.resolve()==ROOT.resolve():
+                continue
+            twin=sibling/'scripts'/'engine.py'
+            if not twin.is_file():
+                continue
+            try:
+                same='pi_qwen21' in twin.read_text(encoding='utf-8',errors='ignore')[:400]
+            except OSError:
+                continue
+            if same:
+                print('[PI-Qwen21] WARNING: two copies of this extension are installed:\n'
+                      '  '+str(ROOT)+'\n  '+str(sibling)+'\n'
+                      'Delete one (keep only one folder) and restart Forge. Two copies fight over the same preset and models.')
+                return
+    except OSError:
+        pass
+
+_warn_duplicate_copies()
+
 import gradio as gr
 from modules import scripts,script_callbacks
 from pi_qwen21.lib import forge

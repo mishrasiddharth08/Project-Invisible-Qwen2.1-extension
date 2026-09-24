@@ -37,6 +37,30 @@ def _harden_embedding_apply(model):
             module._apply = _embedding_apply.__get__(module, type(module))
     return model
 
+def _harden_embedding_forward(model):
+    """Keep packed Embedding data on the token indices' device at call time.
+
+    Forge's manual-cast Embedding forward can run the eager dequantize kernel
+    while the packed weights were offloaded back to the CPU and the token
+    indices live on the GPU, which crashes with a device mismatch
+    (Issue #2). Moving the packed parameter with the hardened subclass-safe
+    _apply right before the original forward unblocks the kernel without
+    touching Forge core files.
+    """
+    import torch
+    for module in model.modules():
+        if not isinstance(module, torch.nn.Embedding) or not getattr(module,'quant_format',None):
+            continue
+        original=module.forward
+        def forward(input,module=module,original=original):
+            weight=getattr(module,'weight',None)
+            qdata=getattr(weight,'_qdata',None)
+            if qdata is not None and qdata.device!=input.device:
+                module._apply(lambda t: t.to(input.device,non_blocking=False))
+            return original(input)
+        module.forward=forward
+    return model
+
 def _descriptor(value):
     try:
         return json.loads(bytes(value.tolist()).decode().rstrip('\0'))
@@ -127,7 +151,9 @@ def _dequantize_component(sd,kind,dtype):
     memory footprint afterwards matches the universal bf16 files exactly.
     """
     import torch
-    from comfy_kitchen.tensor import TensorWiseINT8Layout,AsymW4A8Int8Layout
+    from comfy_kitchen.tensor import (TensorWiseINT8Layout,AsymW4A8Int8Layout,
+        TensorCoreFP8Layout,TensorCoreMXFP8Layout,TensorCoreNVFP4Layout,
+        TensorCoreConvRotW4A4Layout)
     def take(layer,suffixes):
         for suffix in suffixes:
             key=layer+'.'+suffix
@@ -164,6 +190,29 @@ def _dequantize_component(sd,kind,dtype):
                 codebook=take(layer,('weight_codebook','_codebook')),
                 group_size=int(desc.get('group_size',16)))
             weight=AsymW4A8Int8Layout.dequantize(qdata,params)
+        elif fmt in ('float8_e4m3fn','float8_e5m2','mxfp8','nvfp4','convrot_w4a4'):
+            from backend.quant_ops import QUANT_ALGOS
+            from comfy_kitchen.tensor import get_layout_class
+            layout_name=QUANT_ALGOS[fmt]['comfy_tensor_layout']
+            layout=get_layout_class(layout_name)
+            fields=layout.Params.__dataclass_fields__
+            scale=take(layer,('weight_scale','_scale'))
+            if scale is None:
+                raise ValueError(f'Missing packed {fmt} scale: {layer}')
+            common=dict(scale=scale,orig_dtype=dtype,orig_shape=shape)
+            extra={}
+            if fmt=='nvfp4' and 'block_scale' in fields:
+                bs=take(layer,('block_scale','weight_scale'))  # nvfp4 grouped scales
+                if bs is not None:
+                    extra['block_scale']=bs
+            if fmt=='convrot_w4a4' and 'convrot_groupsize' in fields:
+                extra['convrot_groupsize']=int(desc.get('convrot_groupsize',256))
+            if fmt=='convrot_w4a4' and 'quant_group_size' in fields:
+                extra['quant_group_size']=int(desc.get('quant_group_size',64))
+            params=layout.Params(**common,**extra)
+            if fmt in ('float8_e4m3fn','float8_e5m2') and qdata.dtype==torch.float32:
+                qdata=qdata.view(QUANT_ALGOS[fmt]['storage_t'])
+            weight=layout.dequantize(qdata,params)
         else:
             raise ValueError(f'Cannot dequantize unsupported 2.1 format {fmt}: {key}')
         sd[wkey]=weight.to(dtype).contiguous()
@@ -206,7 +255,7 @@ def load_component(cls, config_dir, path, kind, dtype=None, dequantize=False):
                 raise ValueError(f'Malformed Qwen quantization descriptor: {key}') from exc
             if not fmt: raise ValueError(f'Missing quantization format: {key}')
             formats.add(fmt)
-        if not formats or formats-{'int8_tensorwise','asym_w4a8_int8'} or formats-set(QUANT_ALGOS):
+        if not formats or formats-{'int8_tensorwise','asym_w4a8_int8','float8_e4m3fn','float8_e5m2','mxfp8','nvfp4','convrot_w4a4'} or formats-set(QUANT_ALGOS):
             raise ValueError('Unsupported 2.1 quantization descriptors: '+str(formats))
         if dequantize:
             # This GPU cannot run the packed kernels (ROCm, CUDA < 13 torch
@@ -249,6 +298,7 @@ def load_component(cls, config_dir, path, kind, dtype=None, dequantize=False):
     model.to(dtype=dtype)
     # Packed Embedding parameters must survive device moves during offloading.
     _harden_embedding_apply(model)
+    _harden_embedding_forward(model)
     model.eval().requires_grad_(False)
     return model
 
