@@ -72,14 +72,18 @@ def run(pipe, torch, image, command, base_kwargs, emit, log):
     # 1. Encode the rendered image with the already-loaded VAE (no new weights).
     tensor = pipe.image_processor.preprocess(image, height=height, width=width)
     tensor = tensor.to(device=device, dtype=vae_dtype)
+    if tensor.dim() == 4:
+        # The 2.1 VAE expects video-style (B, C, F, H, W) input.
+        tensor = tensor.unsqueeze(2)
     encoded = pipe._encode_vae_image(tensor, generator=generator)
     latent_h, latent_w = encoded.shape[3:]
-    latents = pipe._pack_latents(encoded, 1, channels, latent_h, latent_w)
 
-    # 2. Re-noise to `strength` (flow matching: x_t = (1-s) x0 + s noise).
-    noise = randn_tensor((1, 1, channels, latent_h, latent_w), generator=generator,
-                         device=device, dtype=latents.dtype)
-    latents = (1.0 - strength) * latents + strength * noise
+    # 2. Re-noise to `strength` (flow matching: x_t = (1-s) x0 + s noise),
+    #    in the VAE's native 5D layout, BEFORE packing to token sequence.
+    noise = randn_tensor(encoded.shape, generator=generator,
+                         device=device, dtype=encoded.dtype)
+    noised = (1.0 - strength) * encoded + strength * noise
+    latents = pipe._pack_latents(noised, 1, channels, latent_h, latent_w)
 
     # 3. Denoise from `strength` back to 0 in `steps` steps.
     # The list must reach 0, otherwise the final decode inherits residual noise.
