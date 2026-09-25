@@ -18,6 +18,7 @@ This is an independent community extension, not an official Qwen product.
 - **Text-to-image:** tested with local weights on the author's NVIDIA system.
 - **Image-to-image:** experimental; editing stays in Forge's **img2img** tab.
 - **Speed boost:** one tick selects the Viggle Turbo LoRA, strength 1.0 and 6 steps — everything stays editable, your number always wins.
+- **Refiner:** optional second detail pass (Turbo ~2s or Quality ~10s) that reuses the already-loaded model — no extra VRAM, no downloads, works with every quantization, preset, CFG and LoRA combination.
 - **Progress:** current-image and overall-batch bars; starting gradient, evolving previews, the finished picture the moment the last step ends.
 - **Memory:** offloading profiles, quantized models (NVIDIA + AMD) and safe release of cached models when switching checkpoints.
 - **Downloads:** manual installation recommended; optional downloads require selecting files and clicking Download.
@@ -62,6 +63,7 @@ Inside the panel:
 
 - **Quality row** — Quality (40 steps) or Fast · 6 steps (turbo). Fast auto-selects Viggle Turbo and matches the Steps slider; move the slider yourself and your number wins.
 - **Speed boost tab** — checkbox, LoRA choice and strength (1.0 is the tested default).
+- **Refiner tab** — one dropdown: Off · Turbo (fast) · Quality (best). Runs a short second pass over the finished image to sharpen detail; reuses the loaded model, so it works with any quantization, CFG, LoRA or preset combination at no extra VRAM.
 - **Performance tab** — Save GPU memory, VRAM profile and memory options.
 - **Models tab** — source links, compatible variants and optional selected-file downloads.
 - **Status strip** — model detection, adapter hints and memory state at the left edge of the panel.
@@ -77,12 +79,28 @@ Forge's own sampler/scheduler, size, seed, batch and Steps controls stay in char
 3. **Select preset + checkpoint** — pick the `qwen-image-2.1` UI preset and the matching checkpoint.
 4. **Configure (optional)** — expand the panel. Keep **Quality**, batch **1** and a modest size for the first run; defaults just work.
 5. **Generate** — press Forge's normal **Generate** button. Two progress bars track the current image and the overall batch; evolving previews appear while sampling and the finished picture lands the moment the last step ends.
+6. **Refine (optional)** — open the panel's **Refiner** tab and pick **Turbo (fast)** or **Quality (best)**, then press Generate again. The second pass re-encodes the finished image in latent space and sharpens detail in a few steps; it uses the model that is already loaded, so it adds no VRAM and never downloads anything.
+
+### Refiner combinations
+
+The refiner rides on top of whatever you already selected — no permutations to memorize:
+
+| Combination | Behavior |
+|---|---|
+| Any quantization (bf16, int8_convrot, w4a8) | Works — refines with the loaded weights |
+| Quality (40 steps) or Fast (turbo LoRA) | Works — turbo refiner forces CFG 1 like the distillation requires |
+| CFG above 1 with a negative prompt | Works — Quality keeps your CFG; Turbo uses CFG 1 |
+| Community LoRAs, Spectrum, DeGrid | Works — LoRAs stay applied during the pass |
+| img2img editing | Works — refines the edited result |
+| Any VRAM profile / Save GPU memory | Works — no extra model is ever loaded |
+
+> **Tip:** the built-in Refiner tab covers Qwen-Image-2.1 specifically. For a second detail pass that works with **any** checkpoint in Forge — any model, any quantization, any VRAM size, even a different refiner checkpoint per pass — see the standalone [Project Invisible Refiner](https://github.com/mishrasiddharth08/Project-Invisible-Refiner-extension).
 
 ### Using an existing image (img2img)
 
 ![img2img flow](docs/img/img2img-flow.svg)
 
-Use Forge's normal **img2img** tab with its upload and denoising controls. Lower strength preserves more of the source; zero preserves the resized source; one starts from noise. **Inpainting/masks are unsupported.**
+Use Forge's normal **img2img** tab with its upload and denoising controls. Lower strength preserves more of the source; zero preserves the resized source; one starts from noise. **Inpainting/masks are unsupported.** The Refiner tab also works here — it sharpens the edited result after the base pass.
 
 ## First text-to-image test
 
