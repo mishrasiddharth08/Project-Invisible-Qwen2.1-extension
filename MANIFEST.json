@@ -9,7 +9,7 @@
   "ISSUE_TEMPLATE.md": "7e877e67db9a67914b12bec8f3be035573fc10b1246c2f93fb534da693e13366",
   "LICENSE": "06b7d356cd8cb6b79aa2eef3f934d1e1e8e1c2aa1e85dcc23915dd9a68197249",
   "NOTICE": "60c77ffa0862c4c0028f58f08a93c2aaeae0fae97f5a6395f9e36e55d599c971",
-  "README.md": "f450bb4e392ce8a761beaa7f3077a76718b15cd469731f587e0dcb6513635018",
+  "README.md": "7f7a2fa90f51cad6e4b9d982485e107048233a699b84d6d104374eed9cc3b238",
   "UPDATE_SAFETY.md": "bbfda7ac6a1569b47674dcb0cc53d58e27e905d33fbcbfc090a3e4759859a7a8",
   "VALIDATION.md": "29681d878f4eb699d3e51826d6cebe3c7ffbfcb7a6ab00c07bfc13ce2bb8c0fa",
   "__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -76,7 +76,8 @@
   "tests/test_turbo_schedule.py": "e5ea0df47d18c18392f4c612b6fefea4564bed97fde7f5ce6018207a03ba694f",
   "tests/test_worker_transport.py": "fa74d7afe0d600357468df2089046760780d2bb9db9bfb63761a525a3f016d03",
   "verify_integrity.py": "da18e14bdb361571f9fd6297517e5690bb12d1620de64d2fa1657152977ea956",
-  "docs/img/ui-tour.svg": "b92197bc66d448f158b710f51c7a01c60ccaa3e98ab5f37eff0c7d5087930f67",
+  "docs/img/ui-tour.svg": "440b71d8a5f5220ff82b7246cb2c3b38098ad03c5503b402f361f6834ab9aab2",
   "docs/img/usage-steps.svg": "9610b92799ea9d4fb977921fa45812f79c65bd43f22df32cd24037fb07e4ceae",
-  "docs/img/img2img-flow.svg": "32951ec4731ce0fb80dee5e18069f7855d54f906c5158a0b4f93eb70a2e4308e"
+  "docs/img/img2img-flow.svg": "32951ec4731ce0fb80dee5e18069f7855d54f906c5158a0b4f93eb70a2e4308e",
+  "lib/refiner.py": "9004a6d73bde30fbc66294351ce4b1aebcb32819bad2f8c066563dd7c172c809"
 }
