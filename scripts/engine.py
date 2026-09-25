@@ -188,6 +188,12 @@ class Script(scripts.Script):
             else:
                 refs=[gr.State(None) for _ in range(9)]
             with gr.Tabs(elem_classes=['pi-q21-tools']) as tabs:
+                # One decision, zero knobs: the refiner is a second quick pass
+                # over the finished image that sharpens detail. It reuses the
+                # already-loaded model, so it costs no extra VRAM and works in
+                # every combination (quantization, CFG, LoRAs, presets).
+                with gr.Tab('Refiner'):
+                    refiner=gr.Dropdown(['Off','Turbo (fast)','Quality (best)'],value='Off',label='Refine result',info='Turbo adds ~2s; Quality adds ~10s. Works with every speed/quality setting above.')
                 with gr.Tab('Performance'):
                     gr.Markdown('Memory is managed automatically - the settings below are only needed if something goes wrong or you want to squeeze harder.')
                     cfg=gr.State(None)  # Preserve saved argument slots; native CFG is authoritative.
@@ -248,9 +254,10 @@ class Script(scripts.Script):
         PANELS.append(box)
         # MUST stay in this exact order - lib/forge.py reads these by index:
         # task, steps, cfg, profile, side, offload, community, consent, mask,
-        # refs[0..8], spectrum, degrid, speed_enabled, speed_name, speed_strength.
+        # refs[0..8], spectrum, degrid, speed_enabled, speed_name, speed_strength,
+        # refiner.
         # New controls append at the end only.
-        return [task,steps,cfg,profile,side,offload,community,consent,mask,*refs,spectrum,degrid,speed_enabled,speed_name,speed_strength]
+        return [task,steps,cfg,profile,side,offload,community,consent,mask,*refs,spectrum,degrid,speed_enabled,speed_name,speed_strength,refiner]
 
 # --------------------------------------------------------------------------- #
 # boot: install the generation hooks and clean up on extension unload
