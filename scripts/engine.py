@@ -193,7 +193,7 @@ class Script(scripts.Script):
                 # already-loaded model, so it costs no extra VRAM and works in
                 # every combination (quantization, CFG, LoRAs, presets).
                 with gr.Tab('Refiner'):
-                    refiner=gr.Dropdown(['Off','Turbo (fast)','Quality (best)'],value='Off',label='Refine result',info='Turbo adds ~2s; Quality adds ~10s. Works with every speed/quality setting above.')
+                    refiner=gr.Dropdown(['Off','Turbo (fast)','Quality (best)'],value='Off',label='Refine result')
                 with gr.Tab('Performance'):
                     gr.Markdown('Memory is managed automatically - the settings below are only needed if something goes wrong or you want to squeeze harder.')
                     cfg=gr.State(None)  # Preserve saved argument slots; native CFG is authoritative.

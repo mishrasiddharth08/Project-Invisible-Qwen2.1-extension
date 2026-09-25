@@ -59,7 +59,7 @@
   "resources/qwen21/text_encoder/config.json": "6001331949f7f86ab6d791a80b12246d4f8da5159fa08c3e62368a39f36d63a9",
   "resources/qwen21/transformer/config.json": "56ae3281c4e6c2d1aa3658252d187488071815fd79bef15808bb0205fc1a2241",
   "resources/qwen21/vae/config.json": "9785d527b278cb8b210e9f48a8028d92a4190968ce7e24c8fc85d9d1b82f6ba2",
-  "scripts/engine.py": "551e74d3075ee13b1a2152a249f29e82727509e3bf6f8c089fd6b86882c11838",
+  "scripts/engine.py": "87d73cb66b1042854297e5319d6d79fee1caf7127579b1990f1ce49bf73f2a38",
   "style.css": "4a1b6ceae45863cdc31be433be1cef41dbf380e08614beb18ddce94edc027fed",
   "tests/probe_components.py": "990507019720334bc066d36cfafbf698c5152795d31d7d0ae727ed8ecfbba12f",
   "tests/test_acceptance_cpu.py": "2f8e507750c719be2e9f6bd7bf870caa546f6f2297eaefffcf2467db4d719929",
@@ -79,5 +79,5 @@
   "docs/img/ui-tour.svg": "440b71d8a5f5220ff82b7246cb2c3b38098ad03c5503b402f361f6834ab9aab2",
   "docs/img/usage-steps.svg": "9610b92799ea9d4fb977921fa45812f79c65bd43f22df32cd24037fb07e4ceae",
   "docs/img/img2img-flow.svg": "32951ec4731ce0fb80dee5e18069f7855d54f906c5158a0b4f93eb70a2e4308e",
-  "lib/refiner.py": "9004a6d73bde30fbc66294351ce4b1aebcb32819bad2f8c066563dd7c172c809"
+  "lib/refiner.py": "d7a6c06d45dcbd9c053243632b273897b9a03072db53d719e01ab99db46f4eda"
 }
