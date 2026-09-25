@@ -117,10 +117,8 @@ def generate(p, selected, options):
             side=min(requested_side,side) if side else requested_side
             p.width,p.height=bucket(p.width,p.height,side)
             p.steps=max(1,int(getattr(p,'steps',None) or options.get('steps',40))); p.cfg_scale=cfg
-            if speed_entry and p.steps>speed_entry['steps']:
-                # Distilled LoRAs follow their few-step schedule; more steps degrade output.
-                p.steps=int(speed_entry['steps'])
-                print(f"[PI-Qwen21] Speed LoRA schedule: using {p.steps} steps.")
+            # User steps always win: choosing Fast auto-selects the turbo LoRA
+            # and matches the slider, but a slider moved by hand is never overridden.
             p.sampler_name='Euler'
             seed=int(p.seed if p.seed is not None else -1)
             if seed<0: seed=random.randrange(2**32)
@@ -164,33 +162,6 @@ def generate(p, selected, options):
                     if not getattr(p,'do_not_save_samples',False) and shared.opts.samples_save:
                         images.save_image(result,p.outpath_samples,'',current_seed,prompt,extension='png',info=info,p=p)
                     output.append(result); seeds.append(current_seed); infos.append(info)
-                    # Auto upscale (Qwen 2.1 second pass): the finished image is
-                    # re-rendered larger as its own reference with a fixed
-                    # preserve-everything prompt, mirroring the official
-                    # upscaling workflow for this model.
-                    scale=float(options.get('upscale_scale') or 1.5)
-                    if options.get('upscale_enabled') and not shared.state.interrupted and not shared.state.skipped:
-                        up_w,up_h=bucket(round(p.width*scale),round(p.height*scale),side or 0)
-                        up_prompt='<image1> Preserve the image all elements. And up sampling to high resolution.'
-                        if task=='rgba': up_prompt='This is an RGBA image with transparency. '+up_prompt+'. The image has alpha channel and the background is transparent.'
-                        up_steps=p.steps
-                        up_seed=(seed+i)%2**32
-                        display.start_image(i,up_w,up_h)
-                        up_args=dict(args,prompt=up_prompt,width=up_w,height=up_h,num_inference_steps=up_steps,image=[result])
-                        try:
-                            up=pipe(**up_args).images[0]
-                        except torch.cuda.OutOfMemoryError as exc:
-                            release()
-                            raise RuntimeError('Qwen 2.1 ran out of GPU memory during the upscale pass. Untick Auto upscale or choose a smaller upscale size.') from exc
-                        except RuntimeError:
-                            release()
-                            raise
-                        if cleanup: up=remove_moire(up,strength=cleanup)
-                        display.publish(up, final=True)
-                        up_info=info+f', Upscale: {scale:g}x second pass, Size: {up_w}x{up_h}'
-                        if not getattr(p,'do_not_save_samples',False) and shared.opts.samples_save:
-                            images.save_image(up,p.outpath_samples,'',current_seed,prompt,extension='png',info=up_info,p=p,suffix=f'-upscale{scale:g}x')
-                        output.append(up); seeds.append(up_seed); infos.append(up_info)
                     shared.state.nextjob()
             except InterruptedError:
                 pass

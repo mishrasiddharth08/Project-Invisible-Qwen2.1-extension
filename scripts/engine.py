@@ -92,7 +92,7 @@ def _quickstart():
     return (
         '**Quick start**  \n'
         '1. Pick a Qwen-Image-2.1 checkpoint above (this panel appears once you do).  \n'
-        '2. Get the models under **Model Setup** if you have not already.  \n'
+        '2. Get the models under **Models** if you have not already.  \n'
         '3. Choose **Quality** or **Fast**, type a prompt, press Generate.'
     )
 
@@ -107,20 +107,11 @@ def _img2img_help():
 def _steps_note():
     """Why the native Sampling Steps slider still matters."""
     return ('The native **Sampling Steps** slider controls the generation length. '
-            'The Quality choice above keeps it in sync automatically.')
-
-def _speed_note():
-    """What the Speed boost LoRA does, and its caveats."""
-    return ('Enabling this uses CFG 1 and the LoRA\'s own few-step schedule. '
-            'Strength 1.0 is the tested default; Spectrum and native CFG above 1 '
-            'are ignored while it is active.')
-
-def _prompt_helper_note():
-    """How the copy-paste prompt helper is meant to be used."""
-    return 'Paste the resulting JSON into the normal prompt field.'
+            'Choosing **Fast** picks a turbo LoRA and matches the slider to its '
+            'few-step schedule automatically - but if you move the slider '
+            'yourself, your number always wins.')
 
 def _models_help():
-    """Licensing and local-only reassurance above the download options."""
     return ('Models download from the official Qwen release. **Generate always runs '
             'locally** - nothing is sent anywhere, and nothing downloads without '
             'your explicit approval below.')
@@ -194,14 +185,10 @@ class Script(scripts.Script):
             mode='edit' if is_img2img else 't2i'
             with gr.Row(elem_classes=['pi-q21-output']):
                 task=gr.Dropdown([('Standard',mode),('Transparent PNG','rgba')],value=mode,label='Output',info='Transparent PNG adds an alpha channel for cut-outs')
-                # Auto upscale: one tick runs the Qwen-Image-2.1 "second pass"
-                # (the finished image is re-rendered larger as its own reference).
-                upscale_enabled=gr.Checkbox(value=False,label='Auto upscale',info='After generating, repaints the image 1.5x or 2x larger, keeping every detail; takes about as long as the first pass')
-                upscale_scale=gr.Dropdown([1.5,2.0],value=1.5,label='Upscale size',info='1.5x is the sweet spot; 2x takes longer and can drift on faces')
             if is_img2img:
                 gr.Markdown(_img2img_help(),elem_classes=['pi-q21-status'])
             with gr.Accordion('Technical details',open=False):
-                steps=gr.Radio([('Quality · 40 steps',40),('Fast · 25 steps',25)],value=40,label='Quality',info='Fast trades detail for speed; both stay sharp')
+                steps=gr.Radio([('Quality · 40 steps',40),('Fast · 6 steps (turbo)',6)],value=40,label='Quality',info='Fast picks the turbo LoRA and matches the steps to its schedule; move the native Steps slider yourself and your number wins')
                 gr.Markdown(_steps_note())
                 _QUALITY_RADIOS.append((steps,is_img2img))
                 _bind_quality(steps,_NATIVE_STEPS.get('img2img_steps' if is_img2img else 'txt2img_steps'))
@@ -232,25 +219,29 @@ class Script(scripts.Script):
                         consent=gr.State(False)  # Generate is always local-only.
                         degrid=gr.Checkbox(value=bool(runtime.config().get('moire_cleanup',True)),label='DeGrid cleanup (removes grid/noise patterns)',info='On by default; uncheck only if outputs look over-smoothed')
                         spectrum=gr.Checkbox(value=False,label='Spectrum speedup (experimental; may change details)',info='Extra acceleration pass; disable if output looks off')
-                with gr.Tab('Speed boost'):
-                    speed_enabled=gr.Checkbox(value=False,label='Enable Speed boost LoRA (generates in 4-6 steps instead of 40)',info='Pick a downloaded turbo LoRA below; tick this AND select one')
-                    speed_choices=['(none)']+list(manager.FEATURED_CHOICES)
-                    speed_name=gr.Dropdown(speed_choices,value='(none)',label='Which speed LoRA',info='Shown options are already vetted; download takes one click')
-                    speed_strength=gr.Slider(0.0,1.5,value=1.0,step=0.05,label='Speed LoRA strength',info='1.0 is the tested default')
-                    gr.Markdown(manager.featured_instructions())
-                    speed_approved=gr.Checkbox(value=False,label='I accept the LoRA license and authorize this one-time download')
+                    # The single featured turbo LoRA: Fast auto-selects it.
+                    turbo=list(manager.FEATURED_CHOICES)[0]
+                    speed_enabled=gr.Checkbox(value=False,label='Speed boost (turbo LoRA)',info='Auto-ticked by choosing Fast; untick to go back to full quality')
                     with gr.Row():
-                        speed_button=gr.Button('Download selected speed LoRA',size='sm')
+                        speed_choices=['(none)',turbo]
+                        speed_name=gr.Dropdown(speed_choices,value='(none)',label='Which speed LoRA',info='Auto-selected by choosing Fast; download it once below')
+                        speed_strength=gr.Slider(0.0,1.5,value=1.0,step=0.05,label='LoRA strength',info='1.0 is the tested default')
                     speed_status=gr.Markdown(elem_classes=['pi-q21-status'])
+                    with gr.Accordion('Get the speed LoRA (one click)',open=False):
+                        gr.Markdown(manager.featured_instructions())
+                        speed_approved=gr.Checkbox(value=False,label='I accept the LoRA license and authorize this one-time download')
+                        speed_button=gr.Button('Download selected speed LoRA',size='sm')
                     # wiring: one-click download, and grey out the LoRA controls
                     # while the boost is off so the state is obvious.
                     speed_button.click(fn=manager.download_featured,inputs=[speed_name,speed_approved],outputs=[speed_status])
                     speed_enabled.change(fn=lambda on: (gr.update(interactive=on),gr.update(interactive=on)),inputs=[speed_enabled],outputs=[speed_name,speed_strength],queue=False)
-                    gr.Markdown(_speed_note())
-                with gr.Tab('Prompt helper'):
-                    gr.Textbox(value=(ROOT/'prompts/system_prompt_t2i.txt').read_text(encoding='utf8'),label='Official instructions for your language model',lines=4,interactive=False,info='Copy this into any chat model to get a ready-to-paste prompt')
-                    gr.Markdown(_prompt_helper_note())
-                with gr.Tab('Model Setup'):
+                    # Fast auto-adds the turbo LoRA and matches the steps to its
+                    # schedule; Quality switches back to the full model. Moving
+                    # the native Steps slider afterwards always wins - nothing
+                    # in the runtime clamps user steps any more.
+                    steps.change(fn=lambda value:(gr.update(value=bool(value==6)),gr.update(value=turbo if value==6 else gr.skip())),
+                                 inputs=[steps],outputs=[speed_enabled,speed_name],queue=False,show_progress='hidden')
+                with gr.Tab('Models'):
                     gr.Markdown(_models_help())
                     method=gr.Radio(['Manual (recommended)','Automatic'],value='Manual (recommended)',label='How to get models',info='Manual links are verifiable; Automatic downloads in one click after approval')
                     manual=gr.Markdown(manager.manual_instructions())
@@ -270,9 +261,9 @@ class Script(scripts.Script):
         PANELS.append(box)
         # MUST stay in this exact order - lib/forge.py reads these by index:
         # task, steps, cfg, profile, side, offload, community, consent, mask,
-        # refs[0..8], spectrum, degrid, speed_enabled, speed_name, speed_strength,
-        # upscale_enabled, upscale_scale. New controls append at the end only.
-        return [task,steps,cfg,profile,side,offload,community,consent,mask,*refs,spectrum,degrid,speed_enabled,speed_name,speed_strength,upscale_enabled,upscale_scale]
+        # refs[0..8], spectrum, degrid, speed_enabled, speed_name, speed_strength.
+        # New controls append at the end only.
+        return [task,steps,cfg,profile,side,offload,community,consent,mask,*refs,spectrum,degrid,speed_enabled,speed_name,speed_strength]
 
 # --------------------------------------------------------------------------- #
 # boot: install the generation hooks and clean up on extension unload

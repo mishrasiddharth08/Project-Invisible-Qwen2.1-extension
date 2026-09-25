@@ -2,6 +2,21 @@
 
 Newest updates appear first. Dates use YYYY-MM-DD. These entries describe published changes, not guarantees for every device or adapter.
 
+## 2026-09-25 (3)
+
+### Removed
+
+- **Auto upscale removed:** the one-tick second pass produced overcooked ("burnt") output and doubled generation time, so the checkbox and its size dropdown are gone. The official second pass (full model, 30 steps) simply does not fit the fast preset loop without burning colours; upscale with external tools for now.
+
+### Changed
+
+- **Panel simplified further:** the Prompt helper tab is removed, and Speed boost now lives inside the Performance tab with its one-click downloader tucked into a small sub-accordion. The panel is now just two tabs — **Performance** and **Models** — with the important choices (Output, Quality) at the top.
+- **One featured turbo LoRA only:** the list now contains just **Viggle Turbo v0.2.1 (6 steps)**, the tested default; the older 4-step and 5-step variants are no longer offered.
+
+### Added
+
+- **Fast auto-turbo with user override:** choosing **Fast · 6 steps (turbo)** now ticks Speed boost and selects Viggle Turbo v0.2.1 automatically; choosing **Quality** unticks it again. The native Steps slider is matched to the LoRA's 6-step schedule — but if you move the slider yourself, **your number always wins** (the runtime no longer clamps user steps).
+
 ## 2026-09-25 (2)
 
 ### Added

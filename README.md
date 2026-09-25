@@ -6,7 +6,10 @@ An independent, unofficial extension that adds Qwen-Image-2.1 to the normal Forg
 
 ## Latest update — September 25, 2026
 
-- **Auto upscale (one tick):** tick "Auto upscale" and every finished image is automatically re-rendered 1.5x or 2x larger in a second pass — the image is fed back as its own reference with the official preserve-everything prompt, like the reference ComfyUI workflow. Original and upscaled versions are both saved. Takes about as long as the first pass.
+- **Auto upscale removed:** the one-tick second pass produced overcooked ("burnt") output, so it is gone. Use an external upscaler for now.
+- **Fast auto-turbo:** choosing **Fast · 6 steps (turbo)** now ticks Speed boost and selects Viggle Turbo v0.2.1 automatically (Quality unticks it again). Move the native Steps slider yourself and your number always wins.
+- **Panel simplified:** the Prompt helper tab is gone; Speed boost lives inside the Performance tab with its one-click downloader in a small sub-accordion. Just two tabs now — **Performance** and **Models** — with Output and Quality at the top.
+- **One featured turbo LoRA only:** Viggle Turbo v0.2.1 (6 steps) is the sole offered download; the older 4-step and 5-step variants were dropped.
 - **Fixed a crash from yesterday's panel reorganization** (the DeGrid checkbox was accidentally dropped, which stopped the whole panel from loading — it is restored in the Performance tab).
 - **Reference images section condensed:** in img2img the nine reference slots now show as a compact 3x3 grid of small thumbnails instead of nine full-width boxes. The help text now cites the official Qwen-Image-2.1 model card: up to 10 reference images are supported at once (the img2img image counts as the first), and 1-3 references usually give the cleanest results.
 - **Control panel reorganized:** the accordion now leads with a quick-start card, Output and Quality; VRAM/memory options, Speed boost, the prompt helper and model downloads moved into clearly labeled Advanced tabs (Performance / Speed boost / Prompt helper / Model Setup), each control with a plain-language explanation underneath. Nothing was removed - same features, tidier layout, matching the Ideogram 4 extension.

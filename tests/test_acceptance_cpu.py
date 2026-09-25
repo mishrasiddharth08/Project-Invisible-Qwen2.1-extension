@@ -744,10 +744,10 @@ class SpeedLoraAcceptanceTests(unittest.TestCase):
                     task="t2i", steps=40, true_cfg=2, profile="24", side=1024,
                     offload=True, community=False, consent=False, mask=None, refs=[],
                     speed_enabled=True, speed_lora=name, speed_strength=0.8))
-            self.assertEqual(p.steps, entry["steps"], "few-step schedule must override user steps")
+            self.assertEqual(p.steps, 40, "user-chosen steps must never be overridden")
             self.assertEqual(p.cfg_scale, 1.0, "speed LoRA must force CFG 1")
             self.assertEqual(calls[0]["true_cfg_scale"], 1.0)
-            self.assertEqual(calls[0]["num_inference_steps"], entry["steps"])
+            self.assertEqual(calls[0]["num_inference_steps"], 40, "user-chosen steps reach the pipeline unchanged")
             applied = apply_adapter.call_args.args[1]
             self.assertEqual(applied[-1], (str(lora_file), 0.8))
             self.assertTrue(any("Speed LoRA: " + name in i for i in infos))
