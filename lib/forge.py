@@ -52,6 +52,7 @@ def options(runner,p):
                 result['speed_enabled']=bool(values[len(KEYS)+11])
                 result['speed_lora']=str(values[len(KEYS)+12] or '')
                 result['speed_strength']=float(values[len(KEYS)+13])
+            if len(values)>len(KEYS)+14: result['refiner']=str(values[len(KEYS)+14] or 'off').lower()
             break
     return result
 

@@ -285,6 +285,20 @@ def main():
                         result = pipe(**kwargs).images[0]
                     if command.get('spectrum',False):
                         emit('status',status=f'Spectrum {cache_stats.reason}: {cache_stats.actual} real, {cache_stats.forecast} forecast steps')
+                    # Second-pass refiner: reuses the loaded pipeline (any
+                    # quantization, any LoRA/preset combination, no extra VRAM).
+                    if str(command.get('refiner') or 'off').lower() != 'off':
+                        try:
+                            refiner = __import__(alias + ".lib.refiner", fromlist=["run"])
+                            result = refiner.run(pipe, torch, result, command, kwargs,
+                                                 emit, log)
+                        except InterruptedError:
+                            raise
+                        except Exception:
+                            # The refined base image is still valid; never fail
+                            # a finished generation because of the bonus pass.
+                            print('[PI-Qwen21] Refiner pass failed; keeping base image.', file=log)
+                            traceback.print_exc(file=log)
                     result.save(command["output"], format="PNG")
                 emit("result", path=command["output"])
             finally:

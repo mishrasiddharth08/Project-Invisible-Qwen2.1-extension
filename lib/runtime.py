@@ -150,6 +150,8 @@ def generate(p, selected, options):
                     if 'status_callback' in params: args['status_callback']=display.status
                     if 'spectrum' in params: args['spectrum']=bool(options.get('spectrum',False))
                     if 'output_resolution' in params: args['output_resolution']=max(p.width,p.height)
+                    refiner_mode=str(options.get('refiner') or 'off').lower()
+                    if refiner_mode!='off' and 'refiner' in params: args['refiner']=refiner_mode
                     try:
                         result=pipe(**args).images[0]
                     except torch.cuda.OutOfMemoryError as exc:
@@ -167,6 +169,7 @@ def generate(p, selected, options):
                     info+=f', DeGrid: {"auto" if cleanup else "off"}'
                     info+=f", Spectrum requested: {bool(options.get('spectrum',False))}"
                     if speed_entry: info+=f", Speed LoRA: {speed_name} ({speed_adapter[1]:g})"
+                    if refiner_mode!='off': info+=f", Refiner: {refiner_mode}"
                     if not getattr(p,'do_not_save_samples',False) and shared.opts.samples_save:
                         images.save_image(result,p.outpath_samples,'',current_seed,prompt,extension='png',info=info,p=p)
                     output.append(result); seeds.append(current_seed); infos.append(info)
