@@ -219,6 +219,7 @@ class Script(scripts.Script):
                         consent=gr.State(False)  # Generate is always local-only.
                         degrid=gr.Checkbox(value=bool(runtime.config().get('moire_cleanup',True)),label='DeGrid cleanup (removes grid/noise patterns)',info='On by default; uncheck only if outputs look over-smoothed')
                         spectrum=gr.Checkbox(value=False,label='Spectrum speedup (experimental; may change details)',info='Extra acceleration pass; disable if output looks off')
+                with gr.Tab('Speed boost'):
                     # The single featured turbo LoRA: Fast auto-selects it.
                     turbo=list(manager.FEATURED_CHOICES)[0]
                     speed_enabled=gr.Checkbox(value=False,label='Speed boost (turbo LoRA)',info='Auto-ticked by choosing Fast; untick to go back to full quality')
