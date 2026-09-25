@@ -125,6 +125,12 @@ def _models_help():
             'locally** - nothing is sent anywhere, and nothing downloads without '
             'your explicit approval below.')
 
+def _refs_help():
+    """Reference-image count, per the official Qwen-Image-2.1 model card."""
+    return ('Qwen-Image-2.1 supports **up to 10 reference images** at once '
+            '(official model card). Your img2img image is reference 1, so add '
+            'up to 9 more here. Fewer is usually better - 1-3 give the cleanest results.')
+
 # --------------------------------------------------------------------------- #
 # binding helpers: connect extension radios to native Forge controls
 # --------------------------------------------------------------------------- #
@@ -196,10 +202,17 @@ class Script(scripts.Script):
                 _QUALITY_RADIOS.append((steps,is_img2img))
                 _bind_quality(steps,_NATIVE_STEPS.get('img2img_steps' if is_img2img else 'txt2img_steps'))
             mask=gr.State(None)  # Editing masks come from the native img2img tab.
+            # Compact reference slots: 3 small thumbnails per row. Qwen-Image-2.1
+            # officially supports up to 10 reference images at once (model card);
+            # the main img2img image counts as the first, so 9 slots here = 10 total.
             if is_img2img:
-                with gr.Accordion('Extra reference images (optional)',open=False):
-                    gr.Markdown(_img2img_help())
-                    refs=[gr.Image(type='pil',label=f'Reference {i+2}') for i in range(9)]
+                with gr.Accordion('References (optional)',open=False,elem_classes=['pi-q21-refs']):
+                    gr.Markdown(_refs_help())
+                    refs=[]
+                    for row in range(3):
+                        with gr.Row():
+                            for col in range(3):
+                                refs.append(gr.Image(type='pil',label=f'Ref {row*3+col+2}',height=96,show_download_button=False,container=False,elem_classes=['pi-q21-ref']))
             else:
                 refs=[gr.State(None) for _ in range(9)]
             with gr.Tabs(elem_classes=['pi-q21-tools']) as tabs:
@@ -212,8 +225,9 @@ class Script(scripts.Script):
                     with gr.Row():
                         offload=gr.Checkbox(value=True,label='Save GPU memory',info='Keeps unused parts off the GPU; leave on for 12 GB cards')
                         community=gr.Checkbox(value=False,label='Allow compatible community distillation LoRAs',info='Off by default: only officially tested files')
-                    consent=gr.State(False)  # Generate is always local-only.
-                    spectrum=gr.Checkbox(value=False,label='Spectrum speedup (experimental; may change details)',info='Extra acceleration pass; disable if output looks off')
+                        consent=gr.State(False)  # Generate is always local-only.
+                        degrid=gr.Checkbox(value=bool(runtime.config().get('moire_cleanup',True)),label='DeGrid cleanup (removes grid/noise patterns)',info='On by default; uncheck only if outputs look over-smoothed')
+                        spectrum=gr.Checkbox(value=False,label='Spectrum speedup (experimental; may change details)',info='Extra acceleration pass; disable if output looks off')
                 with gr.Tab('Speed boost'):
                     speed_enabled=gr.Checkbox(value=False,label='Enable Speed boost LoRA (generates in 4-6 steps instead of 40)',info='Pick a downloaded turbo LoRA below; tick this AND select one')
                     speed_choices=['(none)']+list(manager.FEATURED_CHOICES)

@@ -4,8 +4,10 @@ An independent, unofficial extension that adds Qwen-Image-2.1 to the normal Forg
 
 > This is my first public project and I am still learning. Please forgive any mistakes or rough edges. Kind, complete bug reports will help improve the project for everyone.
 
-## Latest update — September 24, 2026
+## Latest update — September 25, 2026
 
+- **Fixed a crash from yesterday's panel reorganization** (the DeGrid checkbox was accidentally dropped, which stopped the whole panel from loading — it is restored in the Performance tab).
+- **Reference images section condensed:** in img2img the nine reference slots now show as a compact 3x3 grid of small thumbnails instead of nine full-width boxes. The help text now cites the official Qwen-Image-2.1 model card: up to 10 reference images are supported at once (the img2img image counts as the first), and 1-3 references usually give the cleanest results.
 - **Control panel reorganized:** the accordion now leads with a quick-start card, Output and Quality; VRAM/memory options, Speed boost, the prompt helper and model downloads moved into clearly labeled Advanced tabs (Performance / Speed boost / Prompt helper / Model Setup), each control with a plain-language explanation underneath. Nothing was removed - same features, tidier layout, matching the Ideogram 4 extension.
 - Quantized model files now run on every NVIDIA and AMD card: on GPUs without Forge's packed-kernel support (AMD ROCm, older CUDA torch builds, fp16-only NVIDIA cards) the extension unpacks them to plain BF16 in system RAM and runs normally. Capable NVIDIA cards keep the fast packed kernels.
 - All packed formats are supported (int8/int8-convrot, W4A8, FP8 E4M3/E5M2, MXFP8, NVFP4, ConvRot-W4A4) for DiT, text encoder and VAE.

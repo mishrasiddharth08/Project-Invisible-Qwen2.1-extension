@@ -2,6 +2,16 @@
 
 Newest updates appear first. Dates use YYYY-MM-DD. These entries describe published changes, not guarantees for every device or adapter.
 
+## 2026-09-25
+
+### Fixed
+
+- **UI crash on page load fixed:** the panel reorganization accidentally dropped the DeGrid cleanup checkbox, which made the whole panel fail to build (`NameError: degrid`). The checkbox is restored in the Performance tab and the panel now loads again.
+
+### Changed
+
+- **Reference images section condensed:** in img2img, the nine reference slots now display as a compact 3x3 grid of small square thumbnails instead of nine full-width upload boxes, so the panel takes much less space. The help text now cites the official Qwen-Image-2.1 model card: the model supports up to 10 reference images at once (your img2img image counts as the first, so 9 slots here), and 1-3 references usually give the cleanest results.
+
 ## 2026-09-24 (2)
 
 ### Changed

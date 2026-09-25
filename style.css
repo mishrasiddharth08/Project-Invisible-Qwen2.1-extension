@@ -12,3 +12,10 @@
 .pi-q21-output { margin-bottom: 6px; }
 .pi-q21-status { font-size: 0.9em; opacity: 0.9; }
 .pi-q21-tools .tab-nav { margin-bottom: 6px; }
+
+/* References accordion: 3x3 grid of small square thumbnails, minimal chrome. */
+.pi-q21-refs { margin-top: 4px; }
+.pi-q21-refs .pi-q21-ref { min-width: 0; }
+.pi-q21-refs .pi-q21-ref .wrap { min-height: 96px; padding: 0; }
+.pi-q21-refs .pi-q21-ref img { object-fit: cover; }
+.pi-q21-refs .pi-q21-ref .icon-button { display: none; }
