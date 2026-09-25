@@ -87,15 +87,6 @@ _QUALITY_RADIOS=[]
 # --------------------------------------------------------------------------- #
 # help text builders (kept out of ui() so the layout reads like an outline)
 # --------------------------------------------------------------------------- #
-def _quickstart():
-    """One-paragraph 'how to use this panel' card shown at the top."""
-    return (
-        '**Quick start**  \n'
-        '1. Pick a Qwen-Image-2.1 checkpoint above (this panel appears once you do).  \n'
-        '2. Get the models under **Models** if you have not already.  \n'
-        '3. Choose **Quality** or **Fast**, type a prompt, press Generate.'
-    )
-
 def _img2img_help():
     """Explains the img2img reference-image model in plain words."""
     return (
@@ -103,13 +94,6 @@ def _img2img_help():
         'Upload the main image in the native img2img panel. Add up to 9 extra '
         'reference images here for style or subject guidance.'
     )
-
-def _steps_note():
-    """Why the native Sampling Steps slider still matters."""
-    return ('The native **Sampling Steps** slider controls the generation length. '
-            'Choosing **Fast** picks a turbo LoRA and matches the slider to its '
-            'few-step schedule automatically - but if you move the slider '
-            'yourself, your number always wins.')
 
 def _models_help():
     return ('Models download from the official Qwen release. **Generate always runs '
@@ -181,17 +165,14 @@ class Script(scripts.Script):
         # order must not move even though the on-screen position has.
         # ---------------------------------------------------------------- #
         with gr.Accordion('Qwen-Image-2.1',open=False,visible=_visible,elem_classes=['pi-q21-panel']) as box:
-            gr.Markdown(_quickstart())
             mode='edit' if is_img2img else 't2i'
             with gr.Row(elem_classes=['pi-q21-output']):
                 task=gr.Dropdown([('Standard',mode),('Transparent PNG','rgba')],value=mode,label='Output',info='Transparent PNG adds an alpha channel for cut-outs')
+                steps=gr.Radio([('Quality',40),('Fast (turbo)',6)],value=40,label='Quality',info='Fast auto-selects the turbo LoRA; move the native Steps slider yourself and your number wins')
             if is_img2img:
                 gr.Markdown(_img2img_help(),elem_classes=['pi-q21-status'])
-            with gr.Accordion('Technical details',open=False):
-                steps=gr.Radio([('Quality · 40 steps',40),('Fast · 6 steps (turbo)',6)],value=40,label='Quality',info='Fast picks the turbo LoRA and matches the steps to its schedule; move the native Steps slider yourself and your number wins')
-                gr.Markdown(_steps_note())
-                _QUALITY_RADIOS.append((steps,is_img2img))
-                _bind_quality(steps,_NATIVE_STEPS.get('img2img_steps' if is_img2img else 'txt2img_steps'))
+            _QUALITY_RADIOS.append((steps,is_img2img))
+            _bind_quality(steps,_NATIVE_STEPS.get('img2img_steps' if is_img2img else 'txt2img_steps'))
             mask=gr.State(None)  # Editing masks come from the native img2img tab.
             # Compact reference slots: 3 small thumbnails per row. Qwen-Image-2.1
             # officially supports up to 10 reference images at once (model card);
@@ -244,9 +225,8 @@ class Script(scripts.Script):
                                  inputs=[steps],outputs=[speed_enabled,speed_name],queue=False,show_progress='hidden')
                 with gr.Tab('Models'):
                     gr.Markdown(_models_help())
-                    method=gr.Radio(['Manual (recommended)','Automatic'],value='Manual (recommended)',label='How to get models',info='Manual links are verifiable; Automatic downloads in one click after approval')
                     manual=gr.Markdown(manager.manual_instructions())
-                    with gr.Column(visible=False) as automatic:
+                    with gr.Accordion('Automatic (one click)',open=False):
                         # NO SILENT DOWNLOADS: nothing fetches until you tick the
                         # license box AND press the button. One DiT + one encoder
                         # + the VAE is all a preset needs.
@@ -256,8 +236,6 @@ class Script(scripts.Script):
                             button=gr.Button('Download selected models',size='sm')
                         status=gr.Markdown(elem_classes=['pi-q21-status'])
                         button.click(fn=manager.download_selected,inputs=[downloads,approved],outputs=[status])
-                    # wiring: Manual shows the link sheet, Automatic shows the downloader.
-                    method.change(fn=lambda value:(gr.update(visible=value.startswith('Manual')),gr.update(visible=value=='Automatic')),inputs=[method],outputs=[manual,automatic],queue=False)
         self._box=box
         PANELS.append(box)
         # MUST stay in this exact order - lib/forge.py reads these by index:
