@@ -31,6 +31,10 @@ def preview_context(pipe):
 def decode_preview(pipe,latents,height,width,max_side=256):
     import torch
     import torch.nn.functional as F
+    if max_side is None:
+        # Full-size decode (final step): no downscaling, native resolution.
+        with torch.inference_mode():
+            return _decode(pipe,pipe._unpack_latents(latents,height,width,pipe.vae_scale_factor))
     max_side=max(64,min(256,int(max_side or 256)))
     with torch.inference_mode():
         value=pipe._unpack_latents(latents,height,width,pipe.vae_scale_factor)
@@ -40,10 +44,14 @@ def decode_preview(pipe,latents,height,width,max_side=256):
         target=(max(2,round(lh*scale)),max(2,round(lw*scale)))
         if target!=(lh,lw):
             value=F.interpolate(value.squeeze(2),size=target,mode='area').unsqueeze(2)
-        value=value.to(dtype=pipe.vae.dtype)
-        mean=torch.tensor(pipe.vae.config.latents_mean,device=value.device,dtype=value.dtype).view(1,-1,1,1,1)
-        std=torch.tensor(pipe.vae.config.latents_std,device=value.device,dtype=value.dtype).view(1,-1,1,1,1)
-        value=value*std+mean
-        decoded=pipe.vae.decode(value,return_dict=False)[0][:,:,0]
-        images=pipe.image_processor.postprocess(decoded,output_type='pil')
-        return images[0]
+        return _decode(pipe,value)
+
+def _decode(pipe,value):
+    import torch
+    value=value.to(dtype=pipe.vae.dtype)
+    mean=torch.tensor(pipe.vae.config.latents_mean,device=value.device,dtype=value.dtype).view(1,-1,1,1,1)
+    std=torch.tensor(pipe.vae.config.latents_std,device=value.device,dtype=value.dtype).view(1,-1,1,1,1)
+    value=value*std+mean
+    decoded=pipe.vae.decode(value,return_dict=False)[0][:,:,0]
+    images=pipe.image_processor.postprocess(decoded,output_type='pil')
+    return images[0]

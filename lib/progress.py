@@ -83,7 +83,7 @@ class ForgeProgress:
             for _ in range(delta):
                 total_bar.update()
         if kwargs.get('preview') is not None:
-            self.publish(kwargs['preview'])
+            self.publish(kwargs['preview'], final=bool(kwargs.get('final')))
         return kwargs
 
     def close(self):

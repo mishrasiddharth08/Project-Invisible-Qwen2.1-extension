@@ -197,7 +197,7 @@ def main():
                 final=int(step)>=int(command['num_inference_steps'])-1
                 completed_steps[0]=int(step)+1
                 if final: emit('status',status='decoding')
-                emit("progress", step=int(step), timestep=float(timestep) if timestep is not None else None)
+                emit("progress", step=int(step), timestep=float(timestep) if timestep is not None else None, final=bool(final))
                 if stop.exists():
                     raise InterruptedError("Generation interrupted")
                 now=time.monotonic()
@@ -217,6 +217,17 @@ def main():
                     except Exception:
                         preview_active=False
                         print('Qwen live preview disabled after decode failure:',file=log)
+                        traceback.print_exc(file=log)
+                if final and callback_kwargs.get('latents') is not None:
+                    # Built-in models show the finished picture the moment the
+                    # last step ends; decode at full size now and push it so the
+                    # UI never shows a small preview followed by a silent wait.
+                    try:
+                        picture=preview.decode_preview(pipe,callback_kwargs['latents'],command['height'],command['width'],None)
+                        picture.save(preview_path.with_name('final-preview.png'),format='PNG')
+                        emit('preview',step=int(step),timestep=float(timestep) if timestep is not None else None,
+                             path=str(preview_path.with_name('final-preview.png')),final=True)
+                    except Exception:
                         traceback.print_exc(file=log)
                 return callback_kwargs
 

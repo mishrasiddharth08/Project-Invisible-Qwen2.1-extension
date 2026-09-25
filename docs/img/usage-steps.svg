@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="640" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b2230"/><stop offset="1" stop-color="#10151f"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="640" fill="url(#bg)"/>
+  <text x="450" y="40" fill="#e8ecf4" font-size="22" font-weight="600" text-anchor="middle">First generation in five steps</text>
+
+  <g>
+    <rect x="40" y="80" width="390" height="100" rx="10" fill="#232b3a" stroke="#3a465c"/>
+    <circle cx="80" cy="130" r="22" fill="#5b82d6"/><text x="80" y="137" fill="#fff" font-size="18" font-weight="600" text-anchor="middle">1</text>
+    <text x="120" y="120" fill="#e8ecf4" font-size="15" font-weight="600">Install</text>
+    <text x="120" y="142" fill="#9fb0c9" font-size="12">Stop Forge, install via URL or ZIP,</text>
+    <text x="120" y="160" fill="#9fb0c9" font-size="12">no double nesting, start Forge.</text>
+  </g>
+  <g>
+    <rect x="470" y="80" width="390" height="100" rx="10" fill="#232b3a" stroke="#3a465c"/>
+    <circle cx="510" cy="130" r="22" fill="#5b82d6"/><text x="510" y="137" fill="#fff" font-size="18" font-weight="600" text-anchor="middle">2</text>
+    <text x="550" y="120" fill="#e8ecf4" font-size="15" font-weight="600">Model files</text>
+    <text x="550" y="142" fill="#9fb0c9" font-size="12">Download DiT, text encoder and VAE into</text>
+    <text x="550" y="160" fill="#9fb0c9" font-size="12">models/Qwen-Image-2.1/ — or use the Models tab.</text>
+  </g>
+  <g>
+    <rect x="40" y="210" width="390" height="100" rx="10" fill="#232b3a" stroke="#3a465c"/>
+    <circle cx="80" cy="260" r="22" fill="#5b82d6"/><text x="80" y="267" fill="#fff" font-size="18" font-weight="600" text-anchor="middle">3</text>
+    <text x="120" y="250" fill="#e8ecf4" font-size="15" font-weight="600">Select preset + checkpoint</text>
+    <text x="120" y="272" fill="#9fb0c9" font-size="12">Pick the qwen-image-2.1 UI preset and</text>
+    <text x="120" y="290" fill="#9fb0c9" font-size="12">the matching Project Invisible checkpoint.</text>
+  </g>
+  <g>
+    <rect x="470" y="210" width="390" height="100" rx="10" fill="#232b3a" stroke="#3a465c"/>
+    <circle cx="510" cy="260" r="22" fill="#5b82d6"/><text x="510" y="267" fill="#fff" font-size="18" font-weight="600" text-anchor="middle">4</text>
+    <text x="550" y="250" fill="#e8ecf4" font-size="15" font-weight="600">Configure (optional)</text>
+    <text x="550" y="272" fill="#9fb0c9" font-size="12">Expand the panel. Keep Quality, batch 1,</text>
+    <text x="550" y="290" fill="#9fb0c9" font-size="12">modest size. Defaults just work.</text>
+  </g>
+  <g>
+    <rect x="40" y="340" width="820" height="110" rx="10" fill="#24304a" stroke="#5b82d6" stroke-width="2"/>
+    <circle cx="80" cy="395" r="22" fill="#5b82d6"/><text x="80" y="402" fill="#fff" font-size="18" font-weight="600" text-anchor="middle">5</text>
+    <text x="120" y="382" fill="#e8ecf4" font-size="15" font-weight="600">Generate — Forge's normal button</text>
+    <text x="120" y="404" fill="#9fb0c9" font-size="12">Two progress bars track the current image and the overall batch. Evolving previews</text>
+    <text x="120" y="422" fill="#9fb0c9" font-size="12">appear while sampling; the finished full-size picture appears the moment the last step ends.</text>
+  </g>
+
+  <!-- Progress illustration -->
+  <text x="60" y="500" fill="#8fa3c4" font-size="13" font-weight="600">What you see while it runs</text>
+  <rect x="60" y="515" width="500" height="18" rx="9" fill="#1e2736" stroke="#3a465c"/>
+  <rect x="60" y="515" width="350" height="18" rx="9" fill="#5b82d6"/>
+  <text x="60" y="558" fill="#9fb0c9" font-size="12">Current image · step 24/40 — live preview updating</text>
+  <rect x="60" y="575" width="500" height="18" rx="9" fill="#1e2736" stroke="#3a465c"/>
+  <rect x="60" y="575" width="200" height="18" rx="9" fill="#3f9d63"/>
+  <text x="60" y="618" fill="#9fb0c9" font-size="12">Overall batch · image 2 of 4</text>
+</svg>

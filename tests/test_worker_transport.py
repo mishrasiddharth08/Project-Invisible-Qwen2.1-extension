@@ -182,16 +182,22 @@ class WorkerTransportTests(unittest.TestCase):
         self.pipe(prompt='status',num_inference_steps=3,status_callback=statuses.append,
                   callback_on_step_end=lambda _p,step,_t,_kw: steps.append(step))
         self.assertEqual(statuses,['encoding','decoding'])
-        self.assertEqual(steps,[0,1,2])
+        # The last entry is the final-step callback that carries the finished
+        # full-size picture; progress events themselves are still 0,1,2.
+        self.assertEqual(steps,[0,1,2,2])
 
     def test_live_preview_round_trip_uses_same_step_without_replacing_final(self):
         events=[]
-        self.pipe(prompt='preview',width=512,height=512,preview_every=1,preview_size=256,
-                  callback_on_step_end=lambda _p,step,_t,kw: events.append((step,kw.get('preview'))))
-        previews=[image for _step,image in events if image is not None]
-        self.assertEqual(len(previews),1)
-        self.assertLessEqual(max(previews[0].size),256)
-        self.assertEqual([step for step,image in events if image is not None],[0])
+        self.pipe(prompt='preview',width=512,height=512,num_inference_steps=3,preview_every=1,preview_size=256,
+                  callback_on_step_end=lambda _p,step,_t,kw: events.append((step,kw.get('preview'),kw.get('final'))))
+        live=[(step,image) for step,image,final in events if image is not None and not final]
+        finals=[(step,image) for step,image,final in events if image is not None and final]
+        self.assertEqual(len(live),1)
+        self.assertLessEqual(max(live[0][1].size),256)
+        self.assertEqual([step for step,image in live],[0])
+        # The finished picture arrives the moment the last step ends, full size.
+        self.assertEqual([step for step,image in finals],[2])
+        self.assertEqual(max(finals[0][1].size),512)
 
 
 class SamplingHeartbeatTests(unittest.TestCase):

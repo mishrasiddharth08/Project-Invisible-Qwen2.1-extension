@@ -130,7 +130,7 @@ class WorkerPipeline:
                     if callback_on_step_end is not None and interrupted is None:
                         try:
                             with Image.open(value['path']) as shown: picture=shown.copy()
-                            callback_on_step_end(self,value['step'],value.get('timestep'),{'preview':picture})
+                            callback_on_step_end(self,value['step'],value.get('timestep'),{'preview':picture,'final':bool(value.get('final'))})
                         except (OSError,ValueError):
                             pass
                         except InterruptedError as exc:

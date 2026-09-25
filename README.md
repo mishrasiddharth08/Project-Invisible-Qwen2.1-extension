@@ -1,151 +1,127 @@
 # Project Invisible — Qwen-Image-2.1 for Forge Neo
 
-An independent, unofficial extension that adds Qwen-Image-2.1 to the normal Forge Neo workflow.
+**Qwen-Image-2.1 in Forge's familiar workflow. No separate generation tab or extra Python environment.**
+
+[Installation](#beginner-installation) · [Models](#required-model-files) · [Step-by-step usage](#step-by-step-usage) · [UI tour](#ui-tour) · [Update safety](UPDATE_SAFETY.md) · [Technical notes](TECHNICAL.md)
 
 > This is my first public project and I am still learning. Please forgive any mistakes or rough edges. Kind, complete bug reports will help improve the project for everyone.
 
-## Latest update
-
-- **Speed boost auto-arms the turbo recipe:** ticking Speed boost selects the turbo LoRA, sets strength to 1.0 and Steps to 6 in one click. Everything stays editable - the user always wins.
-- **Simpler panel:** Quality vs Fast sits at the top next to Output; three tabs (Speed boost / Performance / Models) with trimmed help text.
-- **Fast auto-selects the turbo LoRA** (Viggle Turbo v0.2.1, 6 steps); move the native Steps slider yourself and your number wins.
-- **Auto upscale removed:** it produced overcooked ("burnt") output. Use an external upscaler for now.
-- **Quantized models run everywhere** (NVIDIA + AMD, all packed formats); adapter support widened (LoRA, LoKr, LoHa).
-
-Full details in the [dated update history](CHANGELOG.md). 110 automated tests pass - restart Forge after updating.
-
 ## The Project Invisible idea
 
-The extension should feel like built-in Forge support:
+Use Forge's normal preset selector, prompt, Generate button and image folders.
+Special controls stay inside a compact, collapsed **Qwen-Image-2.1** panel.
+“Invisible” means familiar—not hiding downloads, errors or limitations.
+This is an independent community extension, not an official Qwen product.
 
-- no separate generation tab;
-- no extra virtual environment;
-- no modified Forge core files;
-- use the normal preset, checkpoint selector and **Generate** button;
-- show special controls only when this engine is selected;
-- release this extension's RAM/VRAM when another model is selected.
+## Features and testing status
 
-“Invisible” means a familiar workflow. It does not mean hiding downloads, errors, limitations or resource use.
+- **Text-to-image:** tested with local weights on the author's NVIDIA system.
+- **Image-to-image:** experimental; editing stays in Forge's **img2img** tab.
+- **Speed boost:** one tick selects the Viggle Turbo LoRA, strength 1.0 and 6 steps — everything stays editable, your number always wins.
+- **Progress:** current-image and overall-batch bars; starting gradient, evolving previews, the finished picture the moment the last step ends.
+- **Memory:** offloading profiles, quantized models (NVIDIA + AMD) and safe release of cached models when switching checkpoints.
+- **Downloads:** manual installation recommended; optional downloads require selecting files and clicking Download.
+- **Adapters:** compatible LoRA/LoKr/LoHa controls; incompatible files are rejected.
+- **Acceleration:** optional Spectrum speed setting; approximate acceleration can change image details.
 
-## Testing status
-
-- **Text-to-image:** tested and working on the author's computer.
-- **Other modes:** untested or not fully confirmed for this first public release.
-
-The code contains experimental support for image editing, references, transparency, compatible LoRA/LoKr files, Spectrum acceleration, DeGrid cleanup and different memory profiles. Treat these as experimental until more users test them.
-
-No extension can guarantee every GPU, driver, model file, adapter or Forge update will work.
-
-## Features
-
-- Normal Forge Neo preset/checkpoint selection and **Generate** button.
-- Dedicated model pipeline; it is not routed through an SD or Flux pipeline.
-- Dependencies remain inside the extension's `_deps` folder.
-- Existing model folders are scanned before downloads are offered.
-- Pressing **Generate** never silently downloads model weights.
-- Manual installation and optional user-approved downloads.
-- Current-image and overall-batch progress bars.
-- Live developing previews when Forge live previews are enabled.
-- Worker and memory cleanup when switching models.
-- Optional DeGrid artifact cleanup with a true bypass checkbox.
-- Optional experimental Spectrum acceleration, disabled by default.
-
-## Requirements
-
-- Windows and a working Forge Neo installation.
-- A GPU/PyTorch setup already supported by that Forge installation.
-- Enough GPU memory and system RAM for the selected profile.
-- Internet access for first dependency installation and optional downloads.
-- Model weights obtained under their original license.
-
-Model weights are not included in this repository.
+Automated tests do not prove every GPU, model file or Forge version works.
+No promise is made for every VRAM size.
 
 ## Beginner installation
 
-Choose **one** of these two ways — never both, or you end up with two copies that fight over the same preset and models:
+1. Stop Forge completely.
+2. Choose **one** way — never both: **Install from URL** with `https://github.com/mishrasiddharth08/Project-Invisible-Qwen2.1-extension`, or **Download ZIP** and extract into `sd-webui-forge-classic/extensions/`.
+3. Avoid double nesting. The correct path ends with:
+   `extensions/project-invisible-qwen-image-21/scripts/engine.py`.
+4. Start Forge normally. The first start may take longer while local dependencies install.
+5. Refresh your browser with **Ctrl+F5** after updates.
 
-**Way A — Forge's "Install from URL" (recommended):** paste `https://github.com/mishrasiddharth08/Project-Invisible-Qwen2.1-extension` into Forge's extension installer. Forge names the folder automatically.
-
-**Way B — manual ZIP:** download the repository as a ZIP, extract it, and copy the folder into `sd-webui-forge-classic\extensions\`.
-
-If you accidentally installed twice (two `project-invisible*` folders in `extensions\`), delete one and restart Forge. The extension detects this at startup and prints a warning listing both folders.
-
-After either way:
-
-1. Make sure the extension is not accidentally nested twice.
-2. Start Forge normally. The first start may take longer while local dependencies install.
-3. Restart Forge once if the preset/checkpoint is missing.
-4. After an update, refresh the browser with `Ctrl+F5`.
-
-Correct:
-
-```text
-extensions\project-invisible-qwen-image-21\README.md
-```
-
-Incorrect:
-
-```text
-extensions\project-invisible-qwen-image-21\project-invisible-qwen-image-21\README.md
-```
-
-No extra virtual environment is needed.
+If you accidentally installed twice, delete one copy and restart Forge — the extension warns about it at startup.
 
 ## Required model files
 
-Install one DiT, one Qwen3-VL text encoder and the Qwen-Image-2.1 VAE.
+**Weights are not included.** Install one DiT, one Qwen3-VL text encoder and the Qwen-Image-2.1 VAE.
 
-```text
-DiT
-qwen_image_2.1_bf16.safetensors
-qwen_image_2.1_int8_convrot.safetensors
+| Component | Filenames | Forge folder |
+|---|---|---|
+| DiT | `qwen_image_2.1_bf16.safetensors` · `qwen_image_2.1_int8_convrot.safetensors` | `models/Qwen-Image-2.1` |
+| Text encoder | `qwen3vl_8b_bf16.safetensors` · `qwen3vl_8b_int8_convrot.safetensors` · `qwen3vl_8b_w4a8.safetensors` | `models/Qwen-Image-2.1` |
+| VAE | `qwen_image_2.1_vae_bf16.safetensors` | `models/Qwen-Image-2.1` |
+| Optional adapters | featured LoRAs | `models/Qwen-Image-2.1/featured-loras` |
 
-Text encoder
-qwen3vl_8b_bf16.safetensors
-qwen3vl_8b_int8_convrot.safetensors
-qwen3vl_8b_w4a8.safetensors
+Manual download is recommended. Do not substitute an older model generation's text encoder or VAE.
+The extension's **Models** section can download only selected files after you explicitly accept the license and approve the download. Pressing **Generate** never silently fetches weights.
 
-VAE
-qwen_image_2.1_vae_bf16.safetensors
-```
+## UI tour
 
-Manual download is recommended. Put compatible files in Forge's normal model folders or:
+Everything lives inside Forge's normal txt2img / img2img view. The extension adds a single collapsed **Qwen-Image-2.1** accordion:
 
-```text
-sd-webui-forge-classic\models\Qwen-Image-2.1\
-```
+![Qwen-Image-2.1 panel layout](docs/img/ui-tour.svg)
 
-Do not substitute an older model generation's text encoder or VAE.
+Inside the panel:
 
-The extension's **Models** section can download only selected files after you explicitly accept the license and approve the download.
+- **Quality row** — Quality (40 steps) or Fast · 6 steps (turbo). Fast auto-selects Viggle Turbo and matches the Steps slider; move the slider yourself and your number wins.
+- **Speed boost tab** — checkbox, LoRA choice and strength (1.0 is the tested default).
+- **Performance tab** — Save GPU memory, VRAM profile and memory options.
+- **Models tab** — source links, compatible variants and optional selected-file downloads.
+- **Status strip** — model detection, adapter hints and memory state at the left edge of the panel.
+
+Forge's own sampler/scheduler, size, seed, batch and Steps controls stay in charge.
+
+## Step-by-step usage
+
+![Step-by-step first generation](docs/img/usage-steps.svg)
+
+1. **Install** — stop Forge, install via URL or ZIP (no double nesting), start Forge.
+2. **Model files** — download the DiT, text encoder and VAE into `models/Qwen-Image-2.1/`, or use the Models tab downloads.
+3. **Select preset + checkpoint** — pick the `qwen-image-2.1` UI preset and the matching checkpoint.
+4. **Configure (optional)** — expand the panel. Keep **Quality**, batch **1** and a modest size for the first run; defaults just work.
+5. **Generate** — press Forge's normal **Generate** button. Two progress bars track the current image and the overall batch; evolving previews appear while sampling and the finished picture lands the moment the last step ends.
+
+### Using an existing image (img2img)
+
+![img2img flow](docs/img/img2img-flow.svg)
+
+Use Forge's normal **img2img** tab with its upload and denoising controls. Lower strength preserves more of the source; zero preserves the resized source; one starts from noise. **Inpainting/masks are unsupported.**
 
 ## First text-to-image test
 
-1. Start Forge Neo.
-2. Select the `qwen-image-2.1` UI preset.
-3. Select the matching Project Invisible checkpoint.
-4. Open the normal **txt2img** tab.
-5. Enter a simple prompt.
-6. Start with a modest image size.
-7. Use 40 steps for the quality default or 25 for a faster test.
-8. Keep CFG scale at `1.0` unless you understand its extra cost.
-9. Press **Generate**.
+1. Select the `qwen-image-2.1` UI preset.
+2. Select the matching Project Invisible checkpoint.
+3. Open the normal **txt2img** tab and enter a simple prompt.
+4. Keep CFG scale at `1.0` unless you understand its extra cost.
+5. Press **Generate**.
 
 For an out-of-memory error, enable **Save GPU memory**, choose a smaller profile and reduce the image size.
+
+## Progress and memory
+
+Preview transitions affect display only, not saved pixels. A new sampling stage
+requires completed model steps; one-second polling cannot guarantee a new image
+every second. Offloading lowers VRAM pressure but uses system RAM and transfers,
+which can slow generation. Spectrum trades exact output matching for possible speed.
 
 ## Important controls
 
 - **DeGrid:** enabled by default. It only corrects a detected repeating grid artifact. Uncheck it for a complete filter bypass.
-- **Spectrum speedup:** experimental and off by default. It may change image details even with the same seed. CFG scale above `1.0` disables it.
+- **Spectrum speedup:** experimental and off by default. CFG scale above `1.0` disables it.
 - **Save GPU memory:** reduces GPU use through offloading but can be slower.
 - **VRAM profile:** selects safer defaults; it is guidance, not a guarantee.
-- **CFG scale:** values above `1.0` need a real negative prompt and more computation.
+
+### Empty negative prompt
+
+If native CFG Scale is above 1 and the negative prompt is empty, generation uses CFG 1 and prints a notice instead of stopping. Saved image metadata records the effective value. To use CFG above 1, enter a real negative prompt.
 
 ## Isolation and Forge updates
 
-The extension keeps its code and added dependencies inside its own folder and does not rewrite Forge core files. Generation uses a separate worker with Forge's existing Python interpreter. Forge's own Python, PyTorch and UI APIs remain shared dependencies, so future compatibility cannot be guaranteed.
+Extension code stays in its own folder. It does not rewrite Forge core files,
+install shared dependencies or modify other extensions. Runtime integration still
+shares Forge's Python, PyTorch and UI APIs.
 
-Keep a known-working backup outside Forge before updating. See [UPDATE_SAFETY.md](UPDATE_SAFETY.md) for practical backup, verification and recovery steps. The included `verify_integrity.py` detects changes to recorded source files; it does not freeze Forge or automatically restore files.
+**Future compatibility cannot be guaranteed.** Keep a known-working backup outside
+Forge. The release's `verify_integrity.py` detects changes to recorded source
+files; it does not freeze Forge or automatically restore anything.
+Read [UPDATE_SAFETY.md](UPDATE_SAFETY.md).
 
 ## Updating
 
@@ -157,32 +133,15 @@ Keep a known-working backup outside Forge before updating. See [UPDATE_SAFETY.md
 
 ## If something goes wrong
 
-Before opening an issue:
-
 1. Restart Forge.
 2. Check for a double-nested extension folder.
 3. Confirm all required model files exist.
 4. Try a smaller image with **Save GPU memory** enabled.
 5. Reproduce the problem once and keep the DOS/terminal window open.
 
-Open a GitHub ticket and paste the **COMPLETE error from the DOS/terminal window**. Include everything from the first error line through the final traceback line. Do not paste only the last sentence.
+Open a GitHub ticket and paste the **COMPLETE error from the DOS/terminal window** — everything from the first error line through the final traceback line. Please include Forge version/commit, Windows version, GPU/VRAM/RAM, checkpoint/encoder/VAE filenames, image size and steps, memory profile, enabled options, exact reproduction steps, the complete error and `logs/worker.log` when available.
 
-You may also paste the complete error into ChatGPT, Claude, Gemini or Grok and ask for a simple explanation.
-
-Please include:
-
-- Forge Neo version or commit;
-- Windows version;
-- GPU, VRAM and system RAM;
-- checkpoint, text encoder and VAE filenames;
-- image size and steps;
-- memory profile and offloading setting;
-- whether DeGrid, Spectrum or a LoRA/LoKr was enabled;
-- exact steps that reproduce the issue;
-- complete terminal error;
-- `logs/worker.log`, when available.
-
-Remove private usernames, paths, prompts, tokens and images before posting publicly.
+**Remove private paths, prompts, tokens and personal images before posting.**
 
 ## Known limitations
 
@@ -190,7 +149,6 @@ Remove private usernames, paths, prompts, tokens and images before posting publi
 - Editing and other modes are experimental or untested.
 - Speed and memory use vary by hardware.
 - DeGrid fixes a specific fine grid artifact; it cannot repair anatomy, composition or missing detail.
-- Spectrum trades exact output matching for possible speed.
 - Incompatible adapters are rejected.
 - Forge updates may change extension hooks.
 
@@ -202,18 +160,9 @@ Remove private usernames, paths, prompts, tokens and images before posting publi
 
 Passing automated tests does not prove every GPU workflow works.
 
-## Privacy and safety
+## License and credits
 
-- Generation stays local unless you approve a download or use another network-enabled extension.
-- Review logs before posting them publicly.
-- Never publish passwords, access tokens, private prompts or personal images by accident.
-- Download weights only from sources you trust.
-
-## License
-
-This is an independent Forge adapter, not an official Qwen product.
-
-Read [LICENSE](LICENSE), [NOTICE](NOTICE), and the licenses under `resources/` and `lib/vendor/`. Upstream files and model weights keep their original licenses. The supplied Qwen Research License contains non-commercial and redistribution conditions. This repository does not relicense the model or upstream projects.
+Extension code: [Apache License 2.0](LICENSE). See [NOTICE](NOTICE) and the licenses under `resources/` and `lib/vendor/`. This is an independent Forge adapter, not an official Qwen product. The supplied Qwen Research License contains non-commercial and redistribution conditions; this repository does not relicense the model or upstream projects.
 
 ## Help and contributions
 
@@ -225,18 +174,8 @@ I am a beginner too, and this is my first public attempt. Please forgive mistake
 
 ## Special thanks
 
-Special thanks to:
+Special thanks to [u/malcolmrey and the r/malcolmrey community](https://www.reddit.com/r/malcolmrey/), [r/sdforall](https://www.reddit.com/r/sdforall/) and the [r/SECourses community](https://www.reddit.com/r/SECourses/) for support and inspiration.
 
-- [r/sdforall](https://www.reddit.com/r/sdforall/) — community, support and inspiration
-- [r/SECourses](https://www.reddit.com/r/SECourses/) — tutorials, guidance and community support
-- [r/malcolmrey](https://www.reddit.com/r/malcolmrey/) and u/malcolmrey — feedback and encouragement
-- [Forge Neo (sd-webui-forge-classic, neo branch) by Haoming02](https://github.com/Haoming02/sd-webui-forge-classic/tree/neo) — the foundation this extension runs on
-
-And a thank-you to the wider open-source communities: Forge, Diffusers, Qwen, ComfyUI, DeGrid, Spectrum, and every model author and tester whose work and bug reports make projects like this possible.
+Thank you to [Forge Neo (sd-webui-forge-classic, neo branch) by Haoming02](https://github.com/Haoming02/sd-webui-forge-classic/tree/neo), and to the Diffusers, Qwen, DeGrid, Spectrum and wider open-source communities.
 
 If you contribute, test, or report issues and would like to be named here, say so and you will be added.
-
-
-### Empty negative prompt
-
-If native CFG Scale is above 1 and the negative prompt is empty, generation uses CFG 1 and prints a notice instead of stopping. Saved image metadata records the effective value. To use CFG above 1, enter a real negative prompt.

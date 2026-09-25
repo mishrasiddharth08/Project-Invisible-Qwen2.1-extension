@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="560" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b2230"/><stop offset="1" stop-color="#10151f"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="560" fill="url(#bg)"/>
+  <text x="450" y="40" fill="#e8ecf4" font-size="22" font-weight="600" text-anchor="middle">Qwen-Image-2.1 panel inside Forge's normal page</text>
+
+  <!-- Forge page -->
+  <rect x="30" y="70" width="520" height="460" rx="10" fill="#232b3a" stroke="#3a465c"/>
+  <text x="50" y="98" fill="#9fb0c9" font-size="13">Forge txt2img / img2img</text>
+  <rect x="50" y="112" width="480" height="34" rx="6" fill="#2c3547" stroke="#46536b"/>
+  <text x="64" y="134" fill="#cdd7e6" font-size="13">Prompt</text>
+  <rect x="50" y="154" width="480" height="34" rx="6" fill="#2c3547" stroke="#46536b"/>
+  <text x="64" y="176" fill="#cdd7e6" font-size="13">Negative prompt</text>
+  <rect x="50" y="200" width="150" height="30" rx="6" fill="#2c3547" stroke="#46536b"/>
+  <text x="64" y="220" fill="#cdd7e6" font-size="12">qwen-image-2.1</text>
+  <rect x="212" y="200" width="180" height="30" rx="6" fill="#2c3547" stroke="#46536b"/>
+  <text x="226" y="220" fill="#cdd7e6" font-size="12">Project Invisible checkpoint</text>
+  <rect x="50" y="248" width="480" height="40" rx="8" fill="#d9534f"/>
+  <text x="290" y="274" fill="#fff" font-size="15" font-weight="600" text-anchor="middle">Generate</text>
+  <rect x="50" y="300" width="480" height="200" rx="8" fill="#1a2130" stroke="#3a465c"/>
+  <text x="290" y="404" fill="#5d6c85" font-size="13" text-anchor="middle">Image gallery</text>
+
+  <!-- Extension panel -->
+  <rect x="580" y="70" width="290" height="460" rx="10" fill="#2a3345" stroke="#5b82d6" stroke-width="2"/>
+  <text x="725" y="98" fill="#dfe7f5" font-size="14" font-weight="600" text-anchor="middle">Qwen-Image-2.1  (collapsed by default)</text>
+  <line x1="600" y1="110" x2="850" y2="110" stroke="#3a465c"/>
+
+  <text x="600" y="138" fill="#8fa3c4" font-size="12">Quality row</text>
+  <rect x="600" y="146" width="120" height="30" rx="6" fill="#3c4a63" stroke="#5b82d6"/>
+  <text x="660" y="166" fill="#e8ecf4" font-size="12" text-anchor="middle">Quality · 40</text>
+  <rect x="730" y="146" width="120" height="30" rx="6" fill="#3c4a63" stroke="#5b82d6"/>
+  <text x="790" y="166" fill="#e8ecf4" font-size="12" text-anchor="middle">Fast · 6 (turbo)</text>
+
+  <text x="600" y="206" fill="#8fa3c4" font-size="12">Tabs</text>
+  <rect x="600" y="214" width="122" height="28" rx="6" fill="#3c4a63"/>
+  <text x="661" y="233" fill="#e8ecf4" font-size="12" text-anchor="middle">Speed boost</text>
+  <rect x="730" y="214" width="120" height="28" rx="6" fill="#2f3a4e"/>
+  <text x="790" y="233" fill="#cdd7e6" font-size="12" text-anchor="middle">Performance</text>
+  <rect x="600" y="250" width="250" height="28" rx="6" fill="#2f3a4e"/>
+  <text x="725" y="269" fill="#cdd7e6" font-size="12" text-anchor="middle">Models</text>
+
+  <text x="600" y="308" fill="#8fa3c4" font-size="12">Speed boost tab contents</text>
+  <rect x="600" y="318" width="16" height="16" rx="3" fill="#5b82d6"/>
+  <text x="624" y="331" fill="#e8ecf4" font-size="12">Enable speed boost</text>
+  <rect x="600" y="344" width="250" height="28" rx="6" fill="#2f3a4e"/>
+  <text x="614" y="363" fill="#cdd7e6" font-size="12">Viggle Turbo v0.2.1 (6 steps)</text>
+  <rect x="600" y="382" width="250" height="28" rx="6" fill="#2f3a4e"/>
+  <text x="614" y="401" fill="#cdd7e6" font-size="12">LoRA strength · 1.0</text>
+
+  <text x="600" y="440" fill="#8fa3c4" font-size="12">Status strip</text>
+  <rect x="600" y="450" width="250" height="56" rx="6" fill="#1e2736" stroke="#3a465c"/>
+  <rect x="600" y="450" width="4" height="56" fill="#5b82d6"/>
+  <text x="616" y="472" fill="#9fe3a1" font-size="11">✓ Models detected</text>
+  <text x="616" y="490" fill="#9fb0c9" font-size="11">Adapter hints · memory state</text>
+</svg>
