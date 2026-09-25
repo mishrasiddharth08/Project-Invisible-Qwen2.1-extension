@@ -94,6 +94,8 @@ The refiner rides on top of whatever you already selected — no permutations to
 | img2img editing | Works — refines the edited result |
 | Any VRAM profile / Save GPU memory | Works — no extra model is ever loaded |
 
+> **Tip:** the built-in Refiner tab covers Qwen-Image-2.1 specifically. For a second detail pass that works with **any** checkpoint in Forge — any model, any quantization, any VRAM size, even a different refiner checkpoint per pass — see the standalone [Project Invisible Refiner](https://github.com/mishrasiddharth08/Project-Invisible-Refiner-extension).
+
 ### Using an existing image (img2img)
 
 ![img2img flow](docs/img/img2img-flow.svg)
