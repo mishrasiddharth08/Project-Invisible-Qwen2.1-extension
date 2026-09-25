@@ -19,6 +19,28 @@ FEATURED={
 }
 FEATURED_CHOICES=list(FEATURED)
 
+# The Viggle card requires its exact sigma nodes, not a plain 6-step linspace,
+# and a scheduler with shift_terminal disabled ("the base config's
+# shift_terminal: 0.02 would wreck the last step"). The shipped 6-step nodes are
+# the 4-step training nodes linspace(1, 1/4, 4) with the first segment cut into
+# three; 8 steps (dense text) inserts 0.625 and 0.125. Other counts subdivide
+# the first segment as an approximation - the card only blesses 6 and 8.
+_TURBO_6=[1.0, 0.9375, 0.875, 0.75, 0.5, 0.25]
+_TURBO_8=[1.0, 0.9375, 0.875, 0.75, 0.625, 0.5, 0.25, 0.125]
+
+def turbo_sigmas(steps):
+    steps=max(1,int(steps))
+    if steps==6: return list(_TURBO_6)
+    if steps==8: return list(_TURBO_8)
+    if steps<=2: return [1.0, 0.25][:steps] if steps>1 else [1.0]
+    head=linspace(1.0,0.75,steps-2)
+    return head+[0.5,0.25]
+
+def linspace(start,stop,count):
+    if count<=1: return [start]
+    step=(stop-start)/(count-1)
+    return [start+step*i for i in range(count)]
+
 def featured_folder():
     return models_root()/'Qwen-Image-2.1'/'featured-loras'
 

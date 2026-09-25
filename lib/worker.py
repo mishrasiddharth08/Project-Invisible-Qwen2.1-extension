@@ -244,6 +244,21 @@ def main():
                 kwargs["mask_image"] = mask
             if command.get("output_resolution") is not None:
                 kwargs["output_resolution"] = command["output_resolution"]
+            sigmas = command.get("sigmas") or None
+            if sigmas:
+                # Speed LoRAs are distilled against exact sigma nodes and a
+                # scheduler with shift_terminal disabled; the base config's
+                # 0.02 wrecks the last step (see the Viggle model card).
+                if getattr(pipe, '_pi_qwen21_base_scheduler_config', None) is None:
+                    pipe._pi_qwen21_base_scheduler_config = dict(pipe.scheduler.config)
+                config = dict(pipe._pi_qwen21_base_scheduler_config)
+                config['shift_terminal'] = None
+                from diffusers import FlowMatchEulerDiscreteScheduler
+                pipe.scheduler = FlowMatchEulerDiscreteScheduler.from_config(config)
+                kwargs['sigmas'] = sigmas
+            elif getattr(pipe, '_pi_qwen21_base_scheduler_config', None) is not None:
+                from diffusers import FlowMatchEulerDiscreteScheduler
+                pipe.scheduler = FlowMatchEulerDiscreteScheduler.from_config(pipe._pi_qwen21_base_scheduler_config)
             supported = params
             kwargs = {k: v for k, v in kwargs.items() if k in supported}
             adapters = command.get("adapters", [])

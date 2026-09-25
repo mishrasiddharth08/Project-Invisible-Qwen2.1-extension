@@ -98,7 +98,7 @@ class WorkerPipeline:
                  height=1024, num_inference_steps=40, generator=None, image=None,
                  mask_image=None, use_kv_cache=True, callback_on_step_end=None,
                  output_resolution=None, preview_every=0, preview_size=256,
-                 status_callback=None, spectrum=False):
+                 status_callback=None, spectrum=False, sigmas=None):
         from PIL import Image
         with self._lock, tempfile.TemporaryDirectory(prefix="job-", dir=self._temp.name) as td:
             job = Path(td)
@@ -117,6 +117,7 @@ class WorkerPipeline:
                 preview_every=int(preview_every or 0),preview_size=int(preview_size or 256),preview=str(preview),
                 adapters=[dict(path=p, weight=w) for p, w in self._adapters],
                 spectrum=bool(spectrum),
+                sigmas=([float(s) for s in sigmas] if sigmas else None),
             ))
             interrupted = None
             while True:

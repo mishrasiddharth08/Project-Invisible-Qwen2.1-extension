@@ -73,13 +73,19 @@ def generate(p, selected, options):
         if options.get('speed_enabled') and speed_entry is None:
             print('[PI-Qwen21] Speed boost is ticked but no speed LoRA is selected or recognized (dropdown may show "(none)"). Running the full step schedule - pick a downloaded LoRA under Qwen Controls > Speed boost LoRA.')
         speed_adapter=None
+        speed_sigmas=None
         if speed_entry:
-            speed_path=downloads.featured_path(speed_name)
-            if not speed_path or not speed_path.is_file() or speed_path.stat().st_size<=8:
-                raise ValueError(speed_name+' is not downloaded yet. Open Qwen Controls > Speed boost LoRA and approve the one-time download, or untick the box. Generate never downloads files.')
-            if cfg>1: print('[PI-Qwen21] Speed LoRA selected: using CFG 1 as required by the distillation.')
-            cfg=1.0
-            speed_adapter=(str(speed_path), float(options.get('speed_strength',speed_entry['strength'])))
+                speed_path=downloads.featured_path(speed_name)
+                if not speed_path or not speed_path.is_file() or speed_path.stat().st_size<=8:
+                    raise ValueError(speed_name+' is not downloaded yet. Open Qwen Controls > Speed boost LoRA and approve the one-time download, or untick the box. Generate never downloads files.')
+                if cfg>1: print('[PI-Qwen21] Speed LoRA selected: using CFG 1 as required by the distillation.')
+                cfg=1.0
+                speed_adapter=(str(speed_path), float(options.get('speed_strength',speed_entry['strength'])))
+                # The Viggle card mandates its own sigma nodes and a scheduler
+                # with shift_terminal disabled; the base config's 0.02 wrecks
+                # the last step. Sampling must match the distillation exactly.
+                # Sigmas are built after p.steps is finalized so the count
+                # always matches the schedule.
         if cfg>1 and not negative.strip():
             print('[PI-Qwen21] No negative prompt: using CFG 1 for this generation.')
             cfg=1.0
@@ -119,6 +125,7 @@ def generate(p, selected, options):
             p.steps=max(1,int(getattr(p,'steps',None) or options.get('steps',40))); p.cfg_scale=cfg
             # User steps always win: choosing Fast auto-selects the turbo LoRA
             # and matches the slider, but a slider moved by hand is never overridden.
+            if speed_entry: speed_sigmas=downloads.turbo_sigmas(p.steps)
             p.sampler_name='Euler'
             seed=int(p.seed if p.seed is not None else -1)
             if seed<0: seed=random.randrange(2**32)
@@ -134,6 +141,7 @@ def generate(p, selected, options):
                     current_seed=(seed+i)%2**32
                     display.start_image(i,p.width,p.height)
                     args=dict(prompt=prompt,negative_prompt=negative if cfg>1 else None,true_cfg_scale=cfg,width=p.width,height=p.height,num_inference_steps=p.steps,generator=torch.Generator('cpu').manual_seed(current_seed))
+                    if speed_sigmas: args['sigmas']=speed_sigmas
                     if refs: args['image']=refs
                     if mask is not None: args['mask_image']=mask
                     if 'use_kv_cache' in params: args['use_kv_cache']=True
