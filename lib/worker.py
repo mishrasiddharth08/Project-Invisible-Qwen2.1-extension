@@ -289,7 +289,12 @@ def main():
                     # quantization, any LoRA/preset combination, no extra VRAM).
                     if str(command.get('refiner') or 'off').lower() != 'off':
                         try:
-                            refiner = __import__(alias + ".lib.refiner", fromlist=["run"])
+                            name = alias + ".lib.refiner"
+                            # Reload-safe: a long-lived worker must not keep
+                            # serving a cached pre-update copy of the module.
+                            if name in sys.modules:
+                                importlib.reload(sys.modules[name])
+                            refiner = __import__(name, fromlist=["run"])
                             result = refiner.run(pipe, torch, result, command, kwargs,
                                                  emit, log)
                         except InterruptedError:
