@@ -52,6 +52,9 @@ def options(runner,p):
                 result['speed_enabled']=bool(values[len(KEYS)+11])
                 result['speed_lora']=str(values[len(KEYS)+12] or '')
                 result['speed_strength']=float(values[len(KEYS)+13])
+            if len(values)>len(KEYS)+14:
+                result['upscale_enabled']=bool(values[len(KEYS)+14])
+                result['upscale_scale']=float(values[len(KEYS)+15] or 1.5)
             break
     return result
 

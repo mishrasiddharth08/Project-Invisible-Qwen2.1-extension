@@ -2,6 +2,12 @@
 
 Newest updates appear first. Dates use YYYY-MM-DD. These entries describe published changes, not guarantees for every device or adapter.
 
+## 2026-09-25 (2)
+
+### Added
+
+- **Auto upscale (one-tick second pass):** a new "Auto upscale" checkbox (with a 1.5x / 2x size dropdown) next to the Output control. When ticked, every finished image is automatically re-rendered larger in a second pass — the generated image is fed back as its own reference with the official preserve-everything prompt (`<image1> Preserve the image all elements. And up sampling to high resolution.`), mirroring the reference ComfyUI upscaling workflow for Qwen-Image-2.1. Both the original and the upscaled image are saved (the upscale copy gets an `-upscale1.5x` / `-upscale2x` suffix). Transparent PNG (RGBA) output carries through to the second pass. Interrupting Generate stops before or during the upscale pass safely; if the GPU runs out of memory in the second pass, a clear message explains the options. The checkbox adds two new values at the end of the script-args contract, so older saved settings and other engines are unaffected.
+
 ## 2026-09-25
 
 ### Fixed

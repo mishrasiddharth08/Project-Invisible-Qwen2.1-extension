@@ -194,6 +194,10 @@ class Script(scripts.Script):
             mode='edit' if is_img2img else 't2i'
             with gr.Row(elem_classes=['pi-q21-output']):
                 task=gr.Dropdown([('Standard',mode),('Transparent PNG','rgba')],value=mode,label='Output',info='Transparent PNG adds an alpha channel for cut-outs')
+                # Auto upscale: one tick runs the Qwen-Image-2.1 "second pass"
+                # (the finished image is re-rendered larger as its own reference).
+                upscale_enabled=gr.Checkbox(value=False,label='Auto upscale',info='After generating, repaints the image 1.5x or 2x larger, keeping every detail; takes about as long as the first pass')
+                upscale_scale=gr.Dropdown([1.5,2.0],value=1.5,label='Upscale size',info='1.5x is the sweet spot; 2x takes longer and can drift on faces')
             if is_img2img:
                 gr.Markdown(_img2img_help(),elem_classes=['pi-q21-status'])
             with gr.Accordion('Technical details',open=False):
@@ -266,8 +270,9 @@ class Script(scripts.Script):
         PANELS.append(box)
         # MUST stay in this exact order - lib/forge.py reads these by index:
         # task, steps, cfg, profile, side, offload, community, consent, mask,
-        # refs[0..8], spectrum, degrid, speed_enabled, speed_name, speed_strength.
-        return [task,steps,cfg,profile,side,offload,community,consent,mask,*refs,spectrum,degrid,speed_enabled,speed_name,speed_strength]
+        # refs[0..8], spectrum, degrid, speed_enabled, speed_name, speed_strength,
+        # upscale_enabled, upscale_scale. New controls append at the end only.
+        return [task,steps,cfg,profile,side,offload,community,consent,mask,*refs,spectrum,degrid,speed_enabled,speed_name,speed_strength,upscale_enabled,upscale_scale]
 
 # --------------------------------------------------------------------------- #
 # boot: install the generation hooks and clean up on extension unload

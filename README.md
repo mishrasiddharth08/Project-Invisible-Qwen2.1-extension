@@ -6,6 +6,7 @@ An independent, unofficial extension that adds Qwen-Image-2.1 to the normal Forg
 
 ## Latest update — September 25, 2026
 
+- **Auto upscale (one tick):** tick "Auto upscale" and every finished image is automatically re-rendered 1.5x or 2x larger in a second pass — the image is fed back as its own reference with the official preserve-everything prompt, like the reference ComfyUI workflow. Original and upscaled versions are both saved. Takes about as long as the first pass.
 - **Fixed a crash from yesterday's panel reorganization** (the DeGrid checkbox was accidentally dropped, which stopped the whole panel from loading — it is restored in the Performance tab).
 - **Reference images section condensed:** in img2img the nine reference slots now show as a compact 3x3 grid of small thumbnails instead of nine full-width boxes. The help text now cites the official Qwen-Image-2.1 model card: up to 10 reference images are supported at once (the img2img image counts as the first), and 1-3 references usually give the cleanest results.
 - **Control panel reorganized:** the accordion now leads with a quick-start card, Output and Quality; VRAM/memory options, Speed boost, the prompt helper and model downloads moved into clearly labeled Advanced tabs (Performance / Speed boost / Prompt helper / Model Setup), each control with a plain-language explanation underneath. Nothing was removed - same features, tidier layout, matching the Ideogram 4 extension.
@@ -231,9 +232,16 @@ I am a beginner too, and this is my first public attempt. Please forgive mistake
 
 ## Special thanks
 
-Special thanks to [u/malcolmrey and the r/malcolmrey community](https://www.reddit.com/r/malcolmrey/) and the [r/SECourses community](https://www.reddit.com/r/SECourses/) for support and inspiration.
+Special thanks to:
 
-Thank you to the Forge Neo, Diffusers, Qwen, DeGrid, Spectrum and wider open-source communities.
+- [r/sdforall](https://www.reddit.com/r/sdforall/) — community, support and inspiration
+- [r/SECourses](https://www.reddit.com/r/SECourses/) — tutorials, guidance and community support
+- [r/malcolmrey](https://www.reddit.com/r/malcolmrey/) and u/malcolmrey — feedback and encouragement
+- [Forge Neo (sd-webui-forge-classic, neo branch) by Haoming02](https://github.com/Haoming02/sd-webui-forge-classic/tree/neo) — the foundation this extension runs on
+
+And a thank-you to the wider open-source communities: Forge, Diffusers, Qwen, ComfyUI, DeGrid, Spectrum, and every model author and tester whose work and bug reports make projects like this possible.
+
+If you contribute, test, or report issues and would like to be named here, say so and you will be added.
 
 
 ### Empty negative prompt
