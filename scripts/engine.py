@@ -96,9 +96,9 @@ def _img2img_help():
     )
 
 def _models_help():
-    return ('Models download from the official Qwen release. **Generate always runs '
-            'locally** - nothing is sent anywhere, and nothing downloads without '
-            'your explicit approval below.')
+    return ('Models come from the official Qwen release on Hugging Face. '
+            '**Generate always runs locally** - nothing is sent anywhere. '
+            'Nothing downloads unless you approve it below.')
 
 def _refs_help():
     """Reference-image count, per the official Qwen-Image-2.1 model card."""
@@ -216,7 +216,15 @@ class Script(scripts.Script):
                     # wiring: one-click download, and grey out the LoRA controls
                     # while the boost is off so the state is obvious.
                     speed_button.click(fn=manager.download_featured,inputs=[speed_name,speed_approved],outputs=[speed_status])
-                    speed_enabled.change(fn=lambda on: (gr.update(interactive=on),gr.update(interactive=on)),inputs=[speed_enabled],outputs=[speed_name,speed_strength],queue=False)
+                    # Ticking the box arms the full turbo recipe in one go:
+                    # turbo LoRA selected, strength 1.0, native Steps set to 6.
+                    # Everything stays editable - the user can still move the
+                    # slider, change strength or pick another LoRA afterwards;
+                    # nothing in the runtime overrides their choice.
+                    native=_NATIVE_STEPS.get('img2img_steps' if is_img2img else 'txt2img_steps')
+                    speed_outputs=[speed_name,speed_strength]+([native] if native is not None else [])
+                    speed_enabled.change(fn=lambda on: tuple([gr.update(value=turbo if on else gr.skip()),gr.update(value=1.0 if on else gr.skip())]+[gr.update(value=6 if on else gr.skip())]),
+                                         inputs=[speed_enabled],outputs=speed_outputs,queue=False,show_progress='hidden')
                     # Fast auto-adds the turbo LoRA and matches the steps to its
                     # schedule; Quality switches back to the full model. Moving
                     # the native Steps slider afterwards always wins - nothing

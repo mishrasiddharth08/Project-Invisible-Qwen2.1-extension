@@ -77,8 +77,7 @@ def manual_instructions():
     for kind,names in NAMES.items():
         rows.append('**'+{'dit':'DiT','te':'Text encoder','vae':'VAE'}[kind]+'**')
         rows.extend(f'- [{n}](https://huggingface.co/Comfy-Org/Qwen-Image-2.1/resolve/{config()["comfy_revision"]}/{CATALOG[n]})' for n in names)
-    rows.append('Place weights in `'+str(models_root()/'Qwen-Image-2.1')+'`.')
-    rows.append('Processor, tokenizer and configuration files are included with this extension. Download only the model weights. The `qwen3.5_9b_*_pe_*` files are optional prompt rewriters, not the required Qwen3-VL image encoder.')
+    rows.append('Place weights in `'+str(models_root()/'Qwen-Image-2.1')+'`. Processor, tokenizer and configuration files ship with this extension - download only the model weights.')
     return '\n\n'.join(rows)
 
 def download_selected(selected,confirmed):
