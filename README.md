@@ -4,25 +4,15 @@ An independent, unofficial extension that adds Qwen-Image-2.1 to the normal Forg
 
 > This is my first public project and I am still learning. Please forgive any mistakes or rough edges. Kind, complete bug reports will help improve the project for everyone.
 
-## Latest update — September 25, 2026
+## Latest update
 
-- **Auto upscale removed:** the one-tick second pass produced overcooked ("burnt") output, so it is gone. Use an external upscaler for now.
-- **Fast auto-turbo:** choosing **Fast · 6 steps (turbo)** now ticks Speed boost and selects Viggle Turbo v0.2.1 automatically (Quality unticks it again). Move the native Steps slider yourself and your number always wins.
-- **Panel simplified:** the Prompt helper tab is gone; Speed boost lives inside the Performance tab with its one-click downloader in a small sub-accordion. Just two tabs now — **Performance** and **Models** — with Output and Quality at the top.
-- **One featured turbo LoRA only:** Viggle Turbo v0.2.1 (6 steps) is the sole offered download; the older 4-step and 5-step variants were dropped.
-- **Fixed a crash from yesterday's panel reorganization** (the DeGrid checkbox was accidentally dropped, which stopped the whole panel from loading — it is restored in the Performance tab).
-- **Reference images section condensed:** in img2img the nine reference slots now show as a compact 3x3 grid of small thumbnails instead of nine full-width boxes. The help text now cites the official Qwen-Image-2.1 model card: up to 10 reference images are supported at once (the img2img image counts as the first), and 1-3 references usually give the cleanest results.
-- **Control panel reorganized:** the accordion now leads with a quick-start card, Output and Quality; VRAM/memory options, Speed boost, the prompt helper and model downloads moved into clearly labeled Advanced tabs (Performance / Speed boost / Prompt helper / Model Setup), each control with a plain-language explanation underneath. Nothing was removed - same features, tidier layout, matching the Ideogram 4 extension.
-- Quantized model files now run on every NVIDIA and AMD card: on GPUs without Forge's packed-kernel support (AMD ROCm, older CUDA torch builds, fp16-only NVIDIA cards) the extension unpacks them to plain BF16 in system RAM and runs normally. Capable NVIDIA cards keep the fast packed kernels.
-- All packed formats are supported (int8/int8-convrot, W4A8, FP8 E4M3/E5M2, MXFP8, NVFP4, ConvRot-W4A4) for DiT, text encoder and VAE.
-- Adapter support widened: factorized LoKr, LoHa and full-difference adapters work alongside ordinary LoRA and plain LoKr.
-- Pressing the Speed-LoRA download button without picking a LoRA now shows a clear message instead of a crash in the Forge console.
-- The few-step speed schedule can no longer be silently skipped: if the Speed boost box is ticked but no downloaded speed LoRA is selected, the console now tells you exactly which control to set.
-- Fixed the remaining quantized-offloading device-mismatch crash reported in Issues #2 and #4: the device guard now uses a forward pre-hook that diffusers' offload hooks cannot bypass, and quantized loads use a safer offload mode.
-- Duplicate extension copies are now detected with a startup warning (Issue #3); README documents both install paths.
-- **Verified:** 110 automated Qwen tests passed. Restart Forge after updating.
+- **Speed boost auto-arms the turbo recipe:** ticking Speed boost selects the turbo LoRA, sets strength to 1.0 and Steps to 6 in one click. Everything stays editable - the user always wins.
+- **Simpler panel:** Quality vs Fast sits at the top next to Output; three tabs (Speed boost / Performance / Models) with trimmed help text.
+- **Fast auto-selects the turbo LoRA** (Viggle Turbo v0.2.1, 6 steps); move the native Steps slider yourself and your number wins.
+- **Auto upscale removed:** it produced overcooked ("burnt") output. Use an external upscaler for now.
+- **Quantized models run everywhere** (NVIDIA + AMD, all packed formats); adapter support widened (LoRA, LoKr, LoHa).
 
-See the [dated update history](CHANGELOG.md) for details, installation steps and testing limits.
+Full details in the [dated update history](CHANGELOG.md). 110 automated tests pass - restart Forge after updating.
 
 ## The Project Invisible idea
 
