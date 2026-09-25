@@ -22,7 +22,14 @@ MODES = {
 
 def run(pipe, torch, image, command, base_kwargs, emit, log):
     """Refine `image` (PIL) in latent space; returns the refined PIL image."""
-    spec = MODES.get(str(command.get('refiner') or 'off').lower())
+    # The UI sends display labels like 'Turbo (fast)' / 'Quality (best)';
+    # match on the leading word so any label variant resolves.
+    wanted = str(command.get('refiner') or 'off').strip().lower()
+    spec = None
+    for key, value in MODES.items():
+        if key != 'off' and wanted.startswith(key):
+            spec = value
+            break
     if spec is None or image is None:
         return image
     import inspect
@@ -75,7 +82,8 @@ def run(pipe, torch, image, command, base_kwargs, emit, log):
     latents = (1.0 - strength) * latents + strength * noise
 
     # 3. Denoise from `strength` back to 0 in `steps` steps.
-    sigmas = [float(v) for v in linspace(strength, strength / steps, steps)]
+    # The list must reach 0, otherwise the final decode inherits residual noise.
+    sigmas = [float(v) for v in linspace(strength, 0.0, steps + 1)][:-1]
     cfg = 1.0 if force_cfg1 else float(command.get('true_cfg_scale', 1))
     kwargs = dict(
         prompt=base_kwargs.get('prompt'),
