@@ -10,3 +10,14 @@ onUiUpdate(function () {
         else card.removeAttribute('data-pi-qwen21-note');
     });
 });
+
+// The Project Invisible refiner replaces Forge core's two-stage refiner; its
+// "LoRA Replacements" accordion is unused here. Hide it without editing core.
+onUiUpdate(function () {
+    const root = gradioApp();
+    if (!root) return;
+    root.querySelectorAll('#txt2img_refiner_accordion, #img2img_refiner_accordion, .gr-accordion').forEach(acc => {
+        const label = acc.querySelector('.label-wrap, span, p');
+        if (label && label.textContent.trim().startsWith('LoRA Replacements')) acc.style.display = 'none';
+    });
+});

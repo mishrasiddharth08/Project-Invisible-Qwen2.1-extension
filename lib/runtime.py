@@ -66,6 +66,10 @@ def generate(p, selected, options):
         prompt,p.width,p.height=parse_rewrite(prompt,p.width,p.height)
         prompt,adapters=adapter.parse(prompt, options.get('community',False))
         negative=p.negative_prompt if isinstance(p.negative_prompt,str) else p.negative_prompt[0]
+        refiner_mode=str(options.get('refiner') or 'off').lower()
+        if refiner_mode!='off':
+            label={'turbo':'Turbo (fast)','quality':'Quality (best)'}.get(refiner_mode,refiner_mode)
+            print(f'[PI-Qwen21] Refiner armed: {label} — a short second detail pass runs after each image.')
         cfg=float(getattr(p,'cfg_scale',1.0))
         # Featured speed LoRAs are distilled for few-step CFG-1 sampling.
         speed_name=options.get('speed_lora') if options.get('speed_enabled') else None
