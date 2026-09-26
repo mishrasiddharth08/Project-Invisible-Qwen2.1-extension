@@ -48,7 +48,7 @@ def compatible(path, community=False):
         if BAD.search(evidence) or not FAMILY.search(metadata):
             return False
         if re.search('lightning|distill|turbo', metadata+' '+Path(path).name, re.I):
-            return community and bool(FAMILY.search(metadata))
+            return community and _kind(tensor_keys) is not None and _qwen21_targets(tensor_keys)
         return _kind(tensor_keys) is not None and _qwen21_targets(tensor_keys)
     except (OSError, ValueError, TypeError):
         return False
@@ -58,9 +58,14 @@ def parse(prompt, community=False):
     adapters=[]
     if matches:
         import networks
-        networks.list_available_networks()
+        if not networks.available_networks: networks.list_available_networks()
         for name, strength in matches:
             item = networks.available_networks.get(name) or networks.available_network_aliases.get(name)
+            if item is None:
+                normalized=name.replace('\\','/').removesuffix('.safetensors').lower()
+                matches=[entry for key,entry in networks.available_networks.items()
+                         if key.replace('\\','/').lower()==normalized or Path(entry.filename).stem.lower()==normalized.split('/')[-1]]
+                if len(matches)==1: item=matches[0]
             if item is None or not compatible(item.filename, community):
                 raise ValueError(f'{name}: not a Qwen-Image-2.1 LoRA (matching metadata/keys required).')
             adapters.append((item.filename, float(strength)))
@@ -68,6 +73,9 @@ def parse(prompt, community=False):
     if '<lora:' in stripped or '<lyco:' in stripped:
         raise ValueError('Use native <lora:name:strength> tags only.')
     return stripped, adapters
+
+def has_speed_adapter(adapters):
+    return any(re.search(r'turbo|lightning|distill',Path(path).name,re.I) for path,_ in adapters)
 
 def apply(pipe, adapters):
     clear(pipe)

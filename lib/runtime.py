@@ -1,4 +1,5 @@
 """QwenImage21Pipeline exclusively; no SD/Flux/old-Qwen execution paths."""
+from contextlib import nullcontext
 import gc
 import inspect
 import random
@@ -55,16 +56,41 @@ def load(bundle, prof, offload=True):
     _pipe,_key=pipe,key
     return pipe
 
+def headswap_context(p):
+    for script in getattr(getattr(p,'scripts',None),'alwayson_scripts',[]) or []:
+        callback=getattr(script,'headswap_external_context',None)
+        if callable(callback): return callback(p)
+    return nullcontext(None)
+
+def save_output(result,p,seed,prompt,info,shared,images):
+    if getattr(p,'do_not_save_samples',False) or not shared.opts.samples_save:
+        print('[PI-Qwen21] Saving disabled by request or Forge settings.')
+        return None
+    path=getattr(p,'outpath_samples',None) or getattr(shared.opts,'outdir_samples','') or getattr(shared.opts,'outdir_img2img_samples','') or 'outputs/img2img-images'
+    overrides=getattr(p,'override_settings',{}) or {}
+    pattern=overrides.get('samples_filename_pattern')
+    forced=None
+    if pattern:
+        forced=images.FilenameGenerator(p,seed,prompt,result).apply(pattern).replace('[generation_number]',str(getattr(p,'_pi_qwen21_image_index',0)))
+    saved=images.save_image(result,path,'',seed,prompt,extension='png',info=info,p=p,
+                            forced_filename=forced,save_to_dirs=overrides.get('save_to_dirs'))
+    filename=saved[0] if saved else None
+    if not filename or not Path(filename).is_file():
+        raise RuntimeError('Qwen finished, but the output file was not saved: '+str(filename or path))
+    print('[PI-Qwen21] Saved: '+str(filename))
+    return str(filename)
+
 def generate(p, selected, options):
     import torch
     from modules import processing, shared, images
-    with LOCK:
+    with LOCK, headswap_context(p) as headswap:
         defaults=config()
         options={**defaults,**options}
         prof=hardware_profile(torch,options.get('profile','auto'))
         prompt=p.prompt if isinstance(p.prompt,str) else p.prompt[0]
         prompt,p.width,p.height=parse_rewrite(prompt,p.width,p.height)
-        prompt,adapters=adapter.parse(prompt, options.get('community',False))
+        user_prompt=prompt
+        prompt,adapters=adapter.parse(prompt, options.get('community',False) or headswap is not None)
         negative=p.negative_prompt if isinstance(p.negative_prompt,str) else p.negative_prompt[0]
         refiner_mode=str(options.get('refiner') or 'off').lower()
         if refiner_mode!='off':
@@ -105,6 +131,8 @@ def generate(p, selected, options):
         if is_edit and not primary:
             raise ValueError('Upload the main image in the img2img tab before editing.')
         refs=primary
+        if headswap and mask is not None:
+            raise ValueError('Use Head Swap protected-head mode and its mask editor for Qwen 2.1; clear the native inpaint mask.')
         refs.extend(im for im in options.get('refs',[]) if im is not None)
         if len(refs)>10: raise ValueError('At most 10 reference images are supported.')
         if task=='rgba': prompt='This is an RGBA image with transparency. '+prompt+'. The image has alpha channel and the background is transparent.'
@@ -134,7 +162,7 @@ def generate(p, selected, options):
             seed=int(p.seed if p.seed is not None else -1)
             if seed<0: seed=random.randrange(2**32)
             p.seed=seed
-            output=[]; seeds=[]; infos=[]
+            output=[]; seeds=[]; infos=[]; saved_files=[]; output_prompts=[]; output_negatives=[]
             total=max(1,int(p.batch_size))*max(1,int(p.n_iter))
             shared.state.job_count=total
             try:
@@ -143,10 +171,19 @@ def generate(p, selected, options):
                 for i in range(total):
                     if shared.state.interrupted or shared.state.skipped: break
                     current_seed=(seed+i)%2**32
+                    generation_prompt=prompt; generation_negative=negative; generation_cfg=cfg; generation_refs=refs
+                    if headswap:
+                        turbo=bool(speed_adapter) or adapter.has_speed_adapter(adapters)
+                        plan,generation_refs=headswap.prepare(i,user_prompt,negative,current_seed,cfg,turbo)
+                        generation_prompt,head_adapters=adapter.parse(plan.positive,options.get('community',False) or headswap is not None)
+                        generation_negative=plan.negative; generation_cfg=plan.cfg
+                        adapter.apply(pipe,head_adapters+([speed_adapter] if speed_adapter else []))
+                        if len(generation_refs)+len(refs[1:])>10: raise ValueError('Too many additional Qwen references; keep at most eight alongside Head Swap.')
+                        generation_refs+=refs[1:]
                     display.start_image(i,p.width,p.height)
-                    args=dict(prompt=prompt,negative_prompt=negative if cfg>1 else None,true_cfg_scale=cfg,width=p.width,height=p.height,num_inference_steps=p.steps,generator=torch.Generator('cpu').manual_seed(current_seed))
+                    args=dict(prompt=generation_prompt,negative_prompt=generation_negative if generation_cfg>1 else None,true_cfg_scale=generation_cfg,width=p.width,height=p.height,num_inference_steps=p.steps,generator=torch.Generator('cpu').manual_seed(current_seed))
                     if speed_sigmas: args['sigmas']=speed_sigmas
-                    if refs: args['image']=refs
+                    if generation_refs: args['image']=generation_refs
                     if mask is not None: args['mask_image']=mask
                     if 'use_kv_cache' in params: args['use_kv_cache']=True
                     if 'callback_on_step_end' in params: args['callback_on_step_end']=display.step
@@ -167,21 +204,30 @@ def generate(p, selected, options):
                     cleanup=float(options.get('moire_strength',1.0)) if options.get('moire_cleanup',True) else 0.0
                     if cleanup:
                         result=remove_moire(result,strength=cleanup)
+                    if headswap: result=headswap.finish_image(result,i)
                     display.publish(result, final=True)
-                    info=f'{prompt}\nSteps: {p.steps}, Sampler: Euler, Schedule type: simple, CFG scale: {cfg}, Seed: {current_seed}, Size: {p.width}x{p.height}, Model: Qwen-Image-2.1'
+                    info=f'{generation_prompt}\nNegative prompt: {generation_negative}\nSteps: {p.steps}, Sampler: Euler, Schedule type: simple, CFG scale: {generation_cfg}, Seed: {current_seed}, Size: {p.width}x{p.height}, Model: Qwen-Image-2.1'
                     info+=f', Qwen moire cleanup: {cleanup:g}'
                     info+=f', DeGrid: {"auto" if cleanup else "off"}'
                     info+=f", Spectrum requested: {bool(options.get('spectrum',False))}"
                     if speed_entry: info+=f", Speed LoRA: {speed_name} ({speed_adapter[1]:g})"
                     if refiner_mode!='off': info+=f", Refiner: {refiner_mode}"
-                    if not getattr(p,'do_not_save_samples',False) and shared.opts.samples_save:
-                        images.save_image(result,p.outpath_samples,'',current_seed,prompt,extension='png',info=info,p=p)
+                    if headswap: info+='\nHead Swap: '+headswap.metadata()
+                    p._pi_qwen21_image_index=i
+                    filename=save_output(result,p,current_seed,generation_prompt,info,shared,images)
+                    if filename: saved_files.append(filename)
+                    if headswap: headswap.owner.last_report.update(status='Completed',saved_file=filename)
+                    output_prompts.append(generation_prompt); output_negatives.append(generation_negative)
                     output.append(result); seeds.append(current_seed); infos.append(info)
                     shared.state.nextjob()
             except InterruptedError:
                 pass
             finally:
                 if _pipe is not None: _pipe.unload_lora_weights()
-            return processing.Processed(p,output,seed,infos[0] if infos else 'Interrupted',all_seeds=seeds,infotexts=infos)
+            result=processing.Processed(p,output,seed,infos[0] if infos else 'Interrupted',all_seeds=seeds,infotexts=infos,
+                all_prompts=output_prompts,all_negative_prompts=output_negatives)
+            result.comments=('Saved: '+'; '.join(saved_files)) if saved_files else 'No output files saved; check saving settings or interruption status.'
+            if output: result.width,result.height=output[0].size
+            return result
         finally:
             display.close()

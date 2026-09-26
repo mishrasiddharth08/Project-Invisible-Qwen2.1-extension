@@ -134,10 +134,11 @@ def resolve(selected=None, confirmed=False, prof=None):
     files={k:next((p for p in inventory[k] if Path(p).name.lower()==name),None) for k,name in expected.items()}
     # Reuse available lower-precision 2.1 files instead of demanding BF16 downloads.
     for kind in ('dit','te'):
-        alternatives=([f'qwen_image_2.1_int8_convrot.safetensors'] if kind=='dit' else
-                      (['qwen3vl_8b_int8_convrot.safetensors','qwen3vl_8b_w4a8.safetensors'] if prof['te']!='w4a8' else []))
-        # Quantized files are usable on every card: unsupported GPUs unpack
-        # them to bf16 in system RAM at load time (lib/components.py).
+        # Any available precision is preferable to blocking generation:
+        # quantized files are usable on every card (unsupported GPUs unpack
+        # them to bf16 in system RAM at load time, lib/components.py).
+        alternatives=(['qwen_image_2.1_int8_convrot.safetensors','qwen_image_2.1_bf16.safetensors'] if kind=='dit' else
+                      ['qwen3vl_8b_int8_convrot.safetensors','qwen3vl_8b_w4a8.safetensors','qwen3vl_8b_bf16.safetensors'])
         if not files[kind]: files[kind]=next((p for p in inventory[kind] if Path(p).name.lower() in alternatives),None)
     if single:
         files['dit']=str(selected)
