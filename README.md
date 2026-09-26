@@ -94,6 +94,13 @@ The refiner rides on top of whatever you already selected — no permutations to
 | img2img editing | Works — refines the edited result |
 | Any VRAM profile / Save GPU memory | Works — no extra model is ever loaded |
 
+When a refiner mode is selected, the terminal prints
+`[PI-Qwen21] Refiner armed: <mode>` at the start of each generation, and the
+finished image's PNG info records `Refiner: turbo` or `Refiner: quality`.
+Because this extension provides its own refiner, Forge core's unrelated
+**LoRA Replacements** accordion is hidden while the extension's scripts load
+(hidden via JavaScript only �?" no core files are modified).
+
 > **Tip:** the built-in Refiner tab covers Qwen-Image-2.1 specifically. For a second detail pass that works with **any** checkpoint in Forge — any model, any quantization, any VRAM size, even a different refiner checkpoint per pass — see the standalone [Project Invisible Refiner](https://github.com/mishrasiddharth08/Project-Invisible-Refiner-extension).
 
 ### Using an existing image (img2img)
