@@ -16,8 +16,22 @@ onUiUpdate(function () {
 onUiUpdate(function () {
     const root = gradioApp();
     if (!root) return;
-    root.querySelectorAll('#txt2img_refiner_accordion, #img2img_refiner_accordion, .gr-accordion').forEach(acc => {
-        const label = acc.querySelector('.label-wrap, span, p');
-        if (label && label.textContent.trim().startsWith('LoRA Replacements')) acc.style.display = 'none';
-    });
+    // Label-based: gradio's accordion markup differs between versions, so
+    // match any element whose text starts with the label, then hide its
+    // accordion container (details/summary wrapper or .gr-accordion ancestor).
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    while (walker.nextNode()) {
+        const node = walker.currentNode;
+        if (!node.textContent.trim().startsWith('LoRA Replacements')) continue;
+        let el = node.parentElement;
+        let target = null;
+        while (el && el !== root) {
+            if (el.tagName === 'DETAILS' || (el.classList && (
+                el.classList.contains('gr-accordion') ||
+                el.classList.contains('accordion')))) target = el;
+            el = el.parentElement;
+        }
+        if (target) target.style.display = 'none';
+        else if (node.parentElement) node.parentElement.style.display = 'none';
+    }
 });
