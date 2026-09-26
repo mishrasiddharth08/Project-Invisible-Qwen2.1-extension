@@ -12,6 +12,7 @@ from ..lora import adapter
 from .prompts import parse as parse_rewrite
 from .progress import ForgeProgress
 from .degrid import remove_moire
+from . import alpha as alpha_clean
 
 LOCK=threading.RLock()
 _pipe=None
@@ -170,7 +171,7 @@ def generate(p, selected, options):
                 else: adapter.apply(pipe,adapters)
                 for i in range(total):
                     if shared.state.interrupted or shared.state.skipped: break
-                    current_seed=(seed+i)%2**32
+                    current_seed=(seed if headswap and getattr(headswap,'cfg',{}).get('seed_lock',False) else seed+i)%2**32
                     generation_prompt=prompt; generation_negative=negative; generation_cfg=cfg; generation_refs=refs
                     if headswap:
                         turbo=bool(speed_adapter) or adapter.has_speed_adapter(adapters)
@@ -204,6 +205,7 @@ def generate(p, selected, options):
                     cleanup=float(options.get('moire_strength',1.0)) if options.get('moire_cleanup',True) else 0.0
                     if cleanup:
                         result=remove_moire(result,strength=cleanup)
+                    result=alpha_clean.clean(result)
                     if headswap: result=headswap.finish_image(result,i)
                     display.publish(result, final=True)
                     info=f'{generation_prompt}\nNegative prompt: {generation_negative}\nSteps: {p.steps}, Sampler: Euler, Schedule type: simple, CFG scale: {generation_cfg}, Seed: {current_seed}, Size: {p.width}x{p.height}, Model: Qwen-Image-2.1'

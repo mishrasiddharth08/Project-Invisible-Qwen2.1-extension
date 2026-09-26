@@ -124,6 +124,7 @@ class WorkerTransportTests(unittest.TestCase):
         shutil.copy2(Path(worker_client.__file__).with_name("worker.py"), self.root / "lib/worker.py")
         shutil.copy2(Path(worker_client.__file__).with_name("preview.py"), self.root / "lib/preview.py")
         shutil.copy2(Path(worker_client.__file__).with_name("spectrum.py"), self.root / "lib/spectrum.py")
+        shutil.copy2(Path(worker_client.__file__).with_name("alpha.py"), self.root / "lib/alpha.py")
         self.root_patch = mock.patch.object(worker_client, "ROOT", self.root)
         self.root_patch.start()
         self.pipe = worker_client.WorkerPipeline(

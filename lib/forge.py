@@ -2,6 +2,7 @@
 from pathlib import Path
 from .assets import scan, models_root, NAMES, is_dit_file
 from . import runtime
+from .controls import control_value, speed_strength
 
 LABEL='PROJECT INVISIBLE — Qwen-Image-2.1 (official)'
 KEYS=('task','steps','true_cfg','profile','side','offload','community','consent','mask')
@@ -49,10 +50,13 @@ def options(runner,p):
             if len(values)>len(KEYS)+9: result['spectrum']=bool(values[len(KEYS)+9])
             if len(values)>len(KEYS)+10: result['moire_cleanup']=bool(values[len(KEYS)+10])
             if len(values)>len(KEYS)+11:
-                result['speed_enabled']=bool(values[len(KEYS)+11])
-                result['speed_lora']=str(values[len(KEYS)+12] or '')
-                result['speed_strength']=float(values[len(KEYS)+13])
-            if len(values)>len(KEYS)+14: result['refiner']=str(values[len(KEYS)+14] or 'off').lower()
+                def item(offset,default):
+                    index=len(KEYS)+offset
+                    return control_value(values[index],default) if index<len(values) else default
+                result['speed_enabled']=bool(item(11,False))
+                result['speed_lora']=str(item(12,'') or '')
+                result['speed_strength']=speed_strength(item(13,1.0))
+            if len(values)>len(KEYS)+14: result['refiner']=str(control_value(values[len(KEYS)+14],'off') or 'off').lower()
             break
     return result
 

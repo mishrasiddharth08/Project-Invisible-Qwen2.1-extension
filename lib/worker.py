@@ -130,6 +130,7 @@ def main():
         lora = __import__(alias + ".lora.adapter", fromlist=["apply"])
         preview = __import__(alias + ".lib.preview", fromlist=["decode_preview"])
         spectrum = __import__(alias + ".lib.spectrum", fromlist=["accelerate"])
+        alpha_clean = __import__(alias + ".lib.alpha", fromlist=["clean"])
         import torch
     except Exception as exc:
         emit("error", error="Unable to import isolated Qwen dependencies: " + str(exc))
@@ -304,6 +305,7 @@ def main():
                             # a finished generation because of the bonus pass.
                             print('[PI-Qwen21] Refiner pass failed; keeping base image.', file=log)
                             traceback.print_exc(file=log)
+                    result = alpha_clean.clean(result)
                     result.save(command["output"], format="PNG")
                 emit("result", path=command["output"])
             finally:

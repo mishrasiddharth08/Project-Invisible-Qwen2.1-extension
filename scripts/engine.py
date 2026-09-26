@@ -73,6 +73,7 @@ from modules import scripts,script_callbacks
 from pi_qwen21.lib import forge
 from pi_qwen21.lib import runtime
 from pi_qwen21.lib import preset
+from pi_qwen21.lib.controls import speed_updates, quality_updates
 from pi_qwen21.download import manager
 
 # --------------------------------------------------------------------------- #
@@ -229,13 +230,13 @@ class Script(scripts.Script):
                     # nothing in the runtime overrides their choice.
                     native=_NATIVE_STEPS.get('img2img_steps' if is_img2img else 'txt2img_steps')
                     speed_outputs=[speed_name,speed_strength]+([native] if native is not None else [])
-                    speed_enabled.change(fn=lambda on: tuple([gr.update(value=turbo if on else gr.skip()),gr.update(value=1.0 if on else gr.skip())]+[gr.update(value=6 if on else gr.skip())]),
+                    speed_enabled.change(fn=lambda enabled:speed_updates(enabled,turbo,native=native is not None),
                                          inputs=[speed_enabled],outputs=speed_outputs,queue=False,show_progress='hidden')
                     # Fast auto-adds the turbo LoRA and matches the steps to its
                     # schedule; Quality switches back to the full model. Moving
                     # the native Steps slider afterwards always wins - nothing
                     # in the runtime clamps user steps any more.
-                    steps.change(fn=lambda value:(gr.update(value=bool(value==6)),gr.update(value=turbo if value==6 else gr.skip())),
+                    steps.change(fn=lambda value:quality_updates(value,turbo),
                                  inputs=[steps],outputs=[speed_enabled,speed_name],queue=False,show_progress='hidden')
                 with gr.Tab('Models'):
                     gr.Markdown(_models_help())
