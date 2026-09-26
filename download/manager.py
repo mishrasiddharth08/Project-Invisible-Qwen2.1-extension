@@ -11,7 +11,12 @@ CHOICES=[name for names in NAMES.values() for name in names]+[SUPPORT]
 # Face repository; files are fetched only after the user enables the feature
 # and approves the download. Strengths/schedules follow the upstream cards.
 FEATURED={
-    'Viggle Turbo v0.2.1 (6 steps)': dict(
+    'Viggle Turbo v0.2.1 (6 steps, r256)': dict(
+        repo='Viggle/Qwen-Image-2.1-viggle-turbo',
+        file='Qwen-Image-2.1-viggle-turbo-v0.2.1-6step-lora-r256.safetensors',
+        steps=6, cfg=1.0, strength=1.0,
+        source='https://huggingface.co/Viggle/Qwen-Image-2.1-viggle-turbo'),
+    'Viggle Turbo v0.2.1 (6 steps, r128)': dict(
         repo='Viggle/Qwen-Image-2.1-viggle-turbo',
         file='Qwen-Image-2.1-viggle-turbo-v0.2.1-6step-lora-r128.safetensors',
         steps=6, cfg=1.0, strength=1.0,
