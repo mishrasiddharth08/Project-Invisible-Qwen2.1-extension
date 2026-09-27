@@ -32,7 +32,7 @@
   <rect x="600" y="146" width="120" height="30" rx="6" fill="#3c4a63" stroke="#5b82d6"/>
   <text x="660" y="166" fill="#e8ecf4" font-size="12" text-anchor="middle">Quality · 40</text>
   <rect x="730" y="146" width="120" height="30" rx="6" fill="#3c4a63" stroke="#5b82d6"/>
-  <text x="790" y="166" fill="#e8ecf4" font-size="12" text-anchor="middle">Fast · 6 (turbo)</text>
+  <text x="790" y="166" fill="#e8ecf4" font-size="12" text-anchor="middle">Fast · 8 (turbo)</text>
 
   <text x="600" y="206" fill="#8fa3c4" font-size="12">Tabs</text>
   <rect x="600" y="214" width="122" height="28" rx="6" fill="#2f3a4e"/>
@@ -41,8 +41,10 @@
   <text x="660" y="269" fill="#fff" font-size="12" text-anchor="middle">Refiner</text>
   <rect x="730" y="250" width="120" height="28" rx="6" fill="#2f3a4e"/>
   <text x="790" y="269" fill="#cdd7e6" font-size="12" text-anchor="middle">Performance</text>
-  <rect x="600" y="286" width="250" height="28" rx="6" fill="#2f3a4e"/>
-  <text x="725" y="305" fill="#cdd7e6" font-size="12" text-anchor="middle">Models</text>
+  <rect x="600" y="286" width="122" height="28" rx="6" fill="#2f3a4e"/>
+  <text x="661" y="305" fill="#cdd7e6" font-size="12" text-anchor="middle">Style</text>
+  <rect x="730" y="286" width="120" height="28" rx="6" fill="#2f3a4e"/>
+  <text x="790" y="305" fill="#cdd7e6" font-size="12" text-anchor="middle">Models</text>
 
   <text x="600" y="344" fill="#8fa3c4" font-size="12">Refiner tab contents</text>
   <rect x="600" y="354" width="250" height="28" rx="6" fill="#3c4a63" stroke="#5b82d6"/>

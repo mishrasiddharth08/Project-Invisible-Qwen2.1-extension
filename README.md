@@ -17,13 +17,15 @@ This is an independent community extension, not an official Qwen product.
 
 - **Text-to-image:** tested with local weights on the author's NVIDIA system.
 - **Image-to-image:** experimental; editing stays in Forge's **img2img** tab.
-- **Speed boost:** one tick selects the Viggle Turbo LoRA, strength 1.0 and 6 steps — everything stays editable, your number always wins.
+- **Speed boost:** one tick selects the Viggle Turbo LoRA (r256, strength 1.0, 8 steps on the high-noise-focused schedule) — everything stays editable, your number always wins. Output soft or fried? Raise steps (7–14) and CFG (~2.0), or lower strength (0.5–0.25); the sigma schedule adapts automatically.
+- **Style LoRAs:** one-click photography styles (Samsung phone, Canon DSLR, film stills, low-light phone, grainy 35mm). The trigger token is added to your prompt automatically.
 - **Refiner:** optional second detail pass (Turbo ~2s or Quality ~10s) that reuses the already-loaded model — no extra VRAM, no downloads, works with every quantization, preset, CFG and LoRA combination.
 - **Progress:** current-image and overall-batch bars; starting gradient, evolving previews, the finished picture the moment the last step ends.
-- **Memory:** offloading profiles, quantized models (NVIDIA + AMD) and safe release of cached models when switching checkpoints.
+- **Memory:** fit-based auto profiles for every card size (4–32 GB+, NVIDIA or AMD), quantized models, alpha cleanup for transparent PNGs, and safe release of cached models when switching checkpoints. Big cards run fully resident — no offload, maximum speed.
 - **Downloads:** manual installation recommended; optional downloads require selecting files and clicking Download.
 - **Adapters:** compatible LoRA/LoKr/LoHa controls; incompatible files are rejected.
-- **Acceleration:** optional Spectrum speed setting; approximate acceleration can change image details.
+- **Acceleration:** optional Spectrum speed setting (own checkbox or the built-in Forge Spectrum accordion); approximate acceleration can change image details.
+- **Outpainting tip:** pad your image to the new size with black in any editor, then prompt "enlarge image to fill the empty canvas, keep the background" in the img2img tab — Qwen 2.1 expands multiple sides in one pass.
 
 Automated tests do not prove every GPU, model file or Forge version works.
 No promise is made for every VRAM size.
@@ -61,10 +63,11 @@ Everything lives inside Forge's normal txt2img / img2img view. The extension add
 
 Inside the panel:
 
-- **Quality row** — Quality (40 steps) or Fast · 6 steps (turbo). Fast auto-selects Viggle Turbo and matches the Steps slider; move the slider yourself and your number wins.
-- **Speed boost tab** — checkbox, LoRA choice and strength (1.0 is the tested default).
+- **Quality row** — Quality (40 steps) or Fast · 8 steps (turbo). Fast auto-selects Viggle Turbo (r256) and matches the Steps slider; move the slider yourself and your number wins.
+- **Speed boost tab** — checkbox, LoRA choice (r256 default, r128 classic) and strength (1.0 is the tested default).
+- **Style tab** — one dropdown of photography-style LoRAs plus a one-click download; trigger tokens are handled for you.
 - **Refiner tab** — one dropdown: Off · Turbo (fast) · Quality (best). Runs a short second pass over the finished image to sharpen detail; reuses the loaded model, so it works with any quantization, CFG, LoRA or preset combination at no extra VRAM.
-- **Performance tab** — Save GPU memory, VRAM profile and memory options.
+- **Performance tab** — Save GPU memory, VRAM profile (set to **auto** — it picks the fastest mode that fits your card, 4 GB to 32 GB+, NVIDIA or AMD) and memory options.
 - **Models tab** — source links, compatible variants and optional selected-file downloads.
 - **Status strip** — model detection, adapter hints and memory state at the left edge of the panel.
 
