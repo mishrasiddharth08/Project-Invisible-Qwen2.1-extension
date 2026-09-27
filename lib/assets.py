@@ -1,6 +1,7 @@
 """Strict 2.1 identity and local-only inventory. Never guess an older architecture."""
 import json
 import struct
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -92,8 +93,16 @@ def complete(folder):
             return False
     return (p/'scheduler/scheduler_config.json').is_file() and (p/'processor/tokenizer_config.json').is_file()
 
-def scan(base=None):
+_SCAN_CACHE = {'key': None, 'at': 0.0, 'result': None}
+_SCAN_TTL = 60.0  # seconds; repeated calls (checkpoint list, each generation) skip the tree walk
+
+def scan(base=None, refresh=False):
     base = Path(base or models_root())
+    now = time.monotonic()
+    key = str(base)
+    if (not refresh and _SCAN_CACHE['key'] == key
+            and now - _SCAN_CACHE['at'] < _SCAN_TTL):
+        return {k: list(v) for k, v in _SCAN_CACHE['result'].items()}
     result = {'dit': [], 'te': [], 'vae': [], 'lora': [], 'pipelines': []}
     for sub in ('Qwen-Image-2.1','diffusion_models','Stable-diffusion','text_encoder','VAE','Lora'):
         d = base/sub
@@ -119,17 +128,21 @@ def scan(base=None):
             result['pipelines'].append(cached)
     except Exception:
         pass
-    return {k: sorted(set(v)) for k,v in result.items()}
+    result = {k: sorted(set(v)) for k,v in result.items()}
+    _SCAN_CACHE.update(key=key, at=now, result={k: list(v) for k,v in result.items()})
+    return result
 
 def profile(gb, override='auto'):
     if override != 'auto':
         gb = float(override)
-    if gb <= 4: return dict(dit='int8_convrot',te='w4a8',side=512,offload=True)
-    if gb <= 6: return dict(dit='int8_convrot',te='w4a8',side=768,offload=True)
-    if gb <= 8: return dict(dit='int8_convrot',te='w4a8',side=1024,offload=True)
-    if gb <= 12: return dict(dit='int8_convrot',te='int8_convrot',side=1024,offload=True)
-    if gb <= 16: return dict(dit='int8_convrot',te='int8_convrot',side=1536,offload=True)
-    if gb < 24: return dict(dit='bf16',te='bf16',side=2048,offload=True)
+    # vram_gb is an enforced worker ceiling, not only a quality preset.
+    # Leave headroom for the display driver and Forge's lightweight UI process.
+    if gb <= 4: return dict(dit='int8_convrot',te='w4a8',side=512,offload=True,vram_gb=4)
+    if gb <= 6: return dict(dit='int8_convrot',te='w4a8',side=768,offload=True,vram_gb=6)
+    if gb <= 8: return dict(dit='int8_convrot',te='w4a8',side=1024,offload=True,vram_gb=8)
+    if gb <= 12: return dict(dit='int8_convrot',te='int8_convrot',side=1024,offload=True,vram_gb=12)
+    if gb <= 16: return dict(dit='int8_convrot',te='int8_convrot',side=1536,offload=True,vram_gb=16)
+    if gb < 24: return dict(dit='bf16',te='bf16',side=2048,offload=True,vram_gb=20)
     return dict(dit='bf16',te='bf16',side=0,offload=True)
 
 def bucket(width, height, side=0):
