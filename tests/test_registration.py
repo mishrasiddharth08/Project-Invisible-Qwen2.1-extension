@@ -86,3 +86,18 @@ class SpectrumOptionsTests(unittest.TestCase):
         self.assertEqual(result['refs'],refs)
         self.assertIs(result['spectrum'],True)
         self.assertIs(result['moire_cleanup'],False)
+
+    def test_builtin_spectrum_accordion_enables_qwen_acceleration(self):
+        forge=load_forge()
+        refs=[object() for _ in range(9)]
+        qwen=['edit',40,1,'auto',0,True,False,False,None]+refs+[False,False]
+        # Forge stores every script's values in one shared list; each script
+        # slices its own range. The built-in Spectrum occupies the first 8.
+        script=types.SimpleNamespace(_pi_qwen21=True,args_from=8,args_to=8+len(qwen))
+        builtin=types.SimpleNamespace(title=lambda:'Spectrum Integrated',
+            args_from=0,args_to=8)
+        runner=types.SimpleNamespace(alwayson_scripts=[script,builtin])
+        result=forge.options(runner,types.SimpleNamespace(script_args=[True,0.25,6,0.5,2,0.0,6,0.9]+qwen))
+        self.assertIs(result['spectrum'],True)
+        result=forge.options(runner,types.SimpleNamespace(script_args=[False,0.25,6,0.5,2,0.0,6,0.9]+qwen))
+        self.assertIs(result['spectrum'],False)

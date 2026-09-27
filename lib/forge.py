@@ -58,6 +58,19 @@ def options(runner,p):
                 result['speed_strength']=speed_strength(item(13,1.0))
             if len(values)>len(KEYS)+14: result['refiner']=str(control_value(values[len(KEYS)+14],'off') or 'off').lower()
             break
+    # The built-in Forge Spectrum accordion patches Forge's UNet, which this
+    # extension never runs (dedicated diffusers worker). Honor its toggle
+    # here instead: if the user enabled built-in Spectrum, drive this
+    # extension's Diffusers-port acceleration so one switch serves both.
+    for script in getattr(runner,'alwayson_scripts',[]) or []:
+        title=getattr(script,'title',None)
+        if not callable(title) or title()!='Spectrum Integrated': continue
+        values=list(getattr(p,'script_args',[]) or [])[script.args_from:script.args_to]
+        if values and bool(values[0]):
+            if result.get('spectrum') is not True:
+                print('[PI-Qwen21] Built-in Spectrum is on: using the Qwen 2.1 Diffusers acceleration for this run.')
+            result['spectrum']=True
+        break
     return result
 
 def install_selection_release():
