@@ -109,6 +109,49 @@ def apply(pipe, adapters):
 '''
 
 
+class WorkerEnvironmentTests(unittest.TestCase):
+    def test_low_profile_gets_supported_native_fragmentation_controls(self):
+        env=worker_client._worker_env({'vram_gb':6},{'KEEP':'yes'})
+        self.assertEqual(env['KEEP'],'yes')
+        self.assertIn('garbage_collection_threshold:0.10',env['PYTORCH_ALLOC_CONF'])
+        self.assertIn('max_split_size_mb:128',env['PYTORCH_ALLOC_CONF'])
+        self.assertNotIn('expandable_segments',env['PYTORCH_ALLOC_CONF'])
+
+    def test_existing_allocator_choice_is_preserved(self):
+        current='backend:cudaMallocAsync'
+        env=worker_client._worker_env({'vram_gb':6},{'PYTORCH_CUDA_ALLOC_CONF':current})
+        self.assertEqual(env['PYTORCH_CUDA_ALLOC_CONF'],current)
+        self.assertNotIn('PYTORCH_ALLOC_CONF',env)
+
+    def test_large_profile_has_no_allocator_override(self):
+        self.assertNotIn('PYTORCH_ALLOC_CONF',worker_client._worker_env({'vram_gb':12},{}))
+
+
+class DeferredDecodeTests(unittest.TestCase):
+    def test_matches_qwen_pipeline_decode_formula_and_snaps_size(self):
+        import torch
+        worker_path=Path(worker_client.__file__).with_name('worker.py')
+        spec=importlib.util.spec_from_file_location('pi_worker_decode_test',worker_path)
+        worker=importlib.util.module_from_spec(spec);spec.loader.exec_module(worker)
+        seen={}
+        class Vae:
+            dtype=torch.float32
+            config=types.SimpleNamespace(z_dim=2,latents_mean=[1.0,2.0],latents_std=[3.0,4.0])
+            def decode(self,value,return_dict=False):
+                self.grad_enabled=torch.is_grad_enabled()
+                seen['value']=value.clone();return (value[:,:,0],)
+        pipe=types.SimpleNamespace(
+            vae_scale_factor=4,vae=Vae(),
+            _unpack_latents=lambda packed,h,w,scale: packed,
+            image_processor=types.SimpleNamespace(postprocess=lambda value,output_type:[(value,output_type)]),
+        )
+        packed=torch.tensor([[[[[2.0]]],[[[3.0]]]]])
+        result=worker._decode_latents(pipe,torch,packed,15,17)
+        self.assertEqual(result[0][1],'pil')
+        self.assertFalse(pipe.vae.grad_enabled)
+        self.assertTrue(torch.equal(seen['value'],torch.tensor([[[[[7.0]]],[[[14.0]]]]])))
+
+
 class WorkerTransportTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="pi-qwen21-transport-test-")
@@ -183,9 +226,8 @@ class WorkerTransportTests(unittest.TestCase):
         self.pipe(prompt='status',num_inference_steps=3,status_callback=statuses.append,
                   callback_on_step_end=lambda _p,step,_t,_kw: steps.append(step))
         self.assertEqual(statuses,['encoding','decoding'])
-        # The last entry is the final-step callback that carries the finished
-        # full-size picture; progress events themselves are still 0,1,2.
-        self.assertEqual(steps,[0,1,2,2])
+        # Disabled previews emit only actual sampling steps.
+        self.assertEqual(steps,[0,1,2])
 
     def test_live_preview_round_trip_uses_same_step_without_replacing_final(self):
         events=[]

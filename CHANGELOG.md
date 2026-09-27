@@ -1,5 +1,14 @@
 # Update history
 
+## 2026-09-27 — Head Swap and low-VRAM integration
+
+- Preserve the companion Head Swap's protected crop and skip duplicate global smoothing.
+- Packed quantized components can offload individual layers without replacing packed weight types.
+- Profiles 6/8 bound GPU allocator use after accounting for other GPU users; explicit large resolution settings no longer bypass the profile.
+- LoRA and LoKr inference additions use bounded token chunks rather than full-image temporary buffers. Each loaded adapter reports its matched layers.
+- Low-VRAM operation uses system RAM and CPU/GPU transfers; speed, RAM requirements and image quality depend on the installed components and workload.
+
+
 Newest updates appear first. Dates use YYYY-MM-DD. These entries describe published changes, not guarantees for every device or adapter.
 
 ## 2026-09-25 (3)
@@ -119,3 +128,7 @@ Restart Forge completely after the current batch finishes to load both updated e
 - Added an optional CPU YuNet fallback when MediaPipe misses a sunglasses/profile face. It uses the already installed identity detector and downloads nothing.
 - Quality diagnosis: random hairstyle, age, ethnicity and film-camera choices change the requested identity and scene. A clean local identity preset uses protected-head compositing and clears these style changes. Existing presets are retained.
 - Identity and geometry measurements are advisory. Profile views and sunglasses can still produce imperfect likeness; inspect the generated face rather than treating a successful save as a quality guarantee.
+
+- Preserve requested CFG with an empty negative prompt: the pipeline supports empty unconditional text. Turbo still forces CFG 1.
+
+- Qwen Head Swap references capped at 768 side / 1.25 MP; full-scene sampling capped at 0.75 MP. Offloaded Qwen workers return unused CUDA cache after each image. Protected head size/position correction is accepted only after face detection verifies alignment. Full-image correction remains opt-in. Peak VRAM and visual results still need live validation.

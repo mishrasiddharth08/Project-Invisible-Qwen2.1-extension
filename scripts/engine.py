@@ -28,6 +28,34 @@ import weakref
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
+
+def _reload_extension_helpers():
+    # Forge reloads this entry file but keeps imported extension modules alive.
+    # Retire the dedicated worker first, remove callbacks from body-only reloads,
+    # then let normal imports build one fresh dependency graph.
+    from modules import script_callbacks
+    script_callbacks.remove_current_script_callbacks()
+    previous=sys.modules.get('pi_qwen21.lib.runtime')
+    if previous is not None:
+        previous.release()  # LOCK waits for an active generation to finish.
+    # Reload in place. Existing generation wrappers keep this module's
+    # globals dictionary, so they immediately see the new runtime instead of
+    # retaining stale closures or being stacked a second time.
+    import importlib
+    order=(
+        'pi_qwen21.lib.assets','pi_qwen21.lib.components','pi_qwen21.lib.controls',
+        'pi_qwen21.lib.alpha','pi_qwen21.lib.degrid','pi_qwen21.lib.denoise',
+        'pi_qwen21.lib.offload','pi_qwen21.lib.preview','pi_qwen21.lib.progress',
+        'pi_qwen21.lib.prompts','pi_qwen21.lib.refiner','pi_qwen21.lib.spectrum',
+        'pi_qwen21.lib.worker_client','pi_qwen21.lora.adapter',
+        'pi_qwen21.download.manager','pi_qwen21.lib.runtime',
+        'pi_qwen21.lib.forge','pi_qwen21.lib.preset')
+    for name in order:
+        module=sys.modules.get(name)
+        if module is not None:
+            importlib.reload(module)
+
+_reload_extension_helpers()
 if 'pi_qwen21' not in sys.modules:
     spec=importlib.util.spec_from_file_location('pi_qwen21',ROOT/'__init__.py',submodule_search_locations=[str(ROOT)])
     package=importlib.util.module_from_spec(spec); sys.modules['pi_qwen21']=package; spec.loader.exec_module(package)

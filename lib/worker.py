@@ -34,8 +34,22 @@ def _prepare_pipe(pipe,prof,offload,quantized=False):
         return
     prof=prof or {}
     low=prof.get('te')=='w4a8' or int(prof.get('side',9999) or 9999)<=1024
+    if low and (quantized or 0 < float(prof.get('vram_gb') or 0) <= 8):
+        # Accelerate/Diffusers group hooks assign ``param.data`` and unwrap
+        # Forge packed weights. Our owner-module hook preserves subclasses and
+        # keeps only the active layer on the GPU (the 6/8 GB recovery path).
+        import importlib.util
+        name='_pi_qwen21_packed_offload'
+        module=sys.modules.get(name)
+        if module is None:
+            spec=importlib.util.spec_from_file_location(name,Path(__file__).with_name('offload.py'))
+            module=importlib.util.module_from_spec(spec)
+            sys.modules[name]=module
+            spec.loader.exec_module(module)
+        module.enable(pipe, __import__('torch'), prof)
+        return
     grouped=getattr(pipe,'enable_group_offload',None)
-    if low and not quantized and callable(grouped):
+    if low and callable(grouped):
         # Group offload swaps parameters behind the module's back, which can
         # leave packed QuantizedTensor weights on the CPU while inputs run on
         # the GPU (Issue #2 device mismatch). Quantized loads use model
@@ -50,6 +64,55 @@ def _prepare_pipe(pipe,prof,offload,quantized=False):
     else:
         pipe.enable_model_cpu_offload()
         pipe._pi_offload_mode='model'
+
+def _set_cuda_budget(torch, prof):
+    """Enforce the selected low-VRAM profile in this isolated worker."""
+    requested=float((prof or {}).get('vram_gb') or 0)
+    if requested <= 0 or not torch.cuda.is_available():
+        return 0
+    total=torch.cuda.get_device_properties(0).total_memory / 2**30
+    free_bytes,total_bytes=torch.cuda.mem_get_info(0)
+    external=max(0.0,(total_bytes-free_bytes)/2**30)
+    # The selected profile is a whole-GPU budget. Subtract memory already used
+    # by Forge, the desktop and other processes, then reserve driver/kernel workspace outside the PyTorch allocator.
+    reserve=1.25 if requested<=8 else 0.5
+    usable=min(requested,total)-external-reserve
+    if usable <= 0:
+        raise RuntimeError(f'VRAM profile {requested:g} GB has no free worker budget ({external:.1f} GB already in use)')
+    fraction=max(0.01,min(1.0,usable/total))
+    torch.cuda.set_per_process_memory_fraction(fraction,0)
+    return usable
+
+
+def _release_idle_memory(pipe, torch):
+    """After results, offload weights and return unused allocator blocks to the GPU."""
+    if getattr(pipe,'_pi_offload_mode','direct')=='direct':
+        return
+    manager=getattr(pipe,'_pi_layer_offload',None)
+    if manager is not None:
+        manager.offload()
+    else:
+        pipe.maybe_free_model_hooks()
+    # Pipeline-local KV caches and latents have gone out of scope by this point.
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+
+def _decode_latents(pipe, torch, packed, height, width):
+    """Decode after the pipeline call so sampling caches are already released."""
+    with torch.inference_mode():
+        multiple = int(pipe.vae_scale_factor) * 2
+        height = int(height) // multiple * multiple
+        width = int(width) // multiple * multiple
+        latents = pipe._unpack_latents(packed, height, width, pipe.vae_scale_factor)
+        latents = latents.to(pipe.vae.dtype)
+        shape = (1, pipe.vae.config.z_dim, 1, 1, 1)
+        mean = torch.tensor(pipe.vae.config.latents_mean).view(*shape).to(latents.device, latents.dtype)
+        std = torch.tensor(pipe.vae.config.latents_std).view(*shape).to(latents.device, latents.dtype)
+        latents = latents * std + mean
+        image = pipe.vae.decode(latents, return_dict=False)[0][:, :, 0]
+        return pipe.image_processor.postprocess(image, output_type='pil')
+
 
 @contextlib.contextmanager
 def _sampling_heartbeat(pipe,stop,total,completed,status,clock=time.monotonic,interval=1.0):
@@ -149,6 +212,9 @@ def main():
             if op == "init":
                 with contextlib.redirect_stdout(log), contextlib.redirect_stderr(log):
                     prof=command.get('prof') or {}
+                    limit=_set_cuda_budget(torch,prof)
+                    if limit:
+                        print(f'[PI-Qwen21] Enforced worker VRAM ceiling: {limit:.1f} GB')
                     dequantize=False
                     if _quantized(command['bundle'],prof):
                         try:
@@ -184,6 +250,10 @@ def main():
                 raise ValueError("Worker is not initialized")
 
             stop = Path(command["stop"])
+            manager=getattr(pipe,'_pi_layer_offload',None)
+            if manager is not None:
+                manager.cancel=lambda: stop.exists()
+            torch.cuda.reset_peak_memory_stats()
             refs = [image(p) for p in command.get("images", [])]
             mask = image(command.get("mask"))
             preview_every=max(0,int(command.get('preview_every',0) or 0))
@@ -219,17 +289,6 @@ def main():
                         preview_active=False
                         print('Qwen live preview disabled after decode failure:',file=log)
                         traceback.print_exc(file=log)
-                if final and callback_kwargs.get('latents') is not None:
-                    # Built-in models show the finished picture the moment the
-                    # last step ends; decode at full size now and push it so the
-                    # UI never shows a small preview followed by a silent wait.
-                    try:
-                        picture=preview.decode_preview(pipe,callback_kwargs['latents'],command['height'],command['width'],None)
-                        picture.save(preview_path.with_name('final-preview.png'),format='PNG')
-                        emit('preview',step=int(step),timestep=float(timestep) if timestep is not None else None,
-                             path=str(preview_path.with_name('final-preview.png')),final=True)
-                    except Exception:
-                        traceback.print_exc(file=log)
                 return callback_kwargs
 
             kwargs = dict(
@@ -243,6 +302,9 @@ def main():
                 callback_on_step_end=progress,
             )
             params=inspect.signature(pipe.__call__).parameters
+            deferred_decode='output_type' in params
+            if deferred_decode:
+                kwargs['output_type']='latent'
             if preview_active:
                 if 'callback_on_step_end_tensor_inputs' in params:
                     kwargs['callback_on_step_end_tensor_inputs']=['latents']
@@ -283,7 +345,16 @@ def main():
                     emit('status',status='encoding')
                     with spectrum.accelerate(pipe,enabled=speedup,steps=command['num_inference_steps'],stop=stop) as cache_stats, _sampling_heartbeat(pipe,stop,command['num_inference_steps'],completed_steps,
                                              lambda text: emit('status',status=text)):
-                        result = pipe(**kwargs).images[0]
+                        output = pipe(**kwargs).images
+                    if deferred_decode:
+                        # The pipeline's denoising locals and KV caches are now
+                        # out of scope before the memory-heavy VAE decode.
+                        if torch.cuda.is_available():
+                            torch.cuda.empty_cache()
+                        result = _decode_latents(pipe,torch,output,
+                                                 command['height'],command['width'])[0]
+                    else:
+                        result = output[0]
                     if command.get('spectrum',False):
                         emit('status',status=f'Spectrum {cache_stats.reason}: {cache_stats.actual} real, {cache_stats.forecast} forecast steps')
                     # Second-pass refiner: reuses the loaded pipeline (any
@@ -307,10 +378,20 @@ def main():
                             traceback.print_exc(file=log)
                     result = alpha_clean.clean(result)
                     result.save(command["output"], format="PNG")
-                emit("result", path=command["output"])
+                    if preview_every > 0:
+                        emit('preview',step=max(0,completed_steps[0]-1),timestep=None,
+                             path=command['output'],final=True)
             finally:
                 with contextlib.suppress(Exception):
                     lora.clear(pipe)
+                with contextlib.suppress(Exception):
+                    _release_idle_memory(pipe,torch)
+            emit("result", path=command["output"], cuda_memory={
+                "peak_allocated_mib": round(torch.cuda.max_memory_allocated()/2**20),
+                "peak_reserved_mib": round(torch.cuda.max_memory_reserved()/2**20),
+                "idle_allocated_mib": round(torch.cuda.memory_allocated()/2**20),
+                "idle_reserved_mib": round(torch.cuda.memory_reserved()/2**20),
+                "scope": "Qwen worker PyTorch allocator; excludes driver and other applications"})
         except InterruptedError as exc:
             emit("interrupted", error=str(exc))
         except Exception as exc:

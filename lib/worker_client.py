@@ -2,6 +2,7 @@
 
 import atexit
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -11,6 +12,18 @@ from types import SimpleNamespace
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def _worker_env(prof, environ=None):
+    """Use conservative native caching only inside 4/6/8 GB workers."""
+    env=dict(os.environ if environ is None else environ)
+    low=0 < float((prof or {}).get('vram_gb') or 0) <= 8
+    configured=env.get('PYTORCH_ALLOC_CONF') or env.get('PYTORCH_CUDA_ALLOC_CONF')
+    if low and not configured:
+        # Expandable segments warn as unsupported on this Windows PyTorch
+        # build. Native garbage collection and bounded splitting are supported.
+        env['PYTORCH_ALLOC_CONF']='backend:native,garbage_collection_threshold:0.10,max_split_size_mb:128'
+    return env
 
 
 class WorkerPipeline:
@@ -29,6 +42,7 @@ class WorkerPipeline:
             command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL, text=True, encoding="utf-8", bufsize=1,
             creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0),
+            env=_worker_env(prof),
         )
         atexit.register(self.close)
         try:
@@ -151,6 +165,7 @@ class WorkerPipeline:
                     raise RuntimeError("Unexpected Qwen worker response: " + repr(value))
                 if interrupted is not None:
                     raise interrupted
+                self._pi_cuda_memory=value.get("cuda_memory",{})
                 with Image.open(value["path"]) as result:
                     return SimpleNamespace(images=[result.copy()])
 

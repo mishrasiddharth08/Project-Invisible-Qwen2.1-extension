@@ -217,3 +217,7 @@ The Project Invisible Qwen 2.1 engine bypasses Forge's standard generation callb
 - Optional CPU identity checks are now connected to completed images and shown in the existing generation report. They are advisory; a passing score does not guarantee likeness. The real protected-head test passed the selected/median identity thresholds and face-height/center check; width/reference-consistency warnings still require visual review.
 
 Restart Forge completely after the current batch finishes to load both updated extensions. A browser refresh alone does not load Python changes.
+
+### Small GPU decoding
+
+Both 6 and 8 GB profiles try GPU decoding first and can recover using CPU decoding if needed. Protected head-swap crops are capped at 416 pixels for 6 GB and 640 pixels for 8 GB; the original full image dimensions are retained. Both use the original VAE without spatial tiling; sufficient system RAM is required. These profiles prioritize fitting in memory over maximum speed. Other GPU applications can change available memory during a run.

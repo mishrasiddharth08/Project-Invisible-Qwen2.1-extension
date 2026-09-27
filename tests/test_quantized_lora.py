@@ -1,5 +1,8 @@
 import unittest
+import tempfile
+from pathlib import Path
 from types import SimpleNamespace
+from unittest import mock
 import torch
 from test_acceptance_cpu import adapter
 
@@ -15,6 +18,84 @@ class QuantizedLinear(torch.nn.Module):
 
 
 class QuantizedLoraTests(unittest.TestCase):
+    def test_lora_no_grad_chunking_matches_dense_and_updates_output_in_place(self):
+        class RecordingLinear(QuantizedLinear):
+            def forward(self, x):
+                self.last_output=x*2
+                return self.last_output
+        model=torch.nn.Module(); model.linear=RecordingLinear()
+        a,b,x=torch.randn(2,4),torch.randn(4,2),torch.randn(600,4)
+        handles=[]
+        adapter._install_lora(model,{'linear.lora_A.weight':a,
+            'linear.lora_B.weight':b},.65,handles)
+        expected=x*2+(x@a.T@b.T)*.65
+        with torch.no_grad(): result=model.linear(x)
+        torch.testing.assert_close(result,expected)
+        self.assertIs(result,model.linear.last_output)
+
+    def test_lokr_no_grad_chunking_matches_grad_path_and_updates_in_place(self):
+        class RecordingLinear(QuantizedLinear):
+            def forward(self, x):
+                self.last_output=x*2
+                return self.last_output
+        model=torch.nn.Module(); model.linear=RecordingLinear()
+        w1,w2,x=torch.randn(2,2),torch.randn(2,2),torch.randn(600,4)
+        state={'linear.lokr_w1':w1,'linear.lokr_w2':w2}
+        handles=[]; adapter._install_lokr(model,state,.65,handles)
+        dense=torch.kron(w1,w2)
+        expected=x*2+(x@dense.T)*.65
+        with torch.no_grad(): result=model.linear(x)
+        torch.testing.assert_close(result,expected,atol=1e-5,rtol=1e-5)
+        self.assertIs(result,model.linear.last_output)
+
+    def test_lora_chunking_handles_strided_output(self):
+        class StridedLinear(QuantizedLinear):
+            def forward(self,x):
+                return torch.stack((x*2,torch.zeros_like(x)),dim=-1).select(-1,0)
+        model=torch.nn.Module(); model.linear=StridedLinear()
+        a,b,x=torch.randn(2,4),torch.randn(4,2),torch.randn(300,4)
+        adapter._install_lora(model,{'linear.lora_A.weight':a,
+            'linear.lora_B.weight':b},.65,[])
+        with torch.no_grad(): result=model.linear(x)
+        torch.testing.assert_close(result,x*2+(x@a.T@b.T)*.65)
+        self.assertTrue(result.is_contiguous())
+
+    def test_lokr_chunking_handles_strided_output(self):
+        class StridedLinear(QuantizedLinear):
+            def forward(self,x):
+                return torch.stack((x*2,torch.zeros_like(x)),dim=-1).select(-1,0)
+        model=torch.nn.Module(); model.linear=StridedLinear()
+        w1,w2,x=torch.randn(2,2),torch.randn(2,2),torch.randn(300,4)
+        adapter._install_lokr(model,{'linear.lokr_w1':w1,
+            'linear.lokr_w2':w2},.65,[])
+        with torch.no_grad(): result=model.linear(x)
+        torch.testing.assert_close(result,x*2+(x@torch.kron(w1,w2).T)*.65,
+                                   atol=1e-5,rtol=1e-5)
+        self.assertTrue(result.is_contiguous())
+
+    def test_apply_reports_filename_strength_kind_and_target_count(self):
+        model = torch.nn.Module()
+        model.add_module('linear', QuantizedLinear())
+        pipe = SimpleNamespace(transformer=model, _pi_qwen21_lokr_handles=[],
+            unload_lora_weights=lambda: None)
+        state = {'linear.lora_A.weight': torch.randn(2, 4),
+                 'linear.lora_B.weight': torch.randn(4, 2)}
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / 'character.safetensors'
+            path.touch()
+            with mock.patch.object(adapter, 'header', return_value={**state, '__metadata__': {}}), \
+                 mock.patch('safetensors.torch.load_file', return_value=state):
+                rows = adapter.apply(pipe, [(str(path), .65)])
+        self.assertEqual(rows, [{'name':'character.safetensors','strength':.65,
+                                 'kind':'lora','targets':1}])
+        self.assertEqual(pipe._pi_qwen21_lora_report, rows)
+        adapter.clear(pipe)
+
+    def test_apply_rejects_nonfinite_strength_before_loading(self):
+        pipe = SimpleNamespace(_pi_qwen21_lokr_handles=[], unload_lora_weights=lambda: None)
+        with self.assertRaisesRegex(ValueError, 'Invalid LoRA strength'):
+            adapter.apply(pipe, [('broken.safetensors', float('nan'))])
+
     def test_scaled_adapter_and_unload(self):
         model = torch.nn.Module()
         model.add_module('linear', QuantizedLinear())

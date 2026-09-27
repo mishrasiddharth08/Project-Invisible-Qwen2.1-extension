@@ -1,5 +1,6 @@
 """Native Extra Networks tags; never modify Forge/other engines' loaded adapters."""
 import json
+import math
 import re
 from pathlib import Path
 from ..lib.assets import header
@@ -77,34 +78,55 @@ def parse(prompt, community=False):
 def has_speed_adapter(adapters):
     return any(re.search(r'turbo|lightning|distill',Path(path).name,re.I) for path,_ in adapters)
 
+def _report(pipe, rows):
+    pipe._pi_qwen21_lora_report = rows
+    for row in rows:
+        targets = row['targets'] if row['targets'] is not None else 'queued'
+        print(f"[PI-Qwen21] LoRA: {row['name']} | strength={row['strength']:g} | "
+              f"kind={row['kind']} | targets={targets}")
+    return rows
+
 def apply(pipe, adapters):
     clear(pipe)
+    checked=[]
+    for path,weight in adapters:
+        value=float(weight)
+        if not math.isfinite(value):
+            raise ValueError('Invalid LoRA strength: '+Path(path).name)
+        checked.append((path,value,None))
     # Parent process: WorkerPipeline only records paths/weights for the real
     # pipeline. Format detection and tensor loading belong in the GPU worker.
     if not hasattr(pipe, 'transformer'):
         names=[]; weights=[]
-        for i,(path,weight) in enumerate(adapters):
+        for i,(path,weight,kind) in enumerate(checked):
             name=f'pi_qwen21_{i}'
             pipe.load_lora_weights(str(Path(path).parent), weight_name=Path(path).name,
                                    adapter_name=name, local_files_only=True)
             names.append(name); weights.append(weight)
         if names: pipe.set_adapters(names, adapter_weights=weights)
-        return
-    names=[]; weights=[]
+        return _report(pipe,[{'name':Path(path).name,'strength':weight,
+                              'kind':'worker-validated','targets':None}
+                             for path,weight,kind in checked])
+    rows=[]
     from safetensors.torch import load_file
-    for i,(path,weight) in enumerate(adapters):
-        h = header(path)
-        kind=_kind(k for k in h if k != '__metadata__')
-        state=load_file(path, device='cpu')
-        if kind=='lokr':
-            _install_lokr(pipe.transformer, state, weight, pipe._pi_qwen21_lokr_handles)
-        elif kind=='loha':
-            _install_loha(pipe.transformer, state, weight, pipe._pi_qwen21_lokr_handles)
-        elif kind=='full':
-            _install_full(pipe.transformer, state, weight, pipe._pi_qwen21_lokr_handles)
-        else:
-            _install_lora(pipe.transformer, state, weight, pipe._pi_qwen21_lokr_handles)
-    if names: pipe.set_adapters(names, adapter_weights=weights)
+    try:
+        for path,weight,_kind_hint in checked:
+            h=header(path)
+            kind=_kind(k for k in h if k != '__metadata__')
+            if kind is None:
+                raise ValueError('No supported LoRA tensors: '+Path(path).name)
+            state=load_file(path, device='cpu')
+            installer={'lokr':_install_lokr,'loha':_install_loha,
+                       'full':_install_full,'lora':_install_lora}[kind]
+            targets=installer(pipe.transformer,state,weight,pipe._pi_qwen21_lokr_handles)
+            if targets <= 0:
+                raise ValueError('LoRA matched zero targets: '+Path(path).name)
+            rows.append({'name':Path(path).name,'strength':weight,
+                         'kind':kind,'targets':targets})
+    except Exception:
+        clear(pipe)
+        raise
+    return _report(pipe,rows)
 
 def _install_lora(model, state, strength, handles):
     """Apply ordinary LoRA to native or quantized linears without PEFT replacement."""
@@ -148,10 +170,23 @@ def _install_lora(model, state, strength, handles):
     try:
         for module,a,b,factor in planned:
             def hook(_module,args,output,a=a,b=b,factor=factor):
-                x=args[0].to(device=output.device,dtype=output.dtype)
+                x=args[0]
                 down=a.to(device=output.device,dtype=output.dtype)
                 up=b.to(device=output.device,dtype=output.dtype)
-                return output+F.linear(F.linear(x,down),up)*factor
+                if torch.is_grad_enabled():
+                    x=x.to(device=output.device,dtype=output.dtype)
+                    return output+F.linear(F.linear(x,down),up)*factor
+                # Inference: avoid materializing a full-token residual and a
+                # second full output. This is critical on 6/8 GB profiles.
+                if not output.is_contiguous(): output=output.contiguous()
+                source=x.reshape(-1,x.shape[-1])
+                target=output.reshape(-1,output.shape[-1])
+                for start in range(0,source.shape[0],256):
+                    chunk=source[start:start+256].to(device=output.device,dtype=output.dtype)
+                    delta=F.linear(F.linear(chunk,down),up)
+                    delta.mul_(factor)
+                    target[start:start+256].add_(delta)
+                return output
             handles.append(module.register_forward_hook(hook))
     except Exception:
         for handle in handles[start:]: handle.remove()
@@ -223,10 +258,22 @@ def _install_lokr(model, state, strength, handles):
                 if not isinstance(x, torch.Tensor) or x.shape[-1] != in1*in2: return output
                 aa=a.to(device=output.device,dtype=output.dtype)
                 bb=b.to(device=output.device,dtype=output.dtype)
-                flat=x.reshape(-1,in1,in2).to(output.dtype)
-                side=torch.einsum('bij,pj->bip',flat,bb)
-                side=torch.einsum('bip,qi->bqp',side,aa).reshape_as(output)
-                return output + side * factor
+                flat=x.reshape(-1,in1,in2)
+                if torch.is_grad_enabled():
+                    flat=flat.to(device=output.device,dtype=output.dtype)
+                    side=torch.einsum('bij,pj->bip',flat,bb)
+                    side=torch.einsum('bip,qi->bqp',side,aa).reshape_as(output)
+                    return output + side * factor
+                if not output.is_contiguous(): output=output.contiguous()
+                target=output.reshape(-1,output.shape[-1])
+                for start in range(0,flat.shape[0],256):
+                    chunk=flat[start:start+256].to(device=output.device,dtype=output.dtype)
+                    side=torch.einsum('bij,pj->bip',chunk,bb)
+                    side=torch.einsum('bip,qi->bqp',side,aa).reshape(
+                        chunk.shape[0],-1)
+                    side.mul_(factor)
+                    target[start:start+256].add_(side)
+                return output
             handles.append(module.register_forward_hook(hook)); applied += 1
     if errors or not applied:
         for handle in handles[first_handle:]:

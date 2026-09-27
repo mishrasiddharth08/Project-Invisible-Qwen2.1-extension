@@ -42,6 +42,26 @@ class GPUWorkerTests(unittest.TestCase):
                                      version=types.SimpleNamespace(hip=hip,cuda=cuda),
                                      bfloat16='bf16',float16='fp16')
 
+    def test_low_profile_enforces_allocator_ceiling_with_headroom(self):
+        calls=[]
+        fake=self.torch(gb=32)
+        fake.cuda.mem_get_info=lambda index: (30*2**30,32*2**30)
+        fake.cuda.set_per_process_memory_fraction=lambda fraction,index: calls.append((fraction,index))
+        limit=worker._set_cuda_budget(fake,{'vram_gb':6})
+        self.assertEqual(limit,2.75)
+        self.assertAlmostEqual(calls[0][0],2.75/32)
+        self.assertEqual(calls[0][1],0)
+
+    def test_low_profile_rejects_when_external_usage_consumes_budget(self):
+        fake=self.torch(gb=8)
+        fake.cuda.mem_get_info=lambda index: (2*2**30,8*2**30)
+        fake.cuda.set_per_process_memory_fraction=lambda *args: None
+        with self.assertRaisesRegex(RuntimeError,'no free worker budget'):
+            worker._set_cuda_budget(fake,{'vram_gb':6})
+
+    def test_auto_large_profile_has_no_artificial_ceiling(self):
+        self.assertNotIn('vram_gb',hardware_profile(self.torch(gb=32)))
+
     def test_dtype_prefers_bf16_and_falls_back_to_fp16(self):
         self.assertEqual(worker._compute_dtype(self.torch(bf16=True)),'bf16')
         self.assertEqual(worker._compute_dtype(self.torch(bf16=False)),'fp16')
@@ -97,7 +117,7 @@ class GPUWorkerTests(unittest.TestCase):
     def test_quant_low_memory_without_group_support_uses_model_not_accelerate_sequential(self):
         pipe=Pipe();pipe.enable_group_offload=None
         worker._prepare_pipe(pipe,{'te':'w4a8','side':512},True,quantized=True)
-        self.assertEqual(pipe.mode,'model')
+        self.assertEqual(pipe._pi_offload_mode,'packed-layer')
         self.assertFalse(pipe.vae.tiled)
 
     def test_normal_profile_uses_model_offload_and_disabled_offload_moves_to_gpu(self):

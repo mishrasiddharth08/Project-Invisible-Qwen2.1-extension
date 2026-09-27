@@ -88,6 +88,7 @@ def generate(p, selected, options):
         defaults=config()
         options={**defaults,**options}
         prof=hardware_profile(torch,options.get('profile','auto'))
+        if headswap: headswap.memory_profile=prof
         prompt=p.prompt if isinstance(p.prompt,str) else p.prompt[0]
         prompt,p.width,p.height=parse_rewrite(prompt,p.width,p.height)
         user_prompt=prompt
@@ -117,10 +118,7 @@ def generate(p, selected, options):
                 # the last step. Sampling must match the distillation exactly.
                 # Sigmas are built after p.steps is finalized so the count
                 # always matches the schedule.
-        if cfg>1 and not negative.strip():
-            print('[PI-Qwen21] No negative prompt: using CFG 1 for this generation.')
-            cfg=1.0
-            p.cfg_scale=cfg  # Keep saved generation metadata consistent with actual inference.
+        p.cfg_scale=cfg  # Keep saved generation metadata consistent with actual inference.
         primary=list(getattr(p,'init_images',None) or [])[:1]
         img2img_type=getattr(processing,'StableDiffusionProcessingImg2Img',None)
         is_edit=isinstance(p,img2img_type) if isinstance(img2img_type,type) else bool(primary)
@@ -153,6 +151,10 @@ def generate(p, selected, options):
             if mask is not None and 'mask_image' not in params: raise ValueError('This QwenImage21Pipeline does not expose mask_image. Use a painted/circled reference and describe the edit instead.')
             requested_side=max(32,int(p.width),int(p.height))
             side=int(options.get('side',0)) or prof['side']
+            if float(prof.get('vram_gb',99))<=8 and prof.get('side'):
+                side=min(side or prof['side'],prof['side'])
+            if headswap and float(prof.get('vram_gb',99))<=8:
+                side=min(side or requested_side,416 if prof['vram_gb']<=6 else 640)
             side=min(requested_side,side) if side else requested_side
             p.width,p.height=bucket(p.width,p.height,side)
             p.steps=max(1,int(getattr(p,'steps',None) or options.get('steps',40))); p.cfg_scale=cfg
@@ -202,7 +204,7 @@ def generate(p, selected, options):
                     except RuntimeError:
                         release()  # Do not reuse a pipeline left partially modified by a failed adapter.
                         raise
-                    cleanup=float(options.get('moire_strength',1.0)) if options.get('moire_cleanup',True) else 0.0
+                    cleanup=float(options.get('moire_strength',1.0)) if options.get('moire_cleanup',True) and not headswap else 0.0
                     if cleanup:
                         result=remove_moire(result,strength=cleanup)
                     result=alpha_clean.clean(result)
