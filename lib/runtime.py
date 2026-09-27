@@ -166,6 +166,21 @@ def generate(p, selected, options):
         refs.extend(im for im in options.get('refs',[]) if im is not None)
         if len(refs)>10: raise ValueError('At most 10 reference images are supported.')
         if task=='rgba': prompt='This is an RGBA image with transparency. '+prompt+'. The image has alpha channel and the background is transparent.'
+        style_adapter=None
+        style_name=options.get('style_lora') if options.get('style_lora') else None
+        if style_name and style_name!='(none)':
+            style_entry=downloads.STYLE.get(style_name)
+            if style_entry is None:
+                print('[PI-Qwen21] Unknown style selected; ignoring it for this run.')
+            else:
+                style_path=downloads.style_path(style_name)
+                if not style_path or not style_path.is_file() or style_path.stat().st_size<=8:
+                    raise ValueError(style_name+' style is not downloaded yet. Open Qwen Controls > Style LoRA and approve the one-time download, or set the style to (none). Generate never downloads files.')
+                trigger=style_entry.get('trigger') or ''
+                if trigger and trigger not in prompt:
+                    prompt=trigger+', '+prompt
+                style_adapter=(str(style_path),float(style_entry['strength']))
+                print('[PI-Qwen21] Style LoRA: '+style_name)
         p.steps=max(1,int(getattr(p,'steps',None) or options.get('steps',40)))
         total=max(1,int(p.batch_size))*max(1,int(p.n_iter))
         display=ForgeProgress(shared,p.steps,total)
@@ -201,7 +216,8 @@ def generate(p, selected, options):
             total=max(1,int(p.batch_size))*max(1,int(p.n_iter))
             shared.state.job_count=total
             try:
-                if speed_adapter: adapter.apply(pipe,list(adapters)+[speed_adapter])
+                extra=[a for a in (style_adapter,speed_adapter) if a]
+                if extra: adapter.apply(pipe,list(adapters)+extra)
                 else: adapter.apply(pipe,adapters)
                 for i in range(total):
                     if shared.state.interrupted or shared.state.skipped: break
@@ -212,7 +228,7 @@ def generate(p, selected, options):
                         plan,generation_refs=headswap.prepare(i,user_prompt,negative,current_seed,cfg,turbo)
                         generation_prompt,head_adapters=adapter.parse(plan.positive,options.get('community',False) or headswap is not None)
                         generation_negative=plan.negative; generation_cfg=plan.cfg
-                        adapter.apply(pipe,head_adapters+([speed_adapter] if speed_adapter else []))
+                        adapter.apply(pipe,head_adapters+([a for a in (style_adapter,speed_adapter) if a]))
                         if len(generation_refs)+len(refs[1:])>10: raise ValueError('Too many additional Qwen references; keep at most eight alongside Head Swap.')
                         generation_refs+=refs[1:]
                     display.start_image(i,p.width,p.height)
@@ -247,6 +263,7 @@ def generate(p, selected, options):
                     info+=f', DeGrid: {"auto" if cleanup else "off"}'
                     info+=f", Spectrum requested: {bool(options.get('spectrum',False))}"
                     if speed_entry: info+=f", Speed LoRA: {speed_name} ({speed_adapter[1]:g})"
+                    if style_adapter: info+=f", Style LoRA: {style_name}"
                     if refiner_mode!='off': info+=f", Refiner: {refiner_mode}"
                     if headswap: info+='\nHead Swap: '+headswap.metadata()
                     p._pi_qwen21_image_index=i

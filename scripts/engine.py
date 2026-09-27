@@ -266,6 +266,14 @@ class Script(scripts.Script):
                     # in the runtime clamps user steps any more.
                     steps.change(fn=lambda value:quality_updates(value,turbo),
                                  inputs=[steps],outputs=[speed_enabled,speed_name],queue=False,show_progress='hidden')
+                with gr.Tab('Style'):
+                    gr.Markdown(manager.style_instructions())
+                    style_name=gr.Dropdown(manager.STYLE_CHOICES,value='(none)',label='Photography style',info='One-click style LoRAs; the trigger token is added to your prompt automatically. Download once below.')
+                    style_status=gr.Markdown(elem_classes=['pi-q21-status'])
+                    with gr.Accordion('Get a style LoRA (one click)',open=False):
+                        style_approved=gr.Checkbox(value=False,label='I accept the LoRA license and authorize this one-time download')
+                        style_button=gr.Button('Download selected style LoRA',size='sm')
+                    style_button.click(fn=manager.download_style,inputs=[style_name,style_approved],outputs=[style_status])
                 with gr.Tab('Models'):
                     gr.Markdown(_models_help())
                     manual=gr.Markdown(manager.manual_instructions())
@@ -284,9 +292,9 @@ class Script(scripts.Script):
         # MUST stay in this exact order - lib/forge.py reads these by index:
         # task, steps, cfg, profile, side, offload, community, consent, mask,
         # refs[0..8], spectrum, degrid, speed_enabled, speed_name, speed_strength,
-        # refiner.
+        # refiner, style_name.
         # New controls append at the end only.
-        return [task,steps,cfg,profile,side,offload,community,consent,mask,*refs,spectrum,degrid,speed_enabled,speed_name,speed_strength,refiner]
+        return [task,steps,cfg,profile,side,offload,community,consent,mask,*refs,spectrum,degrid,speed_enabled,speed_name,speed_strength,refiner,style_name]
 
 # --------------------------------------------------------------------------- #
 # boot: install the generation hooks and clean up on extension unload
