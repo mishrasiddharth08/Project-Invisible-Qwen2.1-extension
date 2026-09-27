@@ -25,11 +25,14 @@ class SpectrumStats:
 def supported(pipe, true_cfg_scale=1.0):
     model = getattr(pipe, "transformer", None)
     required = ("norm_out", "proj_out", "time_text_embed", "transformer_blocks")
+    # Works at any CFG: with True CFG > 1 the pipeline batches cond+uncond
+    # into one forward call, so a forecast step simply skips the whole batch.
+    # The old CFG-1-only rule was overly conservative and blocked the popular
+    # turbo-at-CFG-2+ recipe.
     return (
         model is not None
         and model.__class__.__name__ == "QwenImage21Transformer2DModel"
         and all(hasattr(model, name) for name in required)
-        and float(true_cfg_scale or 1.0) <= 1.0
     )
 
 

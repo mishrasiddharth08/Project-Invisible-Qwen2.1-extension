@@ -339,9 +339,7 @@ def main():
             try:
                 with contextlib.redirect_stdout(log), contextlib.redirect_stderr(log):
                     lora.apply(pipe, [(a["path"], float(a["weight"])) for a in adapters])
-                    speedup=bool(command.get('spectrum',False)) and float(command.get('true_cfg_scale',1))<=1
-                    if command.get('spectrum',False) and not speedup:
-                        emit('status',status='Spectrum disabled: requires True CFG 1')
+                    speedup=bool(command.get('spectrum',False))
                     emit('status',status='encoding')
                     with spectrum.accelerate(pipe,enabled=speedup,steps=command['num_inference_steps'],stop=stop) as cache_stats, _sampling_heartbeat(pipe,stop,command['num_inference_steps'],completed_steps,
                                              lambda text: emit('status',status=text)):
