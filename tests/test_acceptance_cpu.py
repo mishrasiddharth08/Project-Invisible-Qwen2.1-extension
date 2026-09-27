@@ -62,6 +62,7 @@ class AssetAcceptanceTests(unittest.TestCase):
         self.assertEqual(assets.profile(12)["dit"], "int8_convrot")
         self.assertEqual(assets.profile(16)["side"], 1536)
         self.assertEqual(assets.profile(24)["dit"], "int8_convrot")
+        self.assertTrue(assets.profile(24)["offload"])
         self.assertFalse(assets.profile(32)["offload"])
         self.assertEqual(assets.profile(32, "8")["te"], "w4a8")
 

@@ -140,12 +140,14 @@ def profile(gb, override='auto'):
     if gb <= 4: return dict(dit='int8_convrot',te='w4a8',side=512,offload=True,vram_gb=4)
     if gb <= 6: return dict(dit='int8_convrot',te='w4a8',side=768,offload=True,vram_gb=6)
     if gb <= 8: return dict(dit='int8_convrot',te='w4a8',side=1024,offload=True,vram_gb=8)
+    if gb <= 10: return dict(dit='int8_convrot',te='int8_convrot',side=1024,offload=True,vram_gb=10)
     if gb <= 12: return dict(dit='int8_convrot',te='int8_convrot',side=1024,offload=True,vram_gb=12)
     if gb <= 16: return dict(dit='int8_convrot',te='int8_convrot',side=1536,offload=True,vram_gb=16)
-    # 16-24 GB: bf16 weights (~40 GB DiT alone) cannot fit, so use the packed
-    # int8 files (~28 GB total) and keep offload on to absorb KV/VAE spikes.
-    if gb < 24: return dict(dit='int8_convrot',te='int8_convrot',side=2048,offload=True,vram_gb=20)
-    # 24 GB and up: int8 DiT + int8 TE fit entirely on the GPU. Offload is the
+    # 16-28 GB: bf16 weights (~48 GB with the text encoder) can never fit, and
+    # the full int8 stack (~28 GB) needs 28 GB, so these tiers stream layers
+    # with offload on to absorb KV/VAE spikes.
+    if gb < 28: return dict(dit='int8_convrot',te='int8_convrot',side=2048,offload=True,vram_gb=20)
+    # 28 GB and up: int8 DiT + int8 TE fit entirely on the GPU. Offload is the
     # single biggest speed killer on big cards (constant CPU<->GPU shuffling),
     # so it stays off unless the user re-enables it.
     return dict(dit='int8_convrot',te='int8_convrot',side=0,offload=False)
@@ -189,4 +191,7 @@ def hardware_profile(torch, override='auto'):
     result = profile(gb, override)
     if not quant_capable(torch):
         result.update(dit='bf16', te='bf16', portable=True)
+        # bf16 weights (~48 GB with the text encoder) never fit entirely on
+        # any consumer card, so streaming via offload is mandatory.
+        result['offload'] = True
     return result

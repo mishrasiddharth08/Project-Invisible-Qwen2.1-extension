@@ -78,6 +78,12 @@ class GPUWorkerTests(unittest.TestCase):
         self.assertEqual((result['dit'],result['te']),('bf16','bf16'))
         self.assertTrue(result['portable'])
 
+    def test_hardware_profile_bf16_fallback_always_offloads_even_on_big_cards(self):
+        # bf16 weights (~48 GB) never fit entirely; a 32 GB AMD card must
+        # stream instead of attempting a direct load that would OOM.
+        result=hardware_profile(self.torch(hip='6.2',gb=32))
+        self.assertTrue(result['offload'])
+
     def test_hardware_profile_non_bf16_nvidia_forces_portable_bf16_storage(self):
         result=hardware_profile(self.torch(bf16=False,gb=12))
         self.assertEqual((result['dit'],result['te']),('bf16','bf16'))
