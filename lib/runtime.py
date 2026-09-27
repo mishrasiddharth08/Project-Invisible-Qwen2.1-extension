@@ -17,9 +17,16 @@ from . import alpha as alpha_clean
 LOCK=threading.RLock()
 _pipe=None
 _key=None
+_generating=False  # True between pipe() dispatch and result collection
 
 def release_on_selection():
     # A selection change cancels this extension's dedicated worker, never Forge.
+    # Killing a worker mid-generation crashed Forge (preset switch during a run),
+    # so an active generation is left alone: it finishes, and the stale pipe is
+    # released right after by the normal end-of-run path.
+    if _generating:
+        print('[PI-Qwen21] Preset/selection changed during generation; the running job will finish first.')
+        return
     pipe=_pipe
     process=getattr(pipe,'_process',None)
     if process is not None and process.poll() is None:
@@ -112,6 +119,7 @@ def resident_fit(folder, offload, torch):
     return offload
 
 def generate(p, selected, options):
+    global _generating
     import torch
     from modules import processing, shared, images
     with LOCK, headswap_context(p) as headswap:
@@ -219,6 +227,7 @@ def generate(p, selected, options):
             total=max(1,int(p.batch_size))*max(1,int(p.n_iter))
             shared.state.job_count=total
             try:
+                _generating=True
                 extra=[a for a in (style_adapter,speed_adapter) if a]
                 if extra: adapter.apply(pipe,list(adapters)+extra)
                 else: adapter.apply(pipe,adapters)
@@ -279,6 +288,7 @@ def generate(p, selected, options):
             except InterruptedError:
                 pass
             finally:
+                _generating=False
                 if _pipe is not None: _pipe.unload_lora_weights()
             result=processing.Processed(p,output,seed,infos[0] if infos else 'Interrupted',all_seeds=seeds,infotexts=infos,
                 all_prompts=output_prompts,all_negative_prompts=output_negatives)

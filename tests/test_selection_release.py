@@ -35,3 +35,15 @@ class SelectionReleaseTests(unittest.TestCase):
             runtime.release_on_selection()
             process.terminate.assert_called_once()
             release.assert_called_once()
+
+    def test_preset_change_during_generation_never_kills_worker(self):
+        # Issue: switching the UI preset mid-generation terminated the worker
+        # and crashed Forge. While a run is active the worker must be left alone.
+        runtime=load_forge().runtime
+        process=Mock();process.poll.return_value=None
+        with patch.object(runtime,'_pipe',SimpleNamespace(_process=process)), \
+             patch.object(runtime,'release') as release, \
+             patch.object(runtime,'_generating',True):
+            runtime.release_on_selection()
+            process.terminate.assert_not_called()
+            release.assert_not_called()
