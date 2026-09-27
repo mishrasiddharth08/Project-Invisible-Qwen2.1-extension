@@ -605,6 +605,28 @@ class RuntimeAcceptanceTests(unittest.TestCase):
         self.assertEqual((p.width,p.height,p.steps),(512,512,3))
         self.assertEqual(self.pipe.calls[-1]['num_inference_steps'],3)
 
+    def test_weights_that_cannot_stay_resident_force_offload_back_on(self):
+        # A bf16 text-encoder fallback on top of the int8 DiT does not fit
+        # even a 32 GB card; offload must be re-enabled, or the worker OOMs
+        # mid-generation (worker exit, generation lost). Real 3 MB file on a
+        # fake 1 MB card: 3*1.25 > 1, so it cannot stay resident.
+        with tempfile.TemporaryDirectory() as td:
+            big=Path(td)/'qwen3vl_8b_bf16.safetensors'
+            big.write_bytes(b'0'*(3*2**20))
+            tiny=types.SimpleNamespace(cuda=types.SimpleNamespace(
+                get_device_properties=lambda _i: types.SimpleNamespace(total_memory=2**20)))
+            roomy=types.SimpleNamespace(cuda=types.SimpleNamespace(
+                get_device_properties=lambda _i: types.SimpleNamespace(total_memory=64*2**30)))
+            files={'folder':None,'files':{'text_encoder':str(big)}}
+            self.assertTrue(runtime.resident_fit(files,False,tiny))
+            # Offload already on: the helper is a no-op passthrough.
+            self.assertTrue(runtime.resident_fit(files,True,tiny))
+            self.assertFalse(runtime.resident_fit(files,False,roomy))
+
+    def test_resident_fit_skips_when_no_weights_are_measurable(self):
+        self.assertFalse(runtime.resident_fit({'folder':None,'files':{}},False,self.torch))
+
+
     def test_t2i_does_not_send_image_argument(self):
         self.run_generate(task="t2i")
         self.assertIsNone(self.pipe.calls[0]["image"])

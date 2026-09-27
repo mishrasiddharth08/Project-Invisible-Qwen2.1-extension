@@ -81,6 +81,33 @@ def save_output(result,p,seed,prompt,info,shared,images):
     print('[PI-Qwen21] Saved: '+str(filename))
     return str(filename)
 
+def resident_fit(folder, offload, torch):
+    """Decide offload by what was actually selected, not by tier.
+
+    A missing quantized file falls back to bf16 (~48 GB), which cannot stay
+    resident even on 32 GB cards. Weights plus a 25% activation headroom must
+    fit in VRAM or we stream; when offload was already on this is a no-op.
+    """
+    if offload:
+        return offload
+    weights_gb=0.0
+    paths=[Path(path) for path in (folder.get('files') or {}).values() if path]
+    if not paths and folder.get('folder'):
+        paths=[p for p in Path(folder['folder']).rglob('*.safetensors')]
+    for path in paths:
+        try: weights_gb+=path.stat().st_size/2**30
+        except OSError: pass
+    if not weights_gb:
+        return offload
+    free_gb=torch.cuda.get_device_properties(0).total_memory/2**30
+    if weights_gb*1.25>free_gb:
+        print(f'[PI-Qwen21] Selected weights need ~{weights_gb:.0f} GB; '
+              f'keeping everything resident would not fit this GPU '
+              f'({free_gb:.0f} GB). Streaming (offload) is on for this run. '
+              'Download the quantized text encoder to restore full speed.')
+        return True
+    return offload
+
 def generate(p, selected, options):
     import torch
     from modules import processing, shared, images
@@ -146,6 +173,7 @@ def generate(p, selected, options):
             folder=resolve(selected, False, prof)
             if folder.get('files'):
                 print('[PI-Qwen21] Using dedicated 2.1 components: '+', '.join(f'{kind}={Path(path).name}' for kind,path in folder['files'].items()))
+            offload=resident_fit(folder,offload,torch)
             try:
                 pipe=load(folder,prof,offload)
             except torch.cuda.OutOfMemoryError as exc:
