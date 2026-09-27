@@ -197,7 +197,7 @@ class Script(scripts.Script):
             mode='edit' if is_img2img else 't2i'
             with gr.Row(elem_classes=['pi-q21-output']):
                 task=gr.Dropdown([('Standard',mode),('Transparent PNG','rgba')],value=mode,label='Output',info='Transparent PNG adds an alpha channel for cut-outs')
-                steps=gr.Radio([('Quality',40),('Fast (turbo)',6)],value=40,label='Quality',info='Fast auto-selects the turbo LoRA; move the native Steps slider yourself and your number wins')
+                steps=gr.Radio([('Quality',40),('Fast (turbo)',8)],value=40,label='Quality',info='Fast auto-selects the turbo LoRA at 8 steps (best quality/speed per the community); move the native Steps slider yourself and your number wins')
             if is_img2img:
                 gr.Markdown(_img2img_help(),elem_classes=['pi-q21-status'])
             _QUALITY_RADIOS.append((steps,is_img2img))

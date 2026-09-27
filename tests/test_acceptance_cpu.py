@@ -61,8 +61,8 @@ class AssetAcceptanceTests(unittest.TestCase):
         self.assertEqual(assets.profile(8)["te"], "w4a8")
         self.assertEqual(assets.profile(12)["dit"], "int8_convrot")
         self.assertEqual(assets.profile(16)["side"], 1536)
-        self.assertEqual(assets.profile(24)["dit"], "bf16")
-        self.assertEqual(assets.profile(32)["side"], 0)
+        self.assertEqual(assets.profile(24)["dit"], "int8_convrot")
+        self.assertFalse(assets.profile(32)["offload"])
         self.assertEqual(assets.profile(32, "8")["te"], "w4a8")
 
     def _identity_tree(self, root, te_type="qwen3_vl", vae_class="AutoencoderKLQwenImage21"):

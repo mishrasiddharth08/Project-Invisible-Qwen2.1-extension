@@ -17,7 +17,9 @@ class ControlTests(unittest.TestCase):
                 self.assertNotIn('value',update)
 
     def test_toggle_on_uses_scalar_values_and_quality_preserves_choice(self):
-        self.assertEqual([x['value'] for x in controls.speed_updates(True,'Turbo',True)],['Turbo',1.0,6])
+        self.assertEqual([x['value'] for x in controls.speed_updates(True,'Turbo',True)],['Turbo',1.0,8])
+        fast=controls.quality_updates(8,'Turbo')
+        self.assertTrue(fast[0]['value']); self.assertEqual(fast[1]['value'],'Turbo')
         slow=controls.quality_updates(40,'Turbo')
         self.assertFalse(slow[0]['value']); self.assertNotIn('value',slow[1])
 

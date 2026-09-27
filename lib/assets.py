@@ -142,8 +142,13 @@ def profile(gb, override='auto'):
     if gb <= 8: return dict(dit='int8_convrot',te='w4a8',side=1024,offload=True,vram_gb=8)
     if gb <= 12: return dict(dit='int8_convrot',te='int8_convrot',side=1024,offload=True,vram_gb=12)
     if gb <= 16: return dict(dit='int8_convrot',te='int8_convrot',side=1536,offload=True,vram_gb=16)
-    if gb < 24: return dict(dit='bf16',te='bf16',side=2048,offload=True,vram_gb=20)
-    return dict(dit='bf16',te='bf16',side=0,offload=True)
+    # 16-24 GB: bf16 weights (~40 GB DiT alone) cannot fit, so use the packed
+    # int8 files (~28 GB total) and keep offload on to absorb KV/VAE spikes.
+    if gb < 24: return dict(dit='int8_convrot',te='int8_convrot',side=2048,offload=True,vram_gb=20)
+    # 24 GB and up: int8 DiT + int8 TE fit entirely on the GPU. Offload is the
+    # single biggest speed killer on big cards (constant CPU<->GPU shuffling),
+    # so it stays off unless the user re-enables it.
+    return dict(dit='int8_convrot',te='int8_convrot',side=0,offload=False)
 
 def bucket(width, height, side=0):
     w,h = min(BUCKETS, key=lambda x: abs(x[0]/x[1] - max(1,width)/max(1,height)))

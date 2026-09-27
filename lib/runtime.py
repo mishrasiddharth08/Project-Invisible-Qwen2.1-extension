@@ -88,6 +88,10 @@ def generate(p, selected, options):
         defaults=config()
         options={**defaults,**options}
         prof=hardware_profile(torch,options.get('profile','auto'))
+        # Auto profile trusts the hardware recommendation (big cards must not
+        # offload); a manually chosen profile follows the checkbox instead.
+        auto_profile=str(options.get('profile','auto'))=='auto'
+        offload=bool(prof.get('offload',True)) if auto_profile else bool(options.get('offload',True))
         if headswap: headswap.memory_profile=prof
         prompt=p.prompt if isinstance(p.prompt,str) else p.prompt[0]
         prompt,p.width,p.height=parse_rewrite(prompt,p.width,p.height)
@@ -143,7 +147,7 @@ def generate(p, selected, options):
             if folder.get('files'):
                 print('[PI-Qwen21] Using dedicated 2.1 components: '+', '.join(f'{kind}={Path(path).name}' for kind,path in folder['files'].items()))
             try:
-                pipe=load(folder,prof,options.get('offload',True))
+                pipe=load(folder,prof,offload)
             except torch.cuda.OutOfMemoryError as exc:
                 release()
                 raise RuntimeError('Qwen 2.1 could not fit on this GPU. Enable Save GPU memory and choose a 4 or 6 GB profile. More system RAM may also be needed.') from exc

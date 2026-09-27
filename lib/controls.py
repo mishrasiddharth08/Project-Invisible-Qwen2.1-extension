@@ -4,12 +4,12 @@ def speed_updates(enabled, turbo, native=False):
     if not enabled:
         return tuple(gr.skip() for _ in range(3 if native else 2))
     values=[gr.update(value=turbo),gr.update(value=1.0)]
-    if native: values.append(gr.update(value=6))
+    if native: values.append(gr.update(value=8))
     return tuple(values)
 
 def quality_updates(value, turbo):
     import gradio as gr
-    fast=value==6
+    fast=value==8
     return gr.update(value=fast), gr.update(value=turbo) if fast else gr.skip()
 
 def control_value(value, default=None):
