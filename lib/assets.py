@@ -188,6 +188,27 @@ def hardware_profile(torch, override='auto'):
     if not torch.cuda.is_available():
         raise ValueError('Qwen 2.1 needs a supported NVIDIA CUDA or AMD ROCm PyTorch GPU. DirectML and CPU-only execution are not supported.')
     gb = torch.cuda.get_device_properties(0).total_memory / 2**30
+    if override != 'auto':
+        try:
+            requested = float(override)
+        except (TypeError, ValueError):
+            override = 'auto'
+        else:
+            if requested > gb:
+                # Saved presets can pin a profile larger than the actual card
+                # (or a card swap happened). An oversized budget turns off the
+                # safety headroom and OOMs mid-generation; clamp and say so.
+                print(f'[PI-Qwen21] VRAM profile {requested:g} GB exceeds this '
+                      f'GPU ({gb:.0f} GB); using auto for this run.')
+                override = 'auto'
+            elif gb >= requested * 2:
+                # A profile far below the card (often a preset saved on older
+                # hardware) caps the worker's PyTorch memory fraction and
+                # forces offload: correct but many times slower. Say so once.
+                print(f'[PI-Qwen21] VRAM profile {override:g} GB is far below '
+                      f'this GPU ({gb:.0f} GB); generation runs capped and '
+                      'offloaded. Set the VRAM profile dropdown to auto for '
+                      'full speed.')
     result = profile(gb, override)
     if not quant_capable(torch):
         result.update(dit='bf16', te='bf16', portable=True)

@@ -93,6 +93,18 @@ class GPUWorkerTests(unittest.TestCase):
         self.assertEqual(hardware_profile(self.torch(gb=4))['side'],512)
         self.assertEqual(hardware_profile(self.torch(gb=6))['side'],768)
 
+    def test_oversized_saved_profile_clamps_to_auto(self):
+        # Preset saved on bigger hardware: a 64 GB request on a 32 GB card
+        # must fall back to auto instead of disabling safety headroom.
+        result=hardware_profile(self.torch(gb=32),override='64')
+        self.assertEqual(result,hardware_profile(self.torch(gb=32)))
+        with self.assertRaisesRegex(ValueError,'supported NVIDIA'):
+            hardware_profile(self.torch(available=False),override='16')
+
+    def test_nonsense_profile_override_falls_back_to_auto(self):
+        result=hardware_profile(self.torch(gb=12),override='not-a-number')
+        self.assertEqual(result,hardware_profile(self.torch(gb=12)))
+
     def test_quant_capable_requires_cuda13_bf16_nvidia(self):
         self.assertTrue(quant_capable(self.torch(gb=12)))
         self.assertFalse(quant_capable(self.torch(hip='6.2',gb=12)))
