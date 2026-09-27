@@ -85,8 +85,11 @@ def resident_fit(folder, offload, torch):
     """Decide offload by what was actually selected, not by tier.
 
     A missing quantized file falls back to bf16 (~48 GB), which cannot stay
-    resident even on 32 GB cards. Weights plus a 25% activation headroom must
+    resident even on 32 GB cards. Weights plus a 5% activation headroom must
     fit in VRAM or we stream; when offload was already on this is a no-op.
+    The multiplier is deliberately small: packed int8 files (~29 GB total on a
+    32 GB card) do fit and must stay resident for full speed, while the bf16
+    fallback (~36 GB and up) correctly does not.
     """
     if offload:
         return offload
@@ -100,7 +103,7 @@ def resident_fit(folder, offload, torch):
     if not weights_gb:
         return offload
     free_gb=torch.cuda.get_device_properties(0).total_memory/2**30
-    if weights_gb*1.25>free_gb:
+    if weights_gb*1.05>free_gb:
         print(f'[PI-Qwen21] Selected weights need ~{weights_gb:.0f} GB; '
               f'keeping everything resident would not fit this GPU '
               f'({free_gb:.0f} GB). Streaming (offload) is on for this run. '
