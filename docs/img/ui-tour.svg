@@ -1,38 +1,38 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="780" viewBox="0 0 1200 780" role="img" aria-labelledby="title desc">
-<title id="title">A quieter, chocolate-colored workspace</title><desc id="desc">Qwen controls stay inside Forge. Choose a tab; keep the main workflow.</desc>
-<rect width="1200" height="780" rx="24" fill="#211813"/>
-<style>text{font-family:Arial,sans-serif}.title{fill:#fff2e4;font-size:36px;font-weight:700}.sub{fill:#dec3af;font-size:20px}.label{fill:#f4c69b;font-size:24px;font-weight:700}.body{fill:#f2dfce;font-size:19px}</style>
-<text x="48" y="70" class="title">A quieter, chocolate-colored workspace</text>
+<title id="title">A cleaner workspace in your Forge theme</title><desc id="desc">Qwen controls stay inside Forge. Choose a tab; keep the main workflow.</desc>
+<rect width="1200" height="780" rx="24" fill="#10151f"/>
+<style>text{font-family:Arial,sans-serif}.title{fill:#e8ecf4;font-size:36px;font-weight:700}.sub{fill:#9fb0c9;font-size:20px}.label{fill:#8fa3c4;font-size:24px;font-weight:700}.body{fill:#dfe7f5;font-size:19px}</style>
+<text x="48" y="70" class="title">A cleaner workspace in your Forge theme</text>
 <text x="48" y="112" class="sub">Qwen controls stay inside Forge. Choose a tab; keep the main workflow.</text>
-<rect x="48" y="160" width="352" height="204" rx="14" fill="#33241c" stroke="#936746"/>
+<rect x="48" y="160" width="352" height="204" rx="14" fill="#1b2230" stroke="#3c4a63"/>
 <text x="70" y="202" class="label">Finish</text>
 <text x="70" y="242" class="body">Refine details</text>
 <text x="70" y="271" class="body">Remove grid patterns</text>
 <text x="70" y="300" class="body">Output and mode stay above</text>
-<rect x="424" y="160" width="352" height="204" rx="14" fill="#33241c" stroke="#936746"/>
+<rect x="424" y="160" width="352" height="204" rx="14" fill="#1b2230" stroke="#3c4a63"/>
 <text x="446" y="202" class="label">Edit</text>
 <text x="446" y="242" class="body">Align edit to source</text>
 <text x="446" y="271" class="body">Preserve background</text>
 <text x="446" y="300" class="body">Optional reference images</text>
-<rect x="800" y="160" width="352" height="204" rx="14" fill="#33241c" stroke="#936746"/>
+<rect x="800" y="160" width="352" height="204" rx="14" fill="#1b2230" stroke="#3c4a63"/>
 <text x="822" y="202" class="label">Speed</text>
 <text x="822" y="242" class="body">Turbo model + strength</text>
 <text x="822" y="271" class="body">Spectrum acceleration</text>
 <text x="822" y="300" class="body">Downloads stay collapsed</text>
-<rect x="48" y="390" width="352" height="204" rx="14" fill="#33241c" stroke="#936746"/>
+<rect x="48" y="390" width="352" height="204" rx="14" fill="#1b2230" stroke="#3c4a63"/>
 <text x="70" y="432" class="label">Style</text>
 <text x="70" y="472" class="body">Photography styles</text>
 <text x="70" y="501" class="body">Automatic prompt trigger</text>
 <text x="70" y="530" class="body">Approved downloads only</text>
-<rect x="424" y="390" width="352" height="204" rx="14" fill="#33241c" stroke="#936746"/>
+<rect x="424" y="390" width="352" height="204" rx="14" fill="#1b2230" stroke="#3c4a63"/>
 <text x="446" y="432" class="label">Memory</text>
 <text x="446" y="472" class="body">Auto VRAM budget</text>
 <text x="446" y="501" class="body">Size cap and GPU offload</text>
 <text x="446" y="530" class="body">Advanced options collapsed</text>
-<rect x="800" y="390" width="352" height="204" rx="14" fill="#33241c" stroke="#936746"/>
+<rect x="800" y="390" width="352" height="204" rx="14" fill="#1b2230" stroke="#3c4a63"/>
 <text x="822" y="432" class="label">Models</text>
 <text x="822" y="472" class="body">Setup guide</text>
 <text x="822" y="501" class="body">Choose model files</text>
 <text x="822" y="530" class="body">Approve before downloading</text>
 <text x="48" y="704" class="sub">Edit appears only in img2img. Native prompts, steps, CFG, Generate and gallery remain in place.</text>
-<text x="48" y="742" fill="#bca18c" font-family="Arial,sans-serif" font-size="16">PROJECT INVISIBLE · QWEN-IMAGE-2.1 · SEPTEMBER 28, 2026</text></svg>
+<text x="48" y="742" fill="#9fb0c9" font-family="Arial,sans-serif" font-size="16">PROJECT INVISIBLE · QWEN-IMAGE-2.1 · SEPTEMBER 28, 2026</text></svg>

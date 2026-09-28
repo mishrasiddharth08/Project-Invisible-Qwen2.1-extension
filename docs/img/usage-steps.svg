@@ -1,38 +1,38 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="780" viewBox="0 0 1200 780" role="img" aria-labelledby="title desc">
 <title id="title">From prompt to picture</title><desc id="desc">Start simple. Add speed or finishing options only when you need them.</desc>
-<rect width="1200" height="780" rx="24" fill="#211813"/>
-<style>text{font-family:Arial,sans-serif}.title{fill:#fff2e4;font-size:36px;font-weight:700}.sub{fill:#dec3af;font-size:20px}.label{fill:#f4c69b;font-size:24px;font-weight:700}.body{fill:#f2dfce;font-size:19px}</style>
+<rect width="1200" height="780" rx="24" fill="#10151f"/>
+<style>text{font-family:Arial,sans-serif}.title{fill:#e8ecf4;font-size:36px;font-weight:700}.sub{fill:#9fb0c9;font-size:20px}.label{fill:#8fa3c4;font-size:24px;font-weight:700}.body{fill:#dfe7f5;font-size:19px}</style>
 <text x="48" y="70" class="title">From prompt to picture</text>
 <text x="48" y="112" class="sub">Start simple. Add speed or finishing options only when you need them.</text>
-<rect x="48" y="160" width="352" height="204" rx="14" fill="#33241c" stroke="#936746"/>
+<rect x="48" y="160" width="352" height="204" rx="14" fill="#1b2230" stroke="#3c4a63"/>
 <text x="70" y="202" class="label">1  Select</text>
 <text x="70" y="242" class="body">Qwen 2.1 preset</text>
 <text x="70" y="271" class="body">Compatible DiT + encoder</text>
 <text x="70" y="300" class="body">Qwen 2.1 VAE</text>
-<rect x="424" y="160" width="352" height="204" rx="14" fill="#33241c" stroke="#936746"/>
+<rect x="424" y="160" width="352" height="204" rx="14" fill="#1b2230" stroke="#3c4a63"/>
 <text x="446" y="202" class="label">2  Describe</text>
 <text x="446" y="242" class="body">Write your prompt</text>
 <text x="446" y="271" class="body">For edits, upload the source</text>
 <text x="446" y="300" class="body">Use native img2img</text>
-<rect x="800" y="160" width="352" height="204" rx="14" fill="#33241c" stroke="#936746"/>
+<rect x="800" y="160" width="352" height="204" rx="14" fill="#1b2230" stroke="#3c4a63"/>
 <text x="822" y="202" class="label">3  Set quality</text>
 <text x="822" y="242" class="body">Start with Quality mode</text>
 <text x="822" y="271" class="body">Choose native steps + CFG</text>
 <text x="822" y="300" class="body">Keep memory saving on</text>
-<rect x="48" y="390" width="352" height="204" rx="14" fill="#33241c" stroke="#936746"/>
+<rect x="48" y="390" width="352" height="204" rx="14" fill="#1b2230" stroke="#3c4a63"/>
 <text x="70" y="432" class="label">4  Generate</text>
 <text x="70" y="472" class="body">Use Forge Generate</text>
 <text x="70" y="501" class="body">Watch native progress</text>
 <text x="70" y="530" class="body">Review the gallery result</text>
-<rect x="424" y="390" width="352" height="204" rx="14" fill="#33241c" stroke="#936746"/>
+<rect x="424" y="390" width="352" height="204" rx="14" fill="#1b2230" stroke="#3c4a63"/>
 <text x="446" y="432" class="label">5  Tune</text>
 <text x="446" y="472" class="body">Fast: turbo LoRA + CFG 1</text>
 <text x="446" y="501" class="body">Spectrum: approximate</text>
 <text x="446" y="530" class="body">Compare with a fixed seed</text>
-<rect x="800" y="390" width="352" height="204" rx="14" fill="#33241c" stroke="#936746"/>
+<rect x="800" y="390" width="352" height="204" rx="14" fill="#1b2230" stroke="#3c4a63"/>
 <text x="822" y="432" class="label">6  Finish</text>
 <text x="822" y="472" class="body">Refiner and grid cleanup</text>
 <text x="822" y="501" class="body">Optional edit alignment</text>
 <text x="822" y="530" class="body">Batch ends: models unload</text>
 <text x="48" y="704" class="sub">Models reload for the next batch. Restart Forge after updates; browser refresh alone is insufficient.</text>
-<text x="48" y="742" fill="#bca18c" font-family="Arial,sans-serif" font-size="16">PROJECT INVISIBLE · QWEN-IMAGE-2.1 · SEPTEMBER 28, 2026</text></svg>
+<text x="48" y="742" fill="#9fb0c9" font-family="Arial,sans-serif" font-size="16">PROJECT INVISIBLE · QWEN-IMAGE-2.1 · SEPTEMBER 28, 2026</text></svg>

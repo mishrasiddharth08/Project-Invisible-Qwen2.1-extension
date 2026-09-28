@@ -1,3 +1,8 @@
+# September 28, 2026 — restore original colors
+
+- Restore Forge theme colors and the original infographic palette.
+- Keep the tabbed layout, alignment and existing fixes.
+
 # September 28, 2026 — memory, quality and chocolate UI
 
 - Honor Auto memory saving, reserve free-VRAM headroom, release workers after batches.

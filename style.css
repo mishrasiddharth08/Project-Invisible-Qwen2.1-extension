@@ -7,78 +7,19 @@
     .pi-qwen-developing .livePreview img:last-child { animation: none; }
 }
 
-/* Chocolate palette, scoped to Qwen's panel only. */
-.pi-q21-panel {
-    --background-fill-primary: #241a16;
-    --background-fill-secondary: #30231d;
-    --block-background-fill: #30231d;
-    --block-border-color: #72523f;
-    --border-color-primary: #72523f;
-    --border-color-accent: #e6ae78;
-    --input-background-fill: #201713;
-    --input-border-color: #795a45;
-    --input-border-color-focus: #edb983;
-    --input-placeholder-color: #c1a997;
-    --body-text-color: #fff2e4;
-    --body-text-color-subdued: #dec3af;
-    --block-label-text-color: #f4dfcc;
-    --block-title-text-color: #fff2e4;
-    --button-secondary-background-fill: #493126;
-    --button-secondary-background-fill-hover: #61422f;
-    --button-secondary-text-color: #fff2e4;
-    --button-secondary-border-color: #9b7152;
-    --checkbox-background-color: #201713;
-    --checkbox-background-color-selected: #b87e4d;
-    --checkbox-border-color: #ac8363;
-    --checkbox-label-background-fill: #30231d;
-    --checkbox-label-background-fill-selected: #533926;
-    --checkbox-label-text-color: #fff2e4;
-    --checkbox-label-text-color-selected: #fff2e4;
-    background: #241a16 !important;
-    border: 1px solid #795a45 !important;
-    border-radius: 14px !important;
-    color: #fff2e4;
-    padding: 10px !important;
-    color-scheme: dark;
-}
-.pi-q21-panel .label-wrap,
-.pi-q21-panel .label-wrap span,
-.pi-q21-panel .prose { color: #f4dfcc !important; }
-.pi-q21-panel .prose a { color: #f7c18d; text-decoration: underline; }
+/* Use Forge's native theme colors; retain the compact responsive layout. */
+.pi-q21-panel { border-color: var(--border-color-primary); }
 .pi-q21-panel .pi-q21-pair { gap: 12px; align-items: stretch; }
 .pi-q21-panel .pi-q21-pair > * { flex: 1 1 180px !important; min-width: 0 !important; }
 .pi-q21-panel .pi-q21-output { padding-bottom: 4px; }
 .pi-q21-panel .pi-q21-tools { gap: 10px; }
-.pi-q21-panel .tab-nav {
-    display: flex; flex-wrap: wrap; gap: 4px;
-    padding: 6px; margin: 0 0 12px;
-    background: #1c1410; border: 1px solid #614631;
-    border-radius: 10px;
-}
-.pi-q21-panel .tab-nav button {
-    flex: 1 0 auto; min-height: 36px; margin: 0;
-    padding: 7px 12px; border: 1px solid transparent !important;
-    border-radius: 7px !important; background: transparent;
-    color: #dfc5b1 !important; font-weight: 500;
-}
-.pi-q21-panel .tab-nav button:hover { background: #38271e; color: #fff4e9 !important; }
-.pi-q21-panel .tab-nav button.selected,
-.pi-q21-panel .tab-nav button[aria-selected="true"] {
-    background: #65432e !important; color: #fff5e9 !important;
-    border-color: #bc8c60 !important;
-}
-.pi-q21-panel .tabitem { border: 0 !important; padding: 2px 0 !important; }
-.pi-q21-panel input,
-.pi-q21-panel textarea { color: #fff2e4 !important; accent-color: #d59b64; }
-.pi-q21-panel :is(button,input,textarea,[role="combobox"]):focus-visible {
-    outline: 2px solid #f2bf89 !important; outline-offset: 2px;
-}
+.pi-q21-panel .tab-nav { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 12px; }
+.pi-q21-panel .tab-nav button { flex: 1 0 auto; min-height: 36px; margin: 0; padding: 7px 12px; }
 .pi-q21-panel .pi-q21-status { font-size: 0.88rem; line-height: 1.5; }
 .pi-q21-panel .pi-q21-status:empty { display: none; }
 .pi-q21-panel .pi-q21-ref-row { gap: 10px; }
 .pi-q21-panel .pi-q21-ref-row > * { flex: 1 1 0 !important; min-width: 0 !important; }
 .pi-q21-panel .pi-q21-ref img { object-fit: contain; }
-/* Keep upload/remove actions visible and usable. */
 @media (max-width: 560px) {
     .pi-q21-panel .pi-q21-pair { flex-direction: column; }
     .pi-q21-panel .pi-q21-pair > * { flex: 1 1 auto !important; }

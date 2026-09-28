@@ -5,13 +5,13 @@ Independent community extension; not an official Qwen product.
 
 ## September 28, 2026 update
 
-- Chocolate-colored panel with aligned, responsive tabs and less clutter.
+- Original Forge theme colors with aligned, responsive tabs and less clutter.
 - Memory saving now respects its checkbox in Auto mode. Workers unload after a batch.
 - Spectrum keeps CFG prediction histories separate and rejects unstable forecasts.
 - Optional PixelDriftFix-style alignment for img2img, with alpha preservation.
 - Native Forge controls stay visible; reference upload/remove buttons remain usable.
 
-![Chocolate Qwen panel guide](docs/img/ui-tour.svg)
+![Qwen panel guide](docs/img/ui-tour.svg)
 
 ## Install or update
 
