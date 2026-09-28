@@ -46,15 +46,16 @@
   <rect x="730" y="286" width="120" height="28" rx="6" fill="#2f3a4e"/>
   <text x="790" y="305" fill="#cdd7e6" font-size="12" text-anchor="middle">Models</text>
 
-  <text x="600" y="344" fill="#8fa3c4" font-size="12">Refiner tab contents</text>
+  <text x="600" y="344" fill="#8fa3c4" font-size="12">Performance tab contents</text>
   <rect x="600" y="354" width="250" height="28" rx="6" fill="#3c4a63" stroke="#5b82d6"/>
-  <text x="614" y="373" fill="#e8ecf4" font-size="12">Off · Turbo (fast) · Quality (best)</text>
-  <text x="600" y="404" fill="#9fb0c9" font-size="11">Second detail pass reusing the loaded model:</text>
-  <text x="600" y="420" fill="#9fb0c9" font-size="11">no extra VRAM, no downloads, every combo works</text>
+  <text x="614" y="373" fill="#e8ecf4" font-size="12">Spectrum · DeGrid · Edit composite</text>
+  <text x="600" y="404" fill="#9fb0c9" font-size="11">Spectrum: works at any CFG, skips conservatively</text>
+  <text x="600" y="420" fill="#9fb0c9" font-size="11">Edit composite (img2img): realigns the edit (PixelDriftFix),</text>
+  <text x="600" y="436" fill="#9fb0c9" font-size="11">detects changed pixels (Klein), keeps original background</text>
 
-  <text x="600" y="452" fill="#8fa3c4" font-size="12">Status strip</text>
-  <rect x="600" y="462" width="250" height="56" rx="6" fill="#1e2736" stroke="#3a465c"/>
-  <rect x="600" y="462" width="4" height="56" fill="#5b82d6"/>
-  <text x="616" y="484" fill="#9fe3a1" font-size="11">✓ Models detected</text>
-  <text x="616" y="502" fill="#9fb0c9" font-size="11">Adapter hints · memory state</text>
+  <text x="600" y="462" fill="#8fa3c4" font-size="12">Status strip</text>
+  <rect x="600" y="472" width="250" height="46" rx="6" fill="#1e2736" stroke="#3a465c"/>
+  <rect x="600" y="472" width="4" height="46" fill="#5b82d6"/>
+  <text x="616" y="492" fill="#9fe3a1" font-size="11">✓ Models detected</text>
+  <text x="616" y="508" fill="#9fb0c9" font-size="11">Adapter hints · memory state</text>
 </svg>
