@@ -89,3 +89,14 @@ This is an independent implementation of the recommended SIFT/global-homography 
 - Memory usage, speed and quality depend on hardware, model precision, resolution and adapters. No universal GPU compatibility is claimed.
 
 Report your Forge version, GPU, precision, steps, CFG, enabled options and relevant error log. See [contributing](CONTRIBUTING.md), [license](LICENSE) and [notices](NOTICE).
+
+## Special Thanks
+
+- [**r/sdforall**](https://www.reddit.com/r/sdforall/) - community discussion and testing
+- [**r/SECourses**](https://www.reddit.com/r/SECourses/) - community discussion and testing
+- [**r/malcolmrey**](https://www.reddit.com/r/malcolmrey/) - community discussion and testing
+- [**Haoming02 / sd-webui-forge-classic (neo branch)**](https://github.com/Haoming02/sd-webui-forge-classic/tree/neo) - the Forge Neo tree this extension targets
+- [**ComfyUI**](https://github.com/comfyanonymous/ComfyUI) - reference for upstream sampler/scheduler coverage
+- **The Forge / AUTOMATIC1111 community** - for the extension ecosystem this plugs into
+
+Special thanks to u/malcolmrey for support and inspiration. Thank you also to the Forge Neo, Diffusers, Qwen, DeGrid, Spectrum and wider open-source communities.
