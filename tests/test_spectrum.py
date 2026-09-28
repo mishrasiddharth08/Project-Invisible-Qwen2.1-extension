@@ -54,15 +54,16 @@ class SpectrumTests(unittest.TestCase):
 
     def test_opt_in_forecasts_and_restores_even_after_error(self):
         pipe = self.pipe(); original = pipe.transformer.forward
+        cache = object()
         with self.assertRaisesRegex(RuntimeError, "boom"):
             with spectrum.accelerate(pipe, enabled=True, steps=10) as stats:
                 pipe.transformer(torch.ones(1, 2, 3), timestep=torch.tensor([0.0]),
                                  img_shapes=[[(1, 1, 1), (1, 1, 2)]],
-                                 img_mask=torch.tensor([[True, False]]), kv_cache_mode="extract")
+                                 img_mask=torch.tensor([[True, False]]), kv_cache=cache, kv_cache_mode="extract")
                 for step in range(1, 7):
-                    pipe.transformer(torch.ones(1, 2, 3), timestep=torch.tensor([float(step)]),
+                    pipe.transformer(torch.ones(1, 2, 3), timestep=torch.tensor([1.0-step/10]),
                                      img_shapes=[[(1, 1, 1), (1, 1, 2)]],
-                                     img_mask=torch.tensor([[True, False]]), kv_cache_mode="cached")
+                                     img_mask=torch.tensor([[True, False]]), kv_cache=cache, kv_cache_mode="cached")
                 self.assertGreater(stats.forecast, 0)
                 self.assertLess(pipe.transformer.real_calls, 7)
                 raise RuntimeError("boom")
@@ -81,6 +82,46 @@ class SpectrumTests(unittest.TestCase):
         history = [(-1.0, torch.tensor([1.0])), (-0.5, torch.tensor([2.0])), (0.0, torch.tensor([3.0]))]
         value = spectrum._forecast(torch, history, 0.5)
         self.assertTrue(torch.isfinite(value).all())
+
+    def test_constant_features_do_not_shrink(self):
+        feature=torch.full((1,2,3),100.0)
+        history=[(t,feature.clone()) for t in (1.0,0.9,0.7,0.6)]
+        torch.testing.assert_close(spectrum._forecast(torch,history,0.5),feature)
+
+    def test_true_cfg_branches_stay_separate_and_forecast(self):
+        pipe=self.pipe(); caches=[object(),object()]
+        values=[torch.full((1,2,3),10.0),torch.full((1,2,3),-10.0)]
+        with spectrum.accelerate(pipe,enabled=True,steps=24,cfg=4.0) as stats:
+            for step in range(24):
+                predictions=[]
+                for cache,hidden in zip(caches,values):
+                    result=pipe.transformer(hidden,timestep=torch.tensor([0.0]),
+                        img_shapes=[[(1,1,2)]],img_mask=torch.tensor([[False]]),
+                        kv_cache=cache,kv_cache_mode='cached',return_dict=False)[0]
+                    predictions.append(result)
+                    torch.testing.assert_close(result,hidden)
+                guided=predictions[1]+4*(predictions[0]-predictions[1])
+                torch.testing.assert_close(guided,torch.full_like(guided,70.0))
+            self.assertGreater(stats.forecast,0)
+            self.assertEqual(stats.actual+stats.forecast,48)
+
+    def test_unknown_cache_identity_uses_exact_forward(self):
+        pipe=self.pipe()
+        with spectrum.accelerate(pipe,enabled=True,steps=24,cfg=4.0) as stats:
+            for _ in range(24):
+                pipe.transformer(torch.ones(1,2,3),timestep=torch.tensor([0.0]),kv_cache_mode='cached')
+            self.assertEqual(stats.forecast,0)
+
+    def test_nonfinite_forecast_falls_back_to_real_forward(self):
+        from unittest.mock import patch
+        pipe=self.pipe();cache=object()
+        with patch.object(spectrum,'_forecast',return_value=torch.full((1,2,3),float('nan'))):
+            with spectrum.accelerate(pipe,enabled=True,steps=24,cfg=4.0) as stats:
+                for _ in range(24):
+                    value=pipe.transformer(torch.ones(1,2,3),timestep=torch.tensor([0.0]),
+                                          kv_cache=cache,kv_cache_mode='cached').sample
+                    self.assertTrue(torch.isfinite(value).all())
+                self.assertEqual(stats.forecast,0)
 
 
 if __name__ == "__main__": unittest.main()

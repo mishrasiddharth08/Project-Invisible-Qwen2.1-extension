@@ -167,7 +167,7 @@ class WorkerPipeline:
                     raise interrupted
                 self._pi_cuda_memory=value.get("cuda_memory",{})
                 with Image.open(value["path"]) as result:
-                    return SimpleNamespace(images=[result.copy()])
+                    return SimpleNamespace(images=[result.copy()],spectrum=value.get('spectrum',{}))
 
     def unload_lora_weights(self):
         self._adapters = []

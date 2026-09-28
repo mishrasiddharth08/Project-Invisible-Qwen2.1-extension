@@ -1,3 +1,12 @@
+# September 28, 2026 — memory, quality and chocolate UI
+
+- Honor Auto memory saving, reserve free-VRAM headroom, release workers after batches.
+- Separate Spectrum CFG histories, retain sufficient history, reject unstable forecasts.
+- Add optional guarded PixelDriftFix-style alignment with output metadata.
+- Reorganize the chocolate panel; preserve all 27 argument slots and native controls.
+- Restore image actions; remove the global native-accordion hiding script.
+- Refresh README, validation notes and all three SVG guides.
+
 # Update history
 
 ## 2026-09-27 — Head Swap and low-VRAM integration

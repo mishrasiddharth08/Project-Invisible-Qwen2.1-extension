@@ -13,6 +13,7 @@ from .prompts import parse as parse_rewrite
 from .progress import ForgeProgress
 from .degrid import remove_moire
 from . import alpha as alpha_clean
+from . import pixel_drift
 
 LOCK=threading.RLock()
 _pipe=None
@@ -91,12 +92,8 @@ def save_output(result,p,seed,prompt,info,shared,images):
 def resident_fit(folder, offload, torch):
     """Decide offload by what was actually selected, not by tier.
 
-    A missing quantized file falls back to bf16 (~48 GB), which cannot stay
-    resident even on 32 GB cards. Weights plus a 5% activation headroom must
-    fit in VRAM or we stream; when offload was already on this is a no-op.
-    The multiplier is deliberately small: packed int8 files (~29 GB total on a
-    32 GB card) do fit and must stay resident for full speed, while the bf16
-    fallback (~36 GB and up) correctly does not.
+    Compare actual free VRAM with selected weights and activation headroom.
+    This is a conservative estimate, not a guarantee for every resolution.
     """
     if offload:
         return offload
@@ -109,11 +106,14 @@ def resident_fit(folder, offload, torch):
         except OSError: pass
     if not weights_gb:
         return offload
-    free_gb=torch.cuda.get_device_properties(0).total_memory/2**30
-    if weights_gb*1.05>free_gb:
+    mem_info=getattr(torch.cuda,'mem_get_info',None)
+    free_gb=(mem_info()[0] if callable(mem_info) else
+             torch.cuda.get_device_properties(0).total_memory)/2**30
+    # Leave room for activations, KV caches, decoding and the display.
+    if weights_gb+max(2.0,weights_gb*0.15)>free_gb:
         print(f'[PI-Qwen21] Selected weights need ~{weights_gb:.0f} GB; '
               f'keeping everything resident would not fit this GPU '
-              f'({free_gb:.0f} GB). Streaming (offload) is on for this run. '
+              f'({free_gb:.0f} GB available). Streaming (offload) is on for this run. '
               'Download the quantized text encoder to restore full speed.')
         return True
     return offload
@@ -126,10 +126,8 @@ def generate(p, selected, options):
         defaults=config()
         options={**defaults,**options}
         prof=hardware_profile(torch,options.get('profile','auto'))
-        # Auto profile trusts the hardware recommendation (big cards must not
-        # offload); a manually chosen profile follows the checkbox instead.
-        auto_profile=str(options.get('profile','auto'))=='auto'
-        offload=bool(prof.get('offload',True)) if auto_profile else bool(options.get('offload',True))
+        # Respect the visible memory-saving control on every hardware profile.
+        offload=bool(options.get('offload',prof.get('offload',True)))
         if headswap: headswap.memory_profile=prof
         prompt=p.prompt if isinstance(p.prompt,str) else p.prompt[0]
         prompt,p.width,p.height=parse_rewrite(prompt,p.width,p.height)
@@ -257,7 +255,9 @@ def generate(p, selected, options):
                     refiner_mode=str(options.get('refiner') or 'off').lower()
                     if refiner_mode!='off' and 'refiner' in params: args['refiner']=refiner_mode
                     try:
-                        result=pipe(**args).images[0]
+                        response=pipe(**args)
+                        result=response.images[0]
+                        spectrum_report=getattr(response,'spectrum',{})
                     except torch.cuda.OutOfMemoryError as exc:
                         release()
                         raise RuntimeError('Qwen 2.1 ran out of GPU memory. Enable Save GPU memory and choose 512 or 768 long-side; reduce reference images or use a smaller VRAM profile.') from exc
@@ -268,6 +268,8 @@ def generate(p, selected, options):
                     if cleanup:
                         result=remove_moire(result,strength=cleanup)
                     result=alpha_clean.clean(result)
+                    drift_source=primary[0] if primary and is_edit and not headswap else None
+                    result,drift_status=pixel_drift.apply(drift_source,result,options.get('pixel_drift',False))
                     if headswap: result=headswap.finish_image(result,i)
                     if options.get('composite') and primary:
                         # Klein-style edit composite: keep the original's
@@ -278,7 +280,7 @@ def generate(p, selected, options):
                             if isinstance(original,str):
                                 from PIL import Image as _I; original=_I.open(original)
                             original=original.convert('RGB').resize(result.size)
-                            result,changed=klein.composite(original,result)
+                            result,changed=klein.composite(original,result,drift=not bool(options.get('pixel_drift')))
                             print(f'[PI-Qwen21] Klein composite: {changed*100:.1f}% of pixels kept from the edit.')
                         except Exception as exc:
                             print('[PI-Qwen21] Klein composite skipped:',exc)
@@ -286,7 +288,10 @@ def generate(p, selected, options):
                     info=f'{generation_prompt}\nNegative prompt: {generation_negative}\nSteps: {p.steps}, Sampler: Euler, Schedule type: simple, CFG scale: {generation_cfg}, Seed: {current_seed}, Size: {p.width}x{p.height}, Model: Qwen-Image-2.1'
                     info+=f', Qwen moire cleanup: {cleanup:g}'
                     info+=f', DeGrid: {"auto" if cleanup else "off"}'
+                    info+=f', PixelDriftFix: {drift_status}'
                     info+=f", Spectrum requested: {bool(options.get('spectrum',False))}"
+                    if spectrum_report:
+                        info+=f", Spectrum actual passes: {spectrum_report.get('actual',0)}, Spectrum forecast passes: {spectrum_report.get('forecast',0)}"
                     if speed_entry: info+=f", Speed LoRA: {speed_name} ({speed_adapter[1]:g})"
                     if style_adapter: info+=f", Style LoRA: {style_name}"
                     if refiner_mode!='off': info+=f", Refiner: {refiner_mode}"
@@ -309,4 +314,8 @@ def generate(p, selected, options):
             if output: result.width,result.height=output[0].size
             return result
         finally:
-            display.close()
+            try:
+                display.close()
+            finally:
+                # Keep weights across the batch, then free worker RAM and VRAM.
+                if not options.get('keep_loaded',False): release()

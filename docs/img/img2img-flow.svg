@@ -1,39 +1,38 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="900" height="360" font-family="Segoe UI, Arial, sans-serif">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#1b2230"/><stop offset="1" stop-color="#10151f"/>
-    </linearGradient>
-  </defs>
-  <rect width="900" height="360" fill="url(#bg)"/>
-  <text x="450" y="40" fill="#e8ecf4" font-size="22" font-weight="600" text-anchor="middle">img2img — Forge's normal tab</text>
-
-  <g>
-    <rect x="50" y="80" width="230" height="140" rx="10" fill="#232b3a" stroke="#3a465c"/>
-    <rect x="80" y="100" width="170" height="70" rx="6" fill="#2c3547" stroke="#46536b"/>
-    <text x="165" y="140" fill="#5d6c85" font-size="12" text-anchor="middle">Upload image</text>
-    <text x="165" y="196" fill="#9fb0c9" font-size="12" text-anchor="middle">Forge img2img tab</text>
-  </g>
-  <path d="M290 150 L350 150" stroke="#5b82d6" stroke-width="2" marker-end="url(#arrow)"/>
-  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#5b82d6"/></marker></defs>
-
-  <g>
-    <rect x="360" y="80" width="230" height="140" rx="10" fill="#232b3a" stroke="#3a465c"/>
-    <text x="475" y="115" fill="#e8ecf4" font-size="13" font-weight="600" text-anchor="middle">Denoising strength</text>
-    <rect x="390" y="140" width="170" height="10" rx="5" fill="#1e2736" stroke="#3a465c"/>
-    <rect x="390" y="140" width="85" height="10" rx="5" fill="#5b82d6"/>
-    <circle cx="475" cy="145" r="7" fill="#e8ecf4"/>
-    <text x="475" y="180" fill="#9fb0c9" font-size="11" text-anchor="middle">0 = keep source · 1 = new noise</text>
-    <text x="475" y="198" fill="#9fb0c9" font-size="11" text-anchor="middle">lower preserves more</text>
-  </g>
-  <path d="M600 150 L660 150" stroke="#5b82d6" stroke-width="2" marker-end="url(#arrow)"/>
-
-  <g>
-    <rect x="670" y="80" width="180" height="140" rx="10" fill="#24304a" stroke="#5b82d6" stroke-width="2"/>
-    <rect x="700" y="105" width="120" height="70" rx="6" fill="#2c3547" stroke="#5b82d6"/>
-    <text x="760" y="145" fill="#8fa3c4" font-size="11" text-anchor="middle">Edited result</text>
-    <text x="760" y="196" fill="#9fb0c9" font-size="12" text-anchor="middle">Same Qwen pipeline</text>
-  </g>
-
-  <text x="450" y="280" fill="#9fb0c9" font-size="13" text-anchor="middle">Inpainting/masks are unsupported. Speed boost works here too — previews and the</text>
-  <text x="450" y="300" fill="#9fb0c9" font-size="13" text-anchor="middle">finished full-size picture behave exactly like in txt2img.</text>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="780" viewBox="0 0 1200 780" role="img" aria-labelledby="title desc">
+<title id="title">Keep the edit aligned</title><desc id="desc">Optional corrections run before the image reaches the gallery and saved PNG.</desc>
+<rect width="1200" height="780" rx="24" fill="#211813"/>
+<style>text{font-family:Arial,sans-serif}.title{fill:#fff2e4;font-size:36px;font-weight:700}.sub{fill:#dec3af;font-size:20px}.label{fill:#f4c69b;font-size:24px;font-weight:700}.body{fill:#f2dfce;font-size:19px}</style>
+<text x="48" y="70" class="title">Keep the edit aligned</text>
+<text x="48" y="112" class="sub">Optional corrections run before the image reaches the gallery and saved PNG.</text>
+<rect x="48" y="160" width="352" height="204" rx="14" fill="#33241c" stroke="#936746"/>
+<text x="70" y="202" class="label">1  Source</text>
+<text x="70" y="242" class="body">Upload in native img2img</text>
+<text x="70" y="271" class="body">Extra references are optional</text>
+<text x="70" y="300" class="body">Describe the intended edit</text>
+<rect x="424" y="160" width="352" height="204" rx="14" fill="#33241c" stroke="#936746"/>
+<text x="446" y="202" class="label">2  Generate</text>
+<text x="446" y="242" class="body">Qwen produces the edit</text>
+<text x="446" y="271" class="body">Optional Spectrum speedup</text>
+<text x="446" y="300" class="body">Separate CFG histories</text>
+<rect x="800" y="160" width="352" height="204" rx="14" fill="#33241c" stroke="#936746"/>
+<text x="822" y="202" class="label">3  Finish</text>
+<text x="822" y="242" class="body">Optional refiner pass</text>
+<text x="822" y="271" class="body">Optional grid cleanup</text>
+<text x="822" y="300" class="body">Preserve image alpha</text>
+<rect x="48" y="390" width="352" height="204" rx="14" fill="#33241c" stroke="#936746"/>
+<text x="70" y="432" class="label">4  Align</text>
+<text x="70" y="472" class="body">PixelDriftFix-style matching</text>
+<text x="70" y="501" class="body">Correct small framing shifts</text>
+<text x="70" y="530" class="body">Skip uncertain or large warps</text>
+<rect x="424" y="390" width="352" height="204" rx="14" fill="#33241c" stroke="#936746"/>
+<text x="446" y="432" class="label">5  Composite</text>
+<text x="446" y="472" class="body">Optional background blend</text>
+<text x="446" y="501" class="body">Avoid a second alignment</text>
+<text x="446" y="530" class="body">Review intentional changes</text>
+<rect x="800" y="390" width="352" height="204" rx="14" fill="#33241c" stroke="#936746"/>
+<text x="822" y="432" class="label">6  Save</text>
+<text x="822" y="472" class="body">Same result in the gallery</text>
+<text x="822" y="501" class="body">Alignment status in metadata</text>
+<text x="822" y="530" class="body">No visual-quality guarantee</text>
+<text x="48" y="704" class="sub">Alignment is off by default. Protected head swaps skip this pass; experimental mesh mode is not included.</text>
+<text x="48" y="742" fill="#bca18c" font-family="Arial,sans-serif" font-size="16">PROJECT INVISIBLE · QWEN-IMAGE-2.1 · SEPTEMBER 28, 2026</text></svg>

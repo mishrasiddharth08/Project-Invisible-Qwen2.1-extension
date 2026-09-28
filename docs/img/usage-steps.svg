@@ -1,54 +1,38 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="900" height="640" font-family="Segoe UI, Arial, sans-serif">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#1b2230"/><stop offset="1" stop-color="#10151f"/>
-    </linearGradient>
-  </defs>
-  <rect width="900" height="640" fill="url(#bg)"/>
-  <text x="450" y="40" fill="#e8ecf4" font-size="22" font-weight="600" text-anchor="middle">First generation in five steps</text>
-
-  <g>
-    <rect x="40" y="80" width="390" height="100" rx="10" fill="#232b3a" stroke="#3a465c"/>
-    <circle cx="80" cy="130" r="22" fill="#5b82d6"/><text x="80" y="137" fill="#fff" font-size="18" font-weight="600" text-anchor="middle">1</text>
-    <text x="120" y="120" fill="#e8ecf4" font-size="15" font-weight="600">Install</text>
-    <text x="120" y="142" fill="#9fb0c9" font-size="12">Stop Forge, install via URL or ZIP,</text>
-    <text x="120" y="160" fill="#9fb0c9" font-size="12">no double nesting, start Forge.</text>
-  </g>
-  <g>
-    <rect x="470" y="80" width="390" height="100" rx="10" fill="#232b3a" stroke="#3a465c"/>
-    <circle cx="510" cy="130" r="22" fill="#5b82d6"/><text x="510" y="137" fill="#fff" font-size="18" font-weight="600" text-anchor="middle">2</text>
-    <text x="550" y="120" fill="#e8ecf4" font-size="15" font-weight="600">Model files</text>
-    <text x="550" y="142" fill="#9fb0c9" font-size="12">Download DiT, text encoder and VAE into</text>
-    <text x="550" y="160" fill="#9fb0c9" font-size="12">models/Qwen-Image-2.1/ — or use the Models tab.</text>
-  </g>
-  <g>
-    <rect x="40" y="210" width="390" height="100" rx="10" fill="#232b3a" stroke="#3a465c"/>
-    <circle cx="80" cy="260" r="22" fill="#5b82d6"/><text x="80" y="267" fill="#fff" font-size="18" font-weight="600" text-anchor="middle">3</text>
-    <text x="120" y="250" fill="#e8ecf4" font-size="15" font-weight="600">Select preset + checkpoint</text>
-    <text x="120" y="272" fill="#9fb0c9" font-size="12">Pick the qwen-image-2.1 UI preset and</text>
-    <text x="120" y="290" fill="#9fb0c9" font-size="12">the matching Project Invisible checkpoint.</text>
-  </g>
-  <g>
-    <rect x="470" y="210" width="390" height="100" rx="10" fill="#232b3a" stroke="#3a465c"/>
-    <circle cx="510" cy="260" r="22" fill="#5b82d6"/><text x="510" y="267" fill="#fff" font-size="18" font-weight="600" text-anchor="middle">4</text>
-    <text x="550" y="250" fill="#e8ecf4" font-size="15" font-weight="600">Configure (optional)</text>
-    <text x="550" y="272" fill="#9fb0c9" font-size="12">Expand the panel. Keep Quality, batch 1,</text>
-    <text x="550" y="290" fill="#9fb0c9" font-size="12">modest size. Defaults just work.</text>
-  </g>
-  <g>
-    <rect x="40" y="340" width="820" height="110" rx="10" fill="#24304a" stroke="#5b82d6" stroke-width="2"/>
-    <circle cx="80" cy="395" r="22" fill="#5b82d6"/><text x="80" y="402" fill="#fff" font-size="18" font-weight="600" text-anchor="middle">5</text>
-    <text x="120" y="382" fill="#e8ecf4" font-size="15" font-weight="600">Generate — Forge's normal button</text>
-    <text x="120" y="404" fill="#9fb0c9" font-size="12">Two progress bars track the current image and the overall batch. Evolving previews</text>
-    <text x="120" y="422" fill="#9fb0c9" font-size="12">appear while sampling; the finished full-size picture appears the moment the last step ends.</text>
-  </g>
-
-  <!-- Progress illustration -->
-  <text x="60" y="500" fill="#8fa3c4" font-size="13" font-weight="600">What you see while it runs</text>
-  <rect x="60" y="515" width="500" height="18" rx="9" fill="#1e2736" stroke="#3a465c"/>
-  <rect x="60" y="515" width="350" height="18" rx="9" fill="#5b82d6"/>
-  <text x="60" y="558" fill="#9fb0c9" font-size="12">Current image · step 24/40 — live preview updating</text>
-  <rect x="60" y="575" width="500" height="18" rx="9" fill="#1e2736" stroke="#3a465c"/>
-  <rect x="60" y="575" width="200" height="18" rx="9" fill="#3f9d63"/>
-  <text x="60" y="618" fill="#9fb0c9" font-size="12">Overall batch · image 2 of 4</text>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="780" viewBox="0 0 1200 780" role="img" aria-labelledby="title desc">
+<title id="title">From prompt to picture</title><desc id="desc">Start simple. Add speed or finishing options only when you need them.</desc>
+<rect width="1200" height="780" rx="24" fill="#211813"/>
+<style>text{font-family:Arial,sans-serif}.title{fill:#fff2e4;font-size:36px;font-weight:700}.sub{fill:#dec3af;font-size:20px}.label{fill:#f4c69b;font-size:24px;font-weight:700}.body{fill:#f2dfce;font-size:19px}</style>
+<text x="48" y="70" class="title">From prompt to picture</text>
+<text x="48" y="112" class="sub">Start simple. Add speed or finishing options only when you need them.</text>
+<rect x="48" y="160" width="352" height="204" rx="14" fill="#33241c" stroke="#936746"/>
+<text x="70" y="202" class="label">1  Select</text>
+<text x="70" y="242" class="body">Qwen 2.1 preset</text>
+<text x="70" y="271" class="body">Compatible DiT + encoder</text>
+<text x="70" y="300" class="body">Qwen 2.1 VAE</text>
+<rect x="424" y="160" width="352" height="204" rx="14" fill="#33241c" stroke="#936746"/>
+<text x="446" y="202" class="label">2  Describe</text>
+<text x="446" y="242" class="body">Write your prompt</text>
+<text x="446" y="271" class="body">For edits, upload the source</text>
+<text x="446" y="300" class="body">Use native img2img</text>
+<rect x="800" y="160" width="352" height="204" rx="14" fill="#33241c" stroke="#936746"/>
+<text x="822" y="202" class="label">3  Set quality</text>
+<text x="822" y="242" class="body">Start with Quality mode</text>
+<text x="822" y="271" class="body">Choose native steps + CFG</text>
+<text x="822" y="300" class="body">Keep memory saving on</text>
+<rect x="48" y="390" width="352" height="204" rx="14" fill="#33241c" stroke="#936746"/>
+<text x="70" y="432" class="label">4  Generate</text>
+<text x="70" y="472" class="body">Use Forge Generate</text>
+<text x="70" y="501" class="body">Watch native progress</text>
+<text x="70" y="530" class="body">Review the gallery result</text>
+<rect x="424" y="390" width="352" height="204" rx="14" fill="#33241c" stroke="#936746"/>
+<text x="446" y="432" class="label">5  Tune</text>
+<text x="446" y="472" class="body">Fast: turbo LoRA + CFG 1</text>
+<text x="446" y="501" class="body">Spectrum: approximate</text>
+<text x="446" y="530" class="body">Compare with a fixed seed</text>
+<rect x="800" y="390" width="352" height="204" rx="14" fill="#33241c" stroke="#936746"/>
+<text x="822" y="432" class="label">6  Finish</text>
+<text x="822" y="472" class="body">Refiner and grid cleanup</text>
+<text x="822" y="501" class="body">Optional edit alignment</text>
+<text x="822" y="530" class="body">Batch ends: models unload</text>
+<text x="48" y="704" class="sub">Models reload for the next batch. Restart Forge after updates; browser refresh alone is insufficient.</text>
+<text x="48" y="742" fill="#bca18c" font-family="Arial,sans-serif" font-size="16">PROJECT INVISIBLE · QWEN-IMAGE-2.1 · SEPTEMBER 28, 2026</text></svg>

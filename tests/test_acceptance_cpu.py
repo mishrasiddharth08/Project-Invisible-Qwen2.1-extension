@@ -593,11 +593,42 @@ class RuntimeAcceptanceTests(unittest.TestCase):
         p = p or self.p()
         bundle = {"folder": "Qwen-Image-2.1", "files": {}}
         with mock.patch.object(runtime, "resolve", return_value=bundle), \
-             mock.patch.object(runtime, "load", return_value=self.pipe), \
+             mock.patch.object(runtime, "load", return_value=self.pipe) as loader, \
              mock.patch.object(runtime.adapter, "parse", side_effect=lambda text, community: (text, [])), \
              mock.patch.object(runtime.adapter, "apply"):
             result = runtime.generate(p, "selected", self.options(**options))
+            self.last_load = loader.call_args
         return p, result
+
+    def test_auto_profile_respects_memory_checkbox_on_large_gpu(self):
+        with mock.patch.object(runtime,'hardware_profile',return_value=dict(side=0,offload=False)):
+            self.run_generate(profile='auto',offload=True)
+        self.assertTrue(self.last_load.args[2])
+
+    def test_default_releases_worker_once_after_whole_batch(self):
+        p=self.p();p.batch_size=2
+        with mock.patch.object(runtime,'release') as release:
+            self.run_generate(p=p)
+        self.assertEqual(len(self.pipe.calls),2)
+        release.assert_called_once()
+
+    def test_explicit_keep_loaded_retains_worker(self):
+        with mock.patch.object(runtime,'release') as release:
+            self.run_generate(keep_loaded=True)
+        release.assert_not_called()
+
+    def test_post_load_validation_error_releases_worker(self):
+        with mock.patch.object(runtime,'release') as release:
+            with self.assertRaises(ValueError):
+                self.run_generate(side='invalid')
+        release.assert_called_once()
+
+    def test_resident_fit_uses_available_vram(self):
+        cuda=types.SimpleNamespace(mem_get_info=lambda:(2**30,32*2**30))
+        with tempfile.TemporaryDirectory() as td:
+            weights=Path(td)/'weights.safetensors';weights.write_bytes(b'0'*1024)
+            self.assertTrue(runtime.resident_fit({'files':{'dit':str(weights)}},False,
+                            types.SimpleNamespace(cuda=cuda)))
 
     def test_native_steps_and_small_dimensions_are_not_overridden(self):
         p=self.p();p.width=512;p.height=512;p.steps=3
@@ -660,6 +691,20 @@ class RuntimeAcceptanceTests(unittest.TestCase):
         self.assertEqual(self.pipe.calls[-1]["negative_prompt"], "blurry")
         self.assertEqual(self.pipe.calls[-1]["true_cfg_scale"], 2)
 
+    def test_pixel_drift_changes_gallery_and_metadata_on_edit_path(self):
+        source=Image.new('RGB',(8,8),'white')
+        aligned=Image.new('RGBA',(8,8),(110,80,40,255))
+        with mock.patch.object(runtime.pixel_drift,'align',return_value=(aligned,'applied')) as align:
+            _,result=self.run_generate(self.p([source]),task='edit',pixel_drift=True,moire_cleanup=False)
+        align.assert_called_once()
+        self.assertIs(result.images[0],aligned)
+        self.assertIn('PixelDriftFix: applied',result.info)
+
+    def test_pixel_drift_t2i_does_not_warp_against_conditioning_images(self):
+        with mock.patch.object(runtime.pixel_drift,'align') as align:
+            _,result=self.run_generate(pixel_drift=True,moire_cleanup=False)
+        align.assert_not_called()
+        self.assertIn('PixelDriftFix: skipped: requires an edit source',result.info)
     def test_rgba_result_is_preserved(self):
         _p, result = self.run_generate(task="rgba")
         self.assertEqual(result.images[0].mode, "RGBA")

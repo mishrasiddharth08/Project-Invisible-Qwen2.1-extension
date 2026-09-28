@@ -25,10 +25,7 @@ class SpectrumStats:
 def supported(pipe, true_cfg_scale=1.0):
     model = getattr(pipe, "transformer", None)
     required = ("norm_out", "proj_out", "time_text_embed", "transformer_blocks")
-    # Works at any CFG: with True CFG > 1 the pipeline batches cond+uncond
-    # into one forward call, so a forecast step simply skips the whole batch.
-    # The old CFG-1-only rule was overly conservative and blocked the popular
-    # turbo-at-CFG-2+ recipe.
+    # True CFG uses separate cond/uncond calls and separate KV caches.
     return (
         model is not None
         and model.__class__.__name__ == "QwenImage21Transformer2DModel"
@@ -56,6 +53,8 @@ def _forecast(torch, history, coord, blend=0.5):
     ratio = 0.0 if abs(spacing) < 1e-12 else (coord - coords[-1]) / spacing
     linear[-2], linear[-1] = -ratio, 1.0 + ratio
     weights = blend * spectral + (1.0 - blend) * linear
+    # Preserve constant features; ridge regularization otherwise shrinks them.
+    weights[-1] += 1.0 - weights.sum()
     result = torch.zeros_like(history[-1][1], dtype=torch.float32)
     for weight, (_, feature) in zip(weights.tolist(), history):
         result.add_(feature.float(), alpha=weight)
@@ -123,36 +122,45 @@ def accelerate(pipe, enabled=False, steps=0, stop=None, cfg=1.0):
     import torch
 
     high_cfg = float(cfg or 1.0) > 1.0
-    warmup = 5 if high_cfg else 3
+    warmup = max(5, total // 4) if high_cfg else 3
     min_history = 4 if high_cfg else 3
-    max_consecutive = 0 if high_cfg else 1  # forecasts never adjacent at high CFG
+    final_steps = max(2, total // 5) if high_cfg else 2
 
     original = model.forward
-    history = []
-    call = 0
-    consecutive = 0
+    branches = {}
     stats.reason = "active"
 
     def wrapped(_self, *args, **kwargs):
-        nonlocal call, consecutive
         if stop is not None and Path(stop).exists():
             raise InterruptedError("Generation interrupted")
-        index = call
-        call += 1
-        coord = 0.0 if total <= 1 else 2.0 * index / (total - 1) - 1.0
+        cache = _argument(args, kwargs, "kv_cache", 7)
         cache_mode = _argument(args, kwargs, "kv_cache_mode", 8)
+        # The official pipeline owns one stable KV cache per guidance branch.
+        # Without that identity, run exactly; never guess an alternating order.
+        if cache is None or cache_mode not in ('extract', 'cached'):
+            stats.actual += 1
+            return original(*args, **kwargs)
+        branch = branches.setdefault(id(cache), {'cache': cache, 'history': [], 'call': 0})
+        history = branch['history']
+        index = branch['call']
+        branch['call'] += 1
+        timestep = _argument(args, kwargs, 'timestep', 2)
+        coord = float(timestep.detach().flatten()[0].float().cpu())
         actual = (
             cache_mode != "cached"
             or index < warmup
-            or index >= total - 2
+            or index >= total - final_steps
             or len(history) < min_history
-            or consecutive > max_consecutive
+            or index % (4 if high_cfg else 2) != 0
         )
         if not actual:
             predicted = _forecast(torch, history, coord)
-            consecutive += 1
-            stats.forecast += 1
-            return _output(model, args, kwargs, predicted)
+            latest = history[-1][1].float()
+            change = (predicted.float() - latest).square().mean().sqrt()
+            limit = latest.square().mean().sqrt().clamp_min(1e-6) * min(0.25, 0.5 / max(1.0, float(cfg)))
+            if torch.isfinite(predicted).all() and change <= limit:
+                stats.forecast += 1
+                return _output(model, args, kwargs, predicted)
 
         captured = {}
         def capture(_module, values):
@@ -169,8 +177,7 @@ def accelerate(pipe, enabled=False, steps=0, stop=None, cfg=1.0):
             if history and tuple(history[-1][1].shape) != tuple(feature.shape):
                 history.clear()
             history.append((coord, feature))
-            del history[:-3]
-        consecutive = 0
+            del history[:-min_history]
         stats.actual += 1
         return result
 
@@ -179,4 +186,4 @@ def accelerate(pipe, enabled=False, steps=0, stop=None, cfg=1.0):
         yield stats
     finally:
         model.forward = original
-        history.clear()
+        branches.clear()

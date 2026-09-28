@@ -1,227 +1,90 @@
 # Project Invisible — Qwen-Image-2.1 for Forge Neo
 
-**Qwen-Image-2.1 in Forge's familiar workflow. No separate generation tab or extra Python environment.**
+Qwen 2.1 inside Forge's existing **txt2img**, **img2img**, **Generate** and gallery workflow.
+Independent community extension; not an official Qwen product.
 
-[Installation](#beginner-installation) · [Models](#required-model-files) · [Step-by-step usage](#step-by-step-usage) · [UI tour](#ui-tour) · [Update safety](UPDATE_SAFETY.md) · [Technical notes](TECHNICAL.md)
+## September 28, 2026 update
 
-> This is my first public project and I am still learning. Please forgive any mistakes or rough edges. Kind, complete bug reports will help improve the project for everyone.
+- Chocolate-colored panel with aligned, responsive tabs and less clutter.
+- Memory saving now respects its checkbox in Auto mode. Workers unload after a batch.
+- Spectrum keeps CFG prediction histories separate and rejects unstable forecasts.
+- Optional PixelDriftFix-style alignment for img2img, with alpha preservation.
+- Native Forge controls stay visible; reference upload/remove buttons remain usable.
 
-## The Project Invisible idea
+![Chocolate Qwen panel guide](docs/img/ui-tour.svg)
 
-Use Forge's normal preset selector, prompt, Generate button and image folders.
-Special controls stay inside a compact, collapsed **Qwen-Image-2.1** panel.
-“Invisible” means familiar—not hiding downloads, errors or limitations.
-This is an independent community extension, not an official Qwen product.
+## Install or update
 
-## Features and testing status
+1. Finish your current generation and close Forge.
+2. Install this repository through **Extensions → Install from URL**, or extract its ZIP into Forge's `extensions` folder. Use one installation method, not both.
+3. The extension folder must contain `scripts/engine.py` directly. Avoid an extra nested folder.
+4. Start Forge. Initial setup installs extension dependencies; model weights are separate.
+5. After updates, restart Forge and refresh the browser. A browser refresh alone does not reload Python code.
 
-- **Text-to-image:** tested with local weights on the author's NVIDIA system.
-- **Image-to-image:** experimental; editing stays in Forge's **img2img** tab.
-- **Speed boost:** one tick selects the Viggle Turbo LoRA (r256, strength 1.0, 8 steps on the high-noise-focused schedule) — everything stays editable, your number always wins. Output soft or fried? Raise steps (7–14) and CFG (~2.0), or lower strength (0.5–0.25); the sigma schedule adapts automatically.
-- **Style LoRAs:** one-click photography styles (Samsung phone, Canon DSLR, film stills, low-light phone, grainy 35mm). The trigger token is added to your prompt automatically.
-- **Refiner:** optional second detail pass (Turbo ~2s or Quality ~10s) that reuses the already-loaded model — no extra VRAM, no downloads, works with every quantization, preset, CFG and LoRA combination.
-- **Progress:** current-image and overall-batch bars; starting gradient, evolving previews, the finished picture the moment the last step ends.
-- **Memory:** fit-based auto profiles for every card size (4–32 GB+, NVIDIA or AMD), quantized models, alpha cleanup for transparent PNGs, and safe release of cached models when switching checkpoints. Big cards run fully resident — no offload, maximum speed.
-- **Downloads:** manual installation recommended; optional downloads require selecting files and clicking Download.
-- **Adapters:** compatible LoRA/LoKr/LoHa controls; incompatible files are rejected.
-- **Acceleration:** optional Spectrum speed setting (own checkbox or the built-in Forge Spectrum accordion); works at any CFG, and skips extra-conservatively at CFG > 1 to protect detail. Approximate acceleration can change image details.
-- **Edit composite:** one checkbox in the Performance tab (img2img). Ported from Klein Edit Composite + PixelDriftFix: the edit is first re-aligned onto your original (feature-matched homography kills framing/perspective drift), only genuinely changed pixels are detected (perceptual color + structural diff), and the result is blended back over the original — untouched background stays pixel-perfect. Optional background color matching included.
-- **Outpainting tip:** pad your image to the new size with black in any editor, then prompt "enlarge image to fill the empty canvas, keep the background" in the img2img tab — Qwen 2.1 expands multiple sides in one pass.
+Repository: https://github.com/mishrasiddharth08/Project-Invisible-Qwen2.1-extension
 
-Automated tests do not prove every GPU, model file or Forge version works.
-No promise is made for every VRAM size.
-
-## Beginner installation
-
-1. Stop Forge completely.
-2. Choose **one** way — never both: **Install from URL** with `https://github.com/mishrasiddharth08/Project-Invisible-Qwen2.1-extension`, or **Download ZIP** and extract into `sd-webui-forge-classic/extensions/`.
-3. Avoid double nesting. The correct path ends with:
-   `extensions/project-invisible-qwen-image-21/scripts/engine.py`.
-4. Start Forge normally. The first start may take longer while local dependencies install.
-5. Refresh your browser with **Ctrl+F5** after updates.
-
-If you accidentally installed twice, delete one copy and restart Forge — the extension warns about it at startup.
+Keep a backup before updating. See [update safety](UPDATE_SAFETY.md) and [validation](VALIDATION.md).
 
 ## Required model files
 
-**Weights are not included.** Install one DiT, one Qwen3-VL text encoder and the Qwen-Image-2.1 VAE.
+Put one compatible DiT, one text encoder and the VAE in `models/Qwen-Image-2.1`.
 
-| Component | Filenames | Forge folder |
-|---|---|---|
-| DiT | `qwen_image_2.1_bf16.safetensors` · `qwen_image_2.1_int8_convrot.safetensors` | `models/Qwen-Image-2.1` |
-| Text encoder | `qwen3vl_8b_bf16.safetensors` · `qwen3vl_8b_int8_convrot.safetensors` · `qwen3vl_8b_w4a8.safetensors` | `models/Qwen-Image-2.1` |
-| VAE | `qwen_image_2.1_vae_bf16.safetensors` | `models/Qwen-Image-2.1` |
-| Optional adapters | featured LoRAs | `models/Qwen-Image-2.1/featured-loras` |
-
-Manual download is recommended. Do not substitute an older model generation's text encoder or VAE.
-The extension's **Models** section can download only selected files after you explicitly accept the license and approve the download. Pressing **Generate** never silently fetches weights.
-
-## UI tour
-
-Everything lives inside Forge's normal txt2img / img2img view. The extension adds a single collapsed **Qwen-Image-2.1** accordion:
-
-![Qwen-Image-2.1 panel layout](docs/img/ui-tour.svg)
-
-Inside the panel:
-
-- **Quality row** — Quality (40 steps) or Fast · 8 steps (turbo). Fast auto-selects Viggle Turbo (r256) and matches the Steps slider; move the slider yourself and your number wins.
-- **Speed boost tab** — checkbox, LoRA choice (r256 default, r128 classic) and strength (1.0 is the tested default).
-- **Style tab** — one dropdown of photography-style LoRAs plus a one-click download; trigger tokens are handled for you.
-- **Refiner tab** — one dropdown: Off · Turbo (fast) · Quality (best). Runs a short second pass over the finished image to sharpen detail; reuses the loaded model, so it works with any quantization, CFG, LoRA or preset combination at no extra VRAM.
-- **Performance tab** — Save GPU memory, VRAM profile (set to **auto** — it picks the fastest mode that fits your card, 4 GB to 32 GB+, NVIDIA or AMD) and memory options.
-- **Models tab** — source links, compatible variants and optional selected-file downloads.
-- **Status strip** — model detection, adapter hints and memory state at the left edge of the panel.
-
-Forge's own sampler/scheduler, size, seed, batch and Steps controls stay in charge.
-
-## Step-by-step usage
-
-![Step-by-step first generation](docs/img/usage-steps.svg)
-
-1. **Install** — stop Forge, install via URL or ZIP (no double nesting), start Forge.
-2. **Model files** — download the DiT, text encoder and VAE into `models/Qwen-Image-2.1/`, or use the Models tab downloads.
-3. **Select preset + checkpoint** — pick the `qwen-image-2.1` UI preset and the matching checkpoint.
-4. **Configure (optional)** — expand the panel. Keep **Quality**, batch **1** and a modest size for the first run; defaults just work.
-5. **Generate** — press Forge's normal **Generate** button. Two progress bars track the current image and the overall batch; evolving previews appear while sampling and the finished picture lands the moment the last step ends.
-6. **Refine (optional)** — open the panel's **Refiner** tab and pick **Turbo (fast)** or **Quality (best)**, then press Generate again. The second pass re-encodes the finished image in latent space and sharpens detail in a few steps; it uses the model that is already loaded, so it adds no VRAM and never downloads anything.
-
-### Refiner combinations
-
-The refiner rides on top of whatever you already selected — no permutations to memorize:
-
-| Combination | Behavior |
+| Component | Available filenames |
 |---|---|
-| Any quantization (bf16, int8_convrot, w4a8) | Works — refines with the loaded weights |
-| Quality (40 steps) or Fast (turbo LoRA) | Works — turbo refiner forces CFG 1 like the distillation requires |
-| CFG above 1 with a negative prompt | Works — Quality keeps your CFG; Turbo uses CFG 1 |
-| Community LoRAs, Spectrum, DeGrid | Works — LoRAs stay applied during the pass |
-| img2img editing | Works — refines the edited result |
-| Any VRAM profile / Save GPU memory | Works — no extra model is ever loaded |
+| DiT | `qwen_image_2.1_int8_convrot.safetensors` or `qwen_image_2.1_bf16.safetensors` |
+| Text encoder | `qwen3vl_8b_int8_convrot.safetensors`, `qwen3vl_8b_w4a8.safetensors` or `qwen3vl_8b_bf16.safetensors` |
+| VAE | `qwen_image_2.1_vae_bf16.safetensors` |
 
-When a refiner mode is selected, the terminal prints
-`[PI-Qwen21] Refiner armed: <mode>` at the start of each generation, and the
-finished image's PNG info records `Refiner: turbo` or `Refiner: quality`.
-Because this extension provides its own refiner, Forge core's unrelated
-**LoRA Replacements** accordion is hidden while the extension's scripts load
-(hidden via JavaScript only �?" no core files are modified).
+Quantized weights need a compatible Forge/PyTorch/GPU setup. BF16 uses more memory.
+The **Models** tab contains setup instructions and optional downloads. Downloads require your license approval and a button click; Generate never downloads models.
 
-> **Tip:** the built-in Refiner tab covers Qwen-Image-2.1 specifically. For a second detail pass that works with **any** checkpoint in Forge — any model, any quantization, any VRAM size, even a different refiner checkpoint per pass — see the standalone [Project Invisible Refiner](https://github.com/mishrasiddharth08/Project-Invisible-Refiner-extension).
+## Start here
 
-### Using an existing image (img2img)
+1. Choose the **qwen-image-2.1** UI preset and compatible checkpoint/components.
+2. Enter your prompt. For an edit, upload the main image in native **img2img**.
+3. Open **Qwen · Image 2.1**. Start with **Quality**, **Auto** memory and **Save GPU memory** on.
+4. Use Forge's native steps, CFG, seed and size controls. Click **Generate**.
 
-![img2img flow](docs/img/img2img-flow.svg)
+![Generation quickstart](docs/img/usage-steps.svg)
 
-Use Forge's normal **img2img** tab with its upload and denoising controls. Lower strength preserves more of the source; zero preserves the resized source; one starts from noise. **Inpainting/masks are unsupported.** The Refiner tab also works here — it sharpens the edited result after the base pass.
+## Panel tabs
 
-## First text-to-image test
+| Tab | Controls |
+|---|---|
+| Finish | Refiner and grid-pattern cleanup |
+| Edit — img2img only | PixelDriftFix alignment, background compositing, up to nine extra references |
+| Speed | Turbo LoRA, strength and optional Spectrum acceleration |
+| Style | Photography style selection and approved downloads |
+| Memory | VRAM budget, maximum size, offload and advanced adapter compatibility |
+| Models | Collapsed setup guide and approved model downloads |
 
-1. Select the `qwen-image-2.1` UI preset.
-2. Select the matching Project Invisible checkpoint.
-3. Open the normal **txt2img** tab and enter a simple prompt.
-4. Keep CFG scale at `1.0` unless you understand its extra cost.
-5. Press **Generate**.
+**Fast** selects the turbo adapter and eight steps. Download that adapter first. Native step changes remain respected. The distilled turbo path uses **CFG 1**, even if a higher value was entered. Use the ordinary model for CFG above 1. Refiner passes take additional time and memory; they reuse the loaded model.
 
-For an out-of-memory error, enable **Save GPU memory**, choose a smaller profile and reduce the image size.
+### Memory
 
-## Progress and memory
+Offloading reduces GPU residency by using system RAM during generation. After a complete batch, the worker exits and releases its model RAM/VRAM. The next batch reloads the model. Advanced users can set `"keep_loaded": true` in `config.json` to trade idle memory for faster repeated batches.
 
-Preview transitions affect display only, not saved pixels. A new sampling stage
-requires completed model steps; one-second polling cannot guarantee a new image
-every second. Offloading lowers VRAM pressure but uses system RAM and transfers,
-which can slow generation. Spectrum trades exact output matching for possible speed.
+The resident-fit check uses available VRAM and reserves headroom. It cannot guarantee that every resolution, batch, adapter or GPU will fit. Reduce size or select a lower VRAM budget if needed.
 
-## Important controls
+### Spectrum and CFG
 
-- **DeGrid:** enabled by default. It only corrects a detected repeating grid artifact. Uncheck it for a complete filter bypass.
-- **Spectrum speedup:** experimental and off by default. CFG scale above `1.0` disables it.
-- **Save GPU memory:** reduces GPU use through offloading but can be slower.
-- **VRAM profile:** selects safer defaults; it is guidance, not a guarantee.
+Spectrum is optional and approximate. Conditional and unconditional CFG passes now have separate histories. Warmup and final passes are calculated normally; unstable forecasts fall back to normal calculation. PNG metadata records real and forecast pass counts.
 
-### Empty negative prompt
+For an exact quality baseline, turn Spectrum off and keep the seed, prompt, model, steps and size unchanged. These fixes have automated coverage; this release does not claim a measured visual-quality improvement on every model/GPU.
 
-If native CFG Scale is above 1 and the negative prompt is empty, generation uses CFG 1 and prints a notice instead of stopping. Saved image metadata records the effective value. To use CFG above 1, enter a real negative prompt.
+### PixelDriftFix-style alignment
 
-## Isolation and Forge updates
+Enable **Edit → Align edit to source** for small unintended framing shifts. It runs before background compositing, saving and gallery display. It preserves output size and alpha, and skips insufficient matches, large warps and protected head-swap output. Turn it off for intentional reframing.
 
-Extension code stays in its own folder. It does not rewrite Forge core files,
-install shared dependencies or modify other extensions. Runtime integration still
-shares Forge's Python, PyTorch and UI APIs.
+![Edit processing order](docs/img/img2img-flow.svg)
 
-**Future compatibility cannot be guaranteed.** Keep a known-working backup outside
-Forge. The release's `verify_integrity.py` detects changes to recorded source
-files; it does not freeze Forge or automatically restore anything.
-Read [UPDATE_SAFETY.md](UPDATE_SAFETY.md).
+This is an independent implementation of the recommended SIFT/global-homography workflow in [Mozer/ComfyUI-PixelDriftFix](https://github.com/Mozer/ComfyUI-PixelDriftFix), inspected at commit `62b79b86016e3914e62e258624646afa6cd8d394`. That checkout has no license file; its source is not bundled. Experimental mesh alignment is not included. OpenCV with SIFT is required; missing support leaves the image unchanged. Analysis is capped at a 1536-pixel long side and 6000 features.
 
-## Updating
+## Checks and limitations
 
-1. Stop Forge.
-2. Back up the old extension folder.
-3. Replace its files with the new release.
-4. Do not place model weights inside the extension folder.
-5. Start Forge and refresh the browser with `Ctrl+F5`.
+- Automated suite: **190 tests passed** for this update, including real Gradio panel construction and all 27 argument positions.
+- Isolated browser checks covered desktop/narrow layouts and Fast-mode callbacks. The live Forge session was not restarted during installation.
+- Live GPU generation and a matched visual comparison of the new Spectrum implementation remain unverified.
+- Memory usage, speed and quality depend on hardware, model precision, resolution and adapters. No universal GPU compatibility is claimed.
 
-## If something goes wrong
-
-1. Restart Forge.
-2. Check for a double-nested extension folder.
-3. Confirm all required model files exist.
-4. Try a smaller image with **Save GPU memory** enabled.
-5. Reproduce the problem once and keep the DOS/terminal window open.
-
-Open a GitHub ticket and paste the **COMPLETE error from the DOS/terminal window** — everything from the first error line through the final traceback line. Please include Forge version/commit, Windows version, GPU/VRAM/RAM, checkpoint/encoder/VAE filenames, image size and steps, memory profile, enabled options, exact reproduction steps, the complete error and `logs/worker.log` when available.
-
-**Remove private paths, prompts, tokens and personal images before posting.**
-
-## Known limitations
-
-- Only text-to-image is confirmed for this first public release.
-- Editing and other modes are experimental or untested.
-- Speed and memory use vary by hardware.
-- DeGrid fixes a specific fine grid artifact; it cannot repair anatomy, composition or missing detail.
-- Incompatible adapters are rejected.
-- Forge updates may change extension hooks.
-
-## Developer test command
-
-```powershell
-& 'path\to\sd-webui-forge-classic\venv\Scripts\python.exe' -m unittest discover -s tests -v
-```
-
-Passing automated tests does not prove every GPU workflow works.
-
-## License and credits
-
-Extension code: [Apache License 2.0](LICENSE). See [NOTICE](NOTICE) and the licenses under `resources/` and `lib/vendor/`. This is an independent Forge adapter, not an official Qwen product. The supplied Qwen Research License contains non-commercial and redistribution conditions; this repository does not relicense the model or upstream projects.
-
-## Help and contributions
-
-- Use [GitHub Issues](https://github.com/mishrasiddharth08/Project-Invisible-Qwen2.1-extension/issues) for bugs and questions.
-- Follow [ISSUE_TEMPLATE.md](ISSUE_TEMPLATE.md) and include the complete terminal error.
-- Read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting a change.
-
-I am a beginner too, and this is my first public attempt. Please forgive mistakes. Patient explanations and clear reports are deeply appreciated.
-
-## Special thanks
-
-Special thanks to [u/malcolmrey and the r/malcolmrey community](https://www.reddit.com/r/malcolmrey/), [r/sdforall](https://www.reddit.com/r/sdforall/) and the [r/SECourses community](https://www.reddit.com/r/SECourses/) for support and inspiration.
-
-Thank you to [Forge Neo (sd-webui-forge-classic, neo branch) by Haoming02](https://github.com/Haoming02/sd-webui-forge-classic/tree/neo), and to the Diffusers, Qwen, DeGrid, Spectrum and wider open-source communities.
-
-If you contribute, test, or report issues and would like to be named here, say so and you will be added.
-
-## Dedicated Qwen 2.1 integration repair
-
-The Project Invisible Qwen 2.1 engine bypasses Forge's standard generation callbacks. Head Swap now has an explicit bridge into that engine, so its references, prompts, BFS adapter, character adapter, finishing controls, protected mask and seed lock are actually used.
-
-- Automatic adapter selection follows preset/checkpoint changes. It prefers `bfs_head_v1_qwen_2.1` for Qwen and `bfs_head_v1_flux-klein_9b_step3500_rank128` for Klein 9B, including adapters discovered in subfolders. Turn off automatic selection to use a custom adapter.
-- Up to 20 headshots form the selection pool; each output sends its target and selected headshot to Qwen. Best-match, manual-slot and rotation controls remain available. This avoids encoding all 13 headshots for every output.
-- Qwen protected-head mode conditions on the complete scene and composites only the chosen head region. It handles RGBA output and preserves original output dimensions. Native inpaint masks must be cleared; use the extension's protected mask control.
-- Qwen BFS, character and the installed Viggle v0.2.1 Turbo adapter were tested together with INT8 ConvRot on an RTX 5090. Turbo keeps CFG 1; its negative prompt is inactive. Klein turbo prompt tags also keep CFG 1. Quantization remains owned by each engine; other quantizations and a real Klein generation were not GPU-validated in this repair.
-- Saving now resolves an output-folder fallback, honors batch folder/name overrides, checks the written file and reports its path. Explicitly disabled saving remains disabled and is reported.
-- Optional CPU identity checks are now connected to completed images and shown in the existing generation report. They are advisory; a passing score does not guarantee likeness. The real protected-head test passed the selected/median identity thresholds and face-height/center check; width/reference-consistency warnings still require visual review.
-
-Restart Forge completely after the current batch finishes to load both updated extensions. A browser refresh alone does not load Python changes.
-
-### Small GPU decoding
-
-Both 6 and 8 GB profiles try GPU decoding first and can recover using CPU decoding if needed. Protected head-swap crops are capped at 416 pixels for 6 GB and 640 pixels for 8 GB; the original full image dimensions are retained. Both use the original VAE without spatial tiling; sufficient system RAM is required. These profiles prioritize fitting in memory over maximum speed. Other GPU applications can change available memory during a run.
+Report your Forge version, GPU, precision, steps, CFG, enabled options and relevant error log. See [contributing](CONTRIBUTING.md), [license](LICENSE) and [notices](NOTICE).

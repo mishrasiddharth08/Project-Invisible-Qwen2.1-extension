@@ -46,7 +46,7 @@ def _reload_extension_helpers():
         'pi_qwen21.lib.assets','pi_qwen21.lib.components','pi_qwen21.lib.controls',
         'pi_qwen21.lib.alpha','pi_qwen21.lib.degrid','pi_qwen21.lib.denoise',
         'pi_qwen21.lib.offload','pi_qwen21.lib.preview','pi_qwen21.lib.progress',
-        'pi_qwen21.lib.prompts','pi_qwen21.lib.refiner','pi_qwen21.lib.spectrum',
+        'pi_qwen21.lib.prompts','pi_qwen21.lib.refiner','pi_qwen21.lib.spectrum','pi_qwen21.lib.pixel_drift',
         'pi_qwen21.lib.worker_client','pi_qwen21.lora.adapter',
         'pi_qwen21.download.manager','pi_qwen21.lib.runtime',
         'pi_qwen21.lib.forge','pi_qwen21.lib.preset')
@@ -183,119 +183,83 @@ class Script(scripts.Script):
     def title(self): return 'PROJECT INVISIBLE — Qwen-Image-2.1'
     def show(self,is_img2img): return scripts.AlwaysVisible
     def ui(self,is_img2img):
-        _visible=bool(forge.selected())
-        # ---------------------------------------------------------------- #
-        # LAYOUT. Everything used to sit in one flat Advanced accordion, so
-        # rarely-needed escape hatches (VRAM overrides, Spectrum) had the
-        # same visual weight as the two decisions that matter every run:
-        # quality and speed. Now the top level is exactly that one decision
-        # plus the output type; everything else lives behind "Advanced"
-        # tabs. The RETURNED list below is the script-args contract - its
-        # order must not move even though the on-screen position has.
-        # ---------------------------------------------------------------- #
-        with gr.Accordion('Qwen-Image-2.1',open=False,visible=_visible,elem_classes=['pi-q21-panel']) as box:
-            mode='edit' if is_img2img else 't2i'
-            with gr.Row(elem_classes=['pi-q21-output']):
-                task=gr.Dropdown([('Standard',mode),('Transparent PNG','rgba')],value=mode,label='Output',info='Transparent PNG adds an alpha channel for cut-outs')
-                steps=gr.Radio([('Quality',40),('Fast (turbo)',8)],value=40,label='Quality',info='Fast auto-selects the turbo LoRA at 8 steps (best quality/speed per the community); move the native Steps slider yourself and your number wins')
-            if is_img2img:
-                gr.Markdown(_img2img_help(),elem_classes=['pi-q21-status'])
+        mode='edit' if is_img2img else 't2i'
+        native=_NATIVE_STEPS.get('img2img_steps' if is_img2img else 'txt2img_steps')
+        with gr.Accordion('Qwen · Image 2.1',open=False,visible=bool(forge.selected()),elem_classes=['pi-q21-panel']) as box:
+            with gr.Row(elem_classes=['pi-q21-pair','pi-q21-output']):
+                task=gr.Dropdown([('Standard',mode),('Transparent PNG','rgba')],value=mode,label='Output',scale=1,min_width=180)
+                steps=gr.Radio([('Quality',40),('Fast',8)],value=40,label='Mode',scale=1,min_width=180)
             _QUALITY_RADIOS.append((steps,is_img2img))
-            _bind_quality(steps,_NATIVE_STEPS.get('img2img_steps' if is_img2img else 'txt2img_steps'))
-            mask=gr.State(None)  # Editing masks come from the native img2img tab.
-            # Compact reference slots: 3 small thumbnails per row. Qwen-Image-2.1
-            # officially supports up to 10 reference images at once (model card);
-            # the main img2img image counts as the first, so 9 slots here = 10 total.
-            if is_img2img:
-                with gr.Accordion('References (optional)',open=False,elem_classes=['pi-q21-refs']):
-                    gr.Markdown(_refs_help())
-                    refs=[]
-                    for row in range(3):
-                        with gr.Row():
-                            for col in range(3):
-                                refs.append(gr.Image(type='pil',label=f'Ref {row*3+col+2}',height=96,show_download_button=False,container=False,elem_classes=['pi-q21-ref']))
-            else:
-                refs=[gr.State(None) for _ in range(9)]
-            with gr.Tabs(elem_classes=['pi-q21-tools']) as tabs:
-                # One decision, zero knobs: the refiner is a second quick pass
-                # over the finished image that sharpens detail. It reuses the
-                # already-loaded model, so it costs no extra VRAM and works in
-                # every combination (quantization, CFG, LoRAs, presets).
-                with gr.Tab('Refiner'):
-                    refiner=gr.Dropdown(['Off','Turbo (fast)','Quality (best)'],value='Off',label='Refine result')
-                with gr.Tab('Performance'):
-                    gr.Markdown('Memory is managed automatically - the settings below are only needed if something goes wrong or you want to squeeze harder.')
-                    cfg=gr.State(None)  # Preserve saved argument slots; native CFG is authoritative.
-                    with gr.Row():
-                        profile=gr.Dropdown(['auto','4','6','8','12','16','20','24'],value='auto',label='VRAM profile (GB)',info='auto detects your GPU; lower only if you hit out-of-memory')
-                        side=gr.Dropdown([0,512,768,1024,1536,2048],value=0,label='Maximum size (0 = automatic)',info='Caps the longest image edge to save memory')
-                    with gr.Row():
-                        offload=gr.Checkbox(value=True,label='Save GPU memory',info='Keeps unused parts off the GPU; leave on for 12 GB cards')
-                        community=gr.Checkbox(value=False,label='Allow compatible community distillation LoRAs',info='Off by default: only officially tested files')
-                        consent=gr.State(False)  # Generate is always local-only.
-                        degrid=gr.Checkbox(value=bool(runtime.config().get('moire_cleanup',True)),label='DeGrid cleanup (removes grid/noise patterns)',info='On by default; uncheck only if outputs look over-smoothed')
-                        spectrum=gr.Checkbox(value=False,label='Spectrum speedup (experimental; may change details)',info='Extra acceleration pass; disable if output looks off')
-                        composite=gr.Checkbox(value=False,label='Edit composite (keep original background)',info='img2img only: blends the edit back over the original so untouched areas stay pixel-perfect')
-                with gr.Tab('Speed boost'):
-                    # The single featured turbo LoRA: Fast auto-selects it.
+            _bind_quality(steps,native)
+            mask=gr.State(None)
+            cfg=gr.State(None)
+            consent=gr.State(False)
+            with gr.Tabs(elem_classes=['pi-q21-tools']):
+                with gr.Tab('Finish'):
+                    refiner=gr.Dropdown(['Off','Turbo (fast)','Quality (best)'],value='Off',label='Refine details')
+                    degrid=gr.Checkbox(value=bool(runtime.config().get('moire_cleanup',True)),label='Remove grid patterns',info='Turn off if fine details look too smooth.')
+                if is_img2img:
+                    with gr.Tab('Edit'):
+                        with gr.Row(elem_classes=['pi-q21-pair']):
+                            pixel_drift=gr.Checkbox(value=False,label='Align edit to source',info='PixelDriftFix: correct small framing shifts.')
+                            composite=gr.Checkbox(value=False,label='Preserve background',info='Blend unchanged areas with the original.')
+                        with gr.Accordion('Extra references · up to 9',open=False,elem_classes=['pi-q21-refs']):
+                            gr.Markdown('Your main img2img image is reference 1. Add others only when needed.',elem_classes=['pi-q21-status'])
+                            refs=[]
+                            for row in range(3):
+                                with gr.Row(elem_classes=['pi-q21-ref-row']):
+                                    for col in range(3):
+                                        refs.append(gr.Image(type='pil',sources=['upload'],label=f'Reference {row*3+col+2}',height=120,show_download_button=False,min_width=80,elem_classes=['pi-q21-ref']))
+                else:
+                    composite=gr.State(False)
+                    pixel_drift=gr.State(False)
+                    refs=[gr.State(None) for _ in range(9)]
+                with gr.Tab('Speed'):
                     turbo=list(manager.FEATURED_CHOICES)[0]
-                    speed_enabled=gr.Checkbox(value=False,label='Speed boost (turbo LoRA)',info='Auto-ticked by choosing Fast; untick to go back to full quality')
-                    with gr.Row():
-                        speed_choices=['(none)',turbo]
-                        speed_name=gr.Dropdown(speed_choices,value='(none)',label='Which speed LoRA',info='Auto-selected by choosing Fast; download it once below')
-                        speed_strength=gr.Slider(0.0,1.5,value=1.0,step=0.05,label='LoRA strength',info='1.0 is the tested default')
+                    speed_enabled=gr.Checkbox(value=False,label='Use turbo LoRA',info='Fast mode selects this automatically. Uses CFG 1.')
+                    with gr.Row(elem_classes=['pi-q21-pair']):
+                        speed_name=gr.Dropdown(['(none)',turbo],value='(none)',label='Turbo model',scale=1,min_width=180)
+                        speed_strength=gr.Slider(0.0,1.5,value=1.0,step=0.05,label='Strength',scale=1,min_width=180)
+                    spectrum=gr.Checkbox(value=False,label='Spectrum acceleration',info='Experimental; can change details. Turn off for an exact baseline.')
                     speed_status=gr.Markdown(elem_classes=['pi-q21-status'])
-                    with gr.Accordion('Get the speed LoRA (one click)',open=False):
+                    with gr.Accordion('Download turbo model',open=False):
                         gr.Markdown(manager.featured_instructions())
-                        speed_approved=gr.Checkbox(value=False,label='I accept the LoRA license and authorize this one-time download')
-                        speed_button=gr.Button('Download selected speed LoRA',size='sm')
-                    # wiring: one-click download, and grey out the LoRA controls
-                    # while the boost is off so the state is obvious.
+                        speed_approved=gr.Checkbox(value=False,label='I accept the license and approve this download')
+                        speed_button=gr.Button('Download turbo model',size='sm')
                     speed_button.click(fn=manager.download_featured,inputs=[speed_name,speed_approved],outputs=[speed_status])
-                    # Ticking the box arms the full turbo recipe in one go:
-                    # turbo LoRA selected, strength 1.0, native Steps set to 6.
-                    # Everything stays editable - the user can still move the
-                    # slider, change strength or pick another LoRA afterwards;
-                    # nothing in the runtime overrides their choice.
-                    native=_NATIVE_STEPS.get('img2img_steps' if is_img2img else 'txt2img_steps')
                     speed_outputs=[speed_name,speed_strength]+([native] if native is not None else [])
-                    speed_enabled.change(fn=lambda enabled:speed_updates(enabled,turbo,native=native is not None),
-                                         inputs=[speed_enabled],outputs=speed_outputs,queue=False,show_progress='hidden')
-                    # Fast auto-adds the turbo LoRA and matches the steps to its
-                    # schedule; Quality switches back to the full model. Moving
-                    # the native Steps slider afterwards always wins - nothing
-                    # in the runtime clamps user steps any more.
-                    steps.change(fn=lambda value:quality_updates(value,turbo),
-                                 inputs=[steps],outputs=[speed_enabled,speed_name],queue=False,show_progress='hidden')
+                    speed_enabled.change(fn=lambda enabled:speed_updates(enabled,turbo,native=native is not None),inputs=[speed_enabled],outputs=speed_outputs,queue=False,show_progress='hidden')
+                    steps.change(fn=lambda value:quality_updates(value,turbo),inputs=[steps],outputs=[speed_enabled,speed_name],queue=False,show_progress='hidden')
                 with gr.Tab('Style'):
-                    gr.Markdown(manager.style_instructions())
-                    style_name=gr.Dropdown(manager.STYLE_CHOICES,value='(none)',label='Photography style',info='One-click style LoRAs; the trigger token is added to your prompt automatically. Download once below.')
+                    style_name=gr.Dropdown(manager.STYLE_CHOICES,value='(none)',label='Photography style',info='The style trigger is added automatically.')
                     style_status=gr.Markdown(elem_classes=['pi-q21-status'])
-                    with gr.Accordion('Get a style LoRA (one click)',open=False):
-                        style_approved=gr.Checkbox(value=False,label='I accept the LoRA license and authorize this one-time download')
-                        style_button=gr.Button('Download selected style LoRA',size='sm')
+                    with gr.Accordion('Download a style',open=False):
+                        gr.Markdown(manager.style_instructions())
+                        style_approved=gr.Checkbox(value=False,label='I accept the license and approve this download')
+                        style_button=gr.Button('Download selected style',size='sm')
                     style_button.click(fn=manager.download_style,inputs=[style_name,style_approved],outputs=[style_status])
+                with gr.Tab('Memory'):
+                    with gr.Row(elem_classes=['pi-q21-pair']):
+                        profile=gr.Dropdown(['auto','4','6','8','12','16','20','24'],value='auto',label='VRAM budget',info='Auto detects your GPU.',scale=1,min_width=180)
+                        side=gr.Dropdown([('Automatic',0),('512 px',512),('768 px',768),('1024 px',1024),('1536 px',1536),('2048 px',2048)],value=0,label='Maximum size',scale=1,min_width=180)
+                    offload=gr.Checkbox(value=True,label='Save GPU memory',info='Keeps unused model parts off the GPU.')
+                    with gr.Accordion('Advanced compatibility',open=False):
+                        community=gr.Checkbox(value=False,label='Allow compatible community LoRAs',info='Enable only for compatible Qwen 2.1 adapters.')
                 with gr.Tab('Models'):
-                    gr.Markdown(_models_help())
-                    manual=gr.Markdown(manager.manual_instructions())
-                    with gr.Accordion('Automatic (one click)',open=False):
-                        # NO SILENT DOWNLOADS: nothing fetches until you tick the
-                        # license box AND press the button. One DiT + one encoder
-                        # + the VAE is all a preset needs.
-                        downloads=gr.CheckboxGroup(manager.CHOICES,value=['qwen_image_2.1_bf16.safetensors','qwen3vl_8b_bf16.safetensors','qwen_image_2.1_vae_bf16.safetensors',manager.SUPPORT],label='Select files to download (choose one DiT, one encoder and the VAE)',info='Each file is checksum-verified after download')
-                        approved=gr.Checkbox(value=False,label='I accept LICENSE and authorize only these downloads')
-                        with gr.Row():
-                            button=gr.Button('Download selected models',size='sm')
+                    with gr.Accordion('Setup guide',open=False):
+                        gr.Markdown(_models_help())
+                        gr.Markdown(manager.manual_instructions())
+                    with gr.Accordion('Download models',open=False):
+                        downloads=gr.CheckboxGroup(manager.CHOICES,value=['qwen_image_2.1_bf16.safetensors','qwen3vl_8b_bf16.safetensors','qwen_image_2.1_vae_bf16.safetensors',manager.SUPPORT],label='Model files',info='Choose one DiT, one text encoder and the VAE.')
+                        approved=gr.Checkbox(value=False,label='I accept the license and approve these downloads')
+                        button=gr.Button('Download selected models',size='sm')
                         status=gr.Markdown(elem_classes=['pi-q21-status'])
                         button.click(fn=manager.download_selected,inputs=[downloads,approved],outputs=[status])
         self._box=box
         PANELS.append(box)
-        # MUST stay in this exact order - lib/forge.py reads these by index:
-        # task, steps, cfg, profile, side, offload, community, consent, mask,
-        # refs[0..8], spectrum, degrid, speed_enabled, speed_name, speed_strength,
-        # refiner, style_name, composite.
-        # New controls append at the end only.
-        return [task,steps,cfg,profile,side,offload,community,consent,mask,*refs,spectrum,degrid,speed_enabled,speed_name,speed_strength,refiner,style_name,composite]
+        # Preserve all 27 argument positions, including hidden edit controls.
+        return [task,steps,cfg,profile,side,offload,community,consent,mask,*refs,spectrum,degrid,speed_enabled,speed_name,speed_strength,refiner,style_name,composite,pixel_drift]
+
 
 # --------------------------------------------------------------------------- #
 # boot: install the generation hooks and clean up on extension unload

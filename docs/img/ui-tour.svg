@@ -1,61 +1,38 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="900" height="560" font-family="Segoe UI, Arial, sans-serif">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#1b2230"/><stop offset="1" stop-color="#10151f"/>
-    </linearGradient>
-  </defs>
-  <rect width="900" height="560" fill="url(#bg)"/>
-  <text x="450" y="40" fill="#e8ecf4" font-size="22" font-weight="600" text-anchor="middle">Qwen-Image-2.1 panel inside Forge's normal page</text>
-
-  <!-- Forge page -->
-  <rect x="30" y="70" width="520" height="460" rx="10" fill="#232b3a" stroke="#3a465c"/>
-  <text x="50" y="98" fill="#9fb0c9" font-size="13">Forge txt2img / img2img</text>
-  <rect x="50" y="112" width="480" height="34" rx="6" fill="#2c3547" stroke="#46536b"/>
-  <text x="64" y="134" fill="#cdd7e6" font-size="13">Prompt</text>
-  <rect x="50" y="154" width="480" height="34" rx="6" fill="#2c3547" stroke="#46536b"/>
-  <text x="64" y="176" fill="#cdd7e6" font-size="13">Negative prompt</text>
-  <rect x="50" y="200" width="150" height="30" rx="6" fill="#2c3547" stroke="#46536b"/>
-  <text x="64" y="220" fill="#cdd7e6" font-size="12">qwen-image-2.1</text>
-  <rect x="212" y="200" width="180" height="30" rx="6" fill="#2c3547" stroke="#46536b"/>
-  <text x="226" y="220" fill="#cdd7e6" font-size="12">Project Invisible checkpoint</text>
-  <rect x="50" y="248" width="480" height="40" rx="8" fill="#d9534f"/>
-  <text x="290" y="274" fill="#fff" font-size="15" font-weight="600" text-anchor="middle">Generate</text>
-  <rect x="50" y="300" width="480" height="200" rx="8" fill="#1a2130" stroke="#3a465c"/>
-  <text x="290" y="404" fill="#5d6c85" font-size="13" text-anchor="middle">Image gallery</text>
-
-  <!-- Extension panel -->
-  <rect x="580" y="70" width="290" height="460" rx="10" fill="#2a3345" stroke="#5b82d6" stroke-width="2"/>
-  <text x="725" y="98" fill="#dfe7f5" font-size="14" font-weight="600" text-anchor="middle">Qwen-Image-2.1  (collapsed by default)</text>
-  <line x1="600" y1="110" x2="850" y2="110" stroke="#3a465c"/>
-
-  <text x="600" y="138" fill="#8fa3c4" font-size="12">Quality row</text>
-  <rect x="600" y="146" width="120" height="30" rx="6" fill="#3c4a63" stroke="#5b82d6"/>
-  <text x="660" y="166" fill="#e8ecf4" font-size="12" text-anchor="middle">Quality · 40</text>
-  <rect x="730" y="146" width="120" height="30" rx="6" fill="#3c4a63" stroke="#5b82d6"/>
-  <text x="790" y="166" fill="#e8ecf4" font-size="12" text-anchor="middle">Fast · 8 (turbo)</text>
-
-  <text x="600" y="206" fill="#8fa3c4" font-size="12">Tabs</text>
-  <rect x="600" y="214" width="122" height="28" rx="6" fill="#2f3a4e"/>
-  <text x="661" y="233" fill="#cdd7e6" font-size="12" text-anchor="middle">Speed boost</text>
-  <rect x="600" y="250" width="120" height="28" rx="6" fill="#5b82d6"/>
-  <text x="660" y="269" fill="#fff" font-size="12" text-anchor="middle">Refiner</text>
-  <rect x="730" y="250" width="120" height="28" rx="6" fill="#2f3a4e"/>
-  <text x="790" y="269" fill="#cdd7e6" font-size="12" text-anchor="middle">Performance</text>
-  <rect x="600" y="286" width="122" height="28" rx="6" fill="#2f3a4e"/>
-  <text x="661" y="305" fill="#cdd7e6" font-size="12" text-anchor="middle">Style</text>
-  <rect x="730" y="286" width="120" height="28" rx="6" fill="#2f3a4e"/>
-  <text x="790" y="305" fill="#cdd7e6" font-size="12" text-anchor="middle">Models</text>
-
-  <text x="600" y="344" fill="#8fa3c4" font-size="12">Performance tab contents</text>
-  <rect x="600" y="354" width="250" height="28" rx="6" fill="#3c4a63" stroke="#5b82d6"/>
-  <text x="614" y="373" fill="#e8ecf4" font-size="12">Spectrum · DeGrid · Edit composite</text>
-  <text x="600" y="404" fill="#9fb0c9" font-size="11">Spectrum: works at any CFG, skips conservatively</text>
-  <text x="600" y="420" fill="#9fb0c9" font-size="11">Edit composite (img2img): realigns the edit (PixelDriftFix),</text>
-  <text x="600" y="436" fill="#9fb0c9" font-size="11">detects changed pixels (Klein), keeps original background</text>
-
-  <text x="600" y="462" fill="#8fa3c4" font-size="12">Status strip</text>
-  <rect x="600" y="472" width="250" height="46" rx="6" fill="#1e2736" stroke="#3a465c"/>
-  <rect x="600" y="472" width="4" height="46" fill="#5b82d6"/>
-  <text x="616" y="492" fill="#9fe3a1" font-size="11">✓ Models detected</text>
-  <text x="616" y="508" fill="#9fb0c9" font-size="11">Adapter hints · memory state</text>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="780" viewBox="0 0 1200 780" role="img" aria-labelledby="title desc">
+<title id="title">A quieter, chocolate-colored workspace</title><desc id="desc">Qwen controls stay inside Forge. Choose a tab; keep the main workflow.</desc>
+<rect width="1200" height="780" rx="24" fill="#211813"/>
+<style>text{font-family:Arial,sans-serif}.title{fill:#fff2e4;font-size:36px;font-weight:700}.sub{fill:#dec3af;font-size:20px}.label{fill:#f4c69b;font-size:24px;font-weight:700}.body{fill:#f2dfce;font-size:19px}</style>
+<text x="48" y="70" class="title">A quieter, chocolate-colored workspace</text>
+<text x="48" y="112" class="sub">Qwen controls stay inside Forge. Choose a tab; keep the main workflow.</text>
+<rect x="48" y="160" width="352" height="204" rx="14" fill="#33241c" stroke="#936746"/>
+<text x="70" y="202" class="label">Finish</text>
+<text x="70" y="242" class="body">Refine details</text>
+<text x="70" y="271" class="body">Remove grid patterns</text>
+<text x="70" y="300" class="body">Output and mode stay above</text>
+<rect x="424" y="160" width="352" height="204" rx="14" fill="#33241c" stroke="#936746"/>
+<text x="446" y="202" class="label">Edit</text>
+<text x="446" y="242" class="body">Align edit to source</text>
+<text x="446" y="271" class="body">Preserve background</text>
+<text x="446" y="300" class="body">Optional reference images</text>
+<rect x="800" y="160" width="352" height="204" rx="14" fill="#33241c" stroke="#936746"/>
+<text x="822" y="202" class="label">Speed</text>
+<text x="822" y="242" class="body">Turbo model + strength</text>
+<text x="822" y="271" class="body">Spectrum acceleration</text>
+<text x="822" y="300" class="body">Downloads stay collapsed</text>
+<rect x="48" y="390" width="352" height="204" rx="14" fill="#33241c" stroke="#936746"/>
+<text x="70" y="432" class="label">Style</text>
+<text x="70" y="472" class="body">Photography styles</text>
+<text x="70" y="501" class="body">Automatic prompt trigger</text>
+<text x="70" y="530" class="body">Approved downloads only</text>
+<rect x="424" y="390" width="352" height="204" rx="14" fill="#33241c" stroke="#936746"/>
+<text x="446" y="432" class="label">Memory</text>
+<text x="446" y="472" class="body">Auto VRAM budget</text>
+<text x="446" y="501" class="body">Size cap and GPU offload</text>
+<text x="446" y="530" class="body">Advanced options collapsed</text>
+<rect x="800" y="390" width="352" height="204" rx="14" fill="#33241c" stroke="#936746"/>
+<text x="822" y="432" class="label">Models</text>
+<text x="822" y="472" class="body">Setup guide</text>
+<text x="822" y="501" class="body">Choose model files</text>
+<text x="822" y="530" class="body">Approve before downloading</text>
+<text x="48" y="704" class="sub">Edit appears only in img2img. Native prompts, steps, CFG, Generate and gallery remain in place.</text>
+<text x="48" y="742" fill="#bca18c" font-family="Arial,sans-serif" font-size="16">PROJECT INVISIBLE · QWEN-IMAGE-2.1 · SEPTEMBER 28, 2026</text></svg>

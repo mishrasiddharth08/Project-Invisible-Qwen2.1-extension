@@ -354,7 +354,8 @@ def main():
                     else:
                         result = output[0]
                     if command.get('spectrum',False):
-                        emit('status',status=f'Spectrum {cache_stats.reason}: {cache_stats.actual} real, {cache_stats.forecast} forecast steps')
+                        emit('status',status=f'Spectrum {cache_stats.reason}: {cache_stats.actual} real, {cache_stats.forecast} forecast passes')
+                        print(f'[PI-Qwen21] Spectrum {cache_stats.reason}: {cache_stats.actual} real, {cache_stats.forecast} forecast passes')
                     # Second-pass refiner: reuses the loaded pipeline (any
                     # quantization, any LoRA/preset combination, no extra VRAM).
                     if str(command.get('refiner') or 'off').lower() != 'off':
@@ -384,7 +385,8 @@ def main():
                     lora.clear(pipe)
                 with contextlib.suppress(Exception):
                     _release_idle_memory(pipe,torch)
-            emit("result", path=command["output"], cuda_memory={
+            emit("result", path=command["output"], spectrum={
+                "reason":cache_stats.reason,"actual":cache_stats.actual,"forecast":cache_stats.forecast}, cuda_memory={
                 "peak_allocated_mib": round(torch.cuda.max_memory_allocated()/2**20),
                 "peak_reserved_mib": round(torch.cuda.max_memory_reserved()/2**20),
                 "idle_allocated_mib": round(torch.cuda.memory_allocated()/2**20),
