@@ -89,6 +89,11 @@ class GPUWorkerTests(unittest.TestCase):
         self.assertEqual((result['dit'],result['te']),('bf16','bf16'))
         self.assertTrue(result['portable'])
 
+    def test_small_string_profile_on_large_gpu(self):
+        result=hardware_profile(self.torch(gb=32),override='6')
+        self.assertEqual(result['vram_gb'],6)
+        self.assertTrue(result['offload'])
+
     def test_hardware_profile_4gb_and_6gb_choose_recovery_sides(self):
         self.assertEqual(hardware_profile(self.torch(gb=4))['side'],512)
         self.assertEqual(hardware_profile(self.torch(gb=6))['side'],768)

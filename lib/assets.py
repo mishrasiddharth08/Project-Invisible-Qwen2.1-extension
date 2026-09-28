@@ -205,7 +205,7 @@ def hardware_profile(torch, override='auto'):
                 # A profile far below the card (often a preset saved on older
                 # hardware) caps the worker's PyTorch memory fraction and
                 # forces offload: correct but many times slower. Say so once.
-                print(f'[PI-Qwen21] VRAM profile {override:g} GB is far below '
+                print(f'[PI-Qwen21] VRAM profile {requested:g} GB is far below '
                       f'this GPU ({gb:.0f} GB); generation runs capped and '
                       'offloaded. Set the VRAM profile dropdown to auto for '
                       'full speed.')
