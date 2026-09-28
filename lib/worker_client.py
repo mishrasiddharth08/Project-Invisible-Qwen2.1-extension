@@ -154,7 +154,7 @@ class WorkerPipeline:
                 if kind == "progress":
                     if callback_on_step_end is not None and interrupted is None:
                         try:
-                            callback_on_step_end(self, value["step"], value.get("timestep"), {})
+                            callback_on_step_end(self, value["step"], value.get("timestep"), {"phase": value.get("phase", "base")})
                         except InterruptedError as exc:
                             interrupted = exc
                             stop.touch()

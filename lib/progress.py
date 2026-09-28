@@ -1,8 +1,12 @@
 """Publish worker progress through Forge's existing progress and preview state."""
 
 class ForgeProgress:
-    def __init__(self, shared, steps, total):
+    def __init__(self, shared, steps, total, refiner="off"):
         self.shared = shared
+        self.base_steps = steps
+        mode = str(refiner or "off").strip().lower()
+        self.refiner_steps = 4 if mode.startswith("turbo") else 10 if mode.startswith("quality") else 0
+        steps += self.refiner_steps
         self.steps = steps
         self.total = total
         self.completed = 0
@@ -19,6 +23,9 @@ class ForgeProgress:
         state.current_image_sampling_step = 0
         state.textinfo = 'Qwen: loading model'
         state.job = 'Qwen-Image-2.1'
+        total_bar = getattr(shared, "total_tqdm", None)
+        if total_bar is not None:
+            total_bar.updateTotal(steps * total)
         opts = shared.opts
         enabled = getattr(opts, 'live_previews_enable', False)
         interval = int(getattr(opts, 'show_progress_every_n_steps', 1))
@@ -69,7 +76,10 @@ class ForgeProgress:
         state = self.shared.state
         if state.interrupted or state.skipped:
             raise InterruptedError('Generation interrupted')
-        current = min(self.steps, int(step) + 1)
+        refining = kwargs.get("phase") == "refiner"
+        offset = self.base_steps if refining else 0
+        limit = self.steps if refining else self.base_steps
+        current = min(limit, offset + int(step) + 1)
         delta = max(0, current - self.completed)
         self.completed = max(self.completed, current)
         state.sampling_step = self.completed

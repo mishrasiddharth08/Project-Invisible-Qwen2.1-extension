@@ -54,7 +54,7 @@ def run(pipe, torch, image, command, base_kwargs, emit, log):
 
     def refine_progress(_pipe, step, timestep, callback_kwargs):
         total[0] = int(step) + 1
-        emit('progress', step=int(step), timestep=float(timestep) if timestep is not None else None)
+        emit('progress', phase='refiner', step=int(step), timestep=float(timestep) if timestep is not None else None)
         if stop is not None and Path(stop).exists():
             raise InterruptedError('Generation interrupted')
         return callback_kwargs

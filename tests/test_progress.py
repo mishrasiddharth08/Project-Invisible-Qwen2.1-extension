@@ -82,6 +82,20 @@ class ProgressTests(unittest.TestCase):
         bridge, shared = self.make(True, 10)
         self.assertEqual(bridge.preview_every, 1)
 
+    def test_total_includes_all_images_and_refiner_steps(self):
+        _, shared = self.make()
+        shared.total_tqdm.reset_mock()
+        bridge = module.ForgeProgress(shared, 4, 3, refiner='Turbo (fast)')
+        shared.total_tqdm.updateTotal.assert_called_once_with(24)
+        for index in range(3):
+            bridge.start_image(index)
+            bridge.step(None, 3, None, {})
+            bridge.step(None, 3, None, {'phase': 'refiner'})
+            bridge.step(None, 3, None, {'preview': object(), 'final': True})
+        self.assertEqual(shared.total_tqdm.update.call_count, 24)
+        self.assertEqual(shared.state.sampling_step, 8)
+        self.assertEqual(shared.state.sampling_steps, 8)
+
     def test_interrupt_propagates_to_worker(self):
         bridge, shared = self.make()
         shared.state.interrupted = True
