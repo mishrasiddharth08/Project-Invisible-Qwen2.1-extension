@@ -1,3 +1,9 @@
+# September 28, 2026 — saved slider collision
+
+- Use a unique Qwen Turbo strength label and ID to avoid other engine.py defaults.
+- Ignore unused turbo strength when turbo is disabled; validate enabled turbo normally.
+- Regression reproduces the saved -0.25 value using Forge's real UI defaults loader.
+
 # September 28, 2026 — restore original colors
 
 - Restore Forge theme colors and the original infographic palette.

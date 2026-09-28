@@ -10,6 +10,7 @@ Independent community extension; not an official Qwen product.
 - Spectrum keeps CFG prediction histories separate and rejects unstable forecasts.
 - Optional PixelDriftFix-style alignment for img2img, with alpha preservation.
 - Native Forge controls stay visible; reference upload/remove buttons remain usable.
+- Qwen Turbo strength has a unique saved setting; disabled turbo no longer validates stale slider values from another extension.
 
 ![Qwen panel guide](docs/img/ui-tour.svg)
 
@@ -82,9 +83,9 @@ This is an independent implementation of the recommended SIFT/global-homography 
 
 ## Checks and limitations
 
-- Automated suite: **190 tests passed** for this update, including real Gradio panel construction and all 27 argument positions.
+- Automated suite: **193 tests passed** for this update, including real Gradio panel construction and all 27 argument positions.
 - Isolated browser checks covered desktop/narrow layouts and Fast-mode callbacks. The live Forge session was not restarted during installation.
-- Live GPU generation and a matched visual comparison of the new Spectrum implementation remain unverified.
+- Live worker test: RTX 5090, INT8 ConvRot DiT/text encoder, CFG 2, Spectrum on, 512 x 512, 20 steps, seed 987654. A valid PNG was saved with 36 real and 4 forecast passes; test-worker cleanup returned GPU usage to about 1.6 GB. A matched visual-quality comparison and full live Forge gallery validation remain unverified.
 - Memory usage, speed and quality depend on hardware, model precision, resolution and adapters. No universal GPU compatibility is claimed.
 
 Report your Forge version, GPU, precision, steps, CFG, enabled options and relevant error log. See [contributing](CONTRIBUTING.md), [license](LICENSE) and [notices](NOTICE).

@@ -42,4 +42,21 @@ class ControlTests(unittest.TestCase):
             result=forge.options(NS(alwayson_scripts=[script]),NS(script_args=values[:length]))
             self.assertEqual(result['speed_strength'],1.0)
 
+    def test_disabled_turbo_ignores_foreign_saved_strength(self):
+        from types import SimpleNamespace as NS
+        forge=load_forge()
+        for bad in (-0.25,6,float('nan'),{'bad':'preset'}):
+            values=['t2i',40,1,'auto',0,True,False,False,None]+[None]*9+[False,True,False,'(none)',bad]
+            script=NS(_pi_qwen21=True,args_from=0,args_to=len(values))
+            result=forge.options(NS(alwayson_scripts=[script]),NS(script_args=values))
+            self.assertEqual(result['speed_strength'],1.0)
+
+    def test_enabled_turbo_still_rejects_invalid_strength(self):
+        from types import SimpleNamespace as NS
+        forge=load_forge()
+        values=['t2i',40,1,'auto',0,True,False,False,None]+[None]*9+[False,True,True,'Turbo',-0.25]
+        script=NS(_pi_qwen21=True,args_from=0,args_to=len(values))
+        with self.assertRaisesRegex(ValueError,'between 0 and 1.5'):
+            forge.options(NS(alwayson_scripts=[script]),NS(script_args=values))
+
 if __name__=='__main__': unittest.main()

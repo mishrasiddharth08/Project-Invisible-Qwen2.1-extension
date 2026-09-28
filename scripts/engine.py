@@ -219,7 +219,7 @@ class Script(scripts.Script):
                     speed_enabled=gr.Checkbox(value=False,label='Use turbo LoRA',info='Fast mode selects this automatically. Uses CFG 1.')
                     with gr.Row(elem_classes=['pi-q21-pair']):
                         speed_name=gr.Dropdown(['(none)',turbo],value='(none)',label='Turbo model',scale=1,min_width=180)
-                        speed_strength=gr.Slider(0.0,1.5,value=1.0,step=0.05,label='Strength',scale=1,min_width=180)
+                        speed_strength=gr.Slider(0.0,1.5,value=1.0,step=0.05,label='Qwen Turbo strength',elem_id=f'pi_q21_{mode}_turbo_strength',scale=1,min_width=180)
                     spectrum=gr.Checkbox(value=False,label='Spectrum acceleration',info='Experimental; can change details. Turn off for an exact baseline.')
                     speed_status=gr.Markdown(elem_classes=['pi-q21-status'])
                     with gr.Accordion('Download turbo model',open=False):

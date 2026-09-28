@@ -55,7 +55,9 @@ def options(runner,p):
                     return control_value(values[index],default) if index<len(values) else default
                 result['speed_enabled']=bool(item(11,False))
                 result['speed_lora']=str(item(12,'') or '')
-                result['speed_strength']=speed_strength(item(13,1.0))
+                # Disabled adapters must not block ordinary generation because
+                # an old UI preset restored another extension's slider value.
+                result['speed_strength']=speed_strength(item(13,1.0)) if result['speed_enabled'] else 1.0
             if len(values)>len(KEYS)+14: result['refiner']=str(control_value(values[len(KEYS)+14],'off') or 'off').lower()
             if len(values)>len(KEYS)+15: result['style_lora']=str(control_value(values[len(KEYS)+15],'(none)') or '(none)')
             if len(values)>len(KEYS)+16: result['composite']=bool(values[len(KEYS)+16])
