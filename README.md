@@ -24,7 +24,8 @@ This is an independent community extension, not an official Qwen product.
 - **Memory:** fit-based auto profiles for every card size (4–32 GB+, NVIDIA or AMD), quantized models, alpha cleanup for transparent PNGs, and safe release of cached models when switching checkpoints. Big cards run fully resident — no offload, maximum speed.
 - **Downloads:** manual installation recommended; optional downloads require selecting files and clicking Download.
 - **Adapters:** compatible LoRA/LoKr/LoHa controls; incompatible files are rejected.
-- **Acceleration:** optional Spectrum speed setting (own checkbox or the built-in Forge Spectrum accordion); approximate acceleration can change image details.
+- **Acceleration:** optional Spectrum speed setting (own checkbox or the built-in Forge Spectrum accordion); works at any CFG, and skips extra-conservatively at CFG > 1 to protect detail. Approximate acceleration can change image details.
+- **Edit composite:** one checkbox in the Performance tab (img2img). Ported from Klein Edit Composite + PixelDriftFix: the edit is first re-aligned onto your original (feature-matched homography kills framing/perspective drift), only genuinely changed pixels are detected (perceptual color + structural diff), and the result is blended back over the original — untouched background stays pixel-perfect. Optional background color matching included.
 - **Outpainting tip:** pad your image to the new size with black in any editor, then prompt "enlarge image to fill the empty canvas, keep the background" in the img2img tab — Qwen 2.1 expands multiple sides in one pass.
 
 Automated tests do not prove every GPU, model file or Forge version works.
