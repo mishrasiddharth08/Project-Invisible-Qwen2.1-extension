@@ -33,7 +33,7 @@ def build():
                     gr.Button('Validate controls',visible=False).click(lambda *values: None,inputs=values,outputs=[])
                     controls.append(values)
     for edit,values in zip((False,True),controls):
-        assert len(values)==27
+        assert len(values)==28
         assert values[0].value==('edit' if edit else 't2i')
         assert values[3].value=='auto' and values[5].value is True
         assert values[18].label=='Spectrum acceleration'

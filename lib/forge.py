@@ -62,6 +62,7 @@ def options(runner,p):
             if len(values)>len(KEYS)+15: result['style_lora']=str(control_value(values[len(KEYS)+15],'(none)') or '(none)')
             if len(values)>len(KEYS)+16: result['composite']=bool(values[len(KEYS)+16])
             if len(values)>len(KEYS)+17: result['pixel_drift']=bool(values[len(KEYS)+17])
+            if len(values)>len(KEYS)+18: result['keep_loaded']=bool(values[len(KEYS)+18])
             break
     # The built-in Forge Spectrum accordion patches Forge's UNet, which this
     # extension never runs (dedicated diffusers worker). Honor its toggle

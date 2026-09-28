@@ -243,6 +243,7 @@ class Script(scripts.Script):
                         profile=gr.Dropdown(['auto','4','6','8','12','16','20','24'],value='auto',label='VRAM budget',info='Auto detects your GPU.',scale=1,min_width=180)
                         side=gr.Dropdown([('Automatic',0),('512 px',512),('768 px',768),('1024 px',1024),('1536 px',1536),('2048 px',2048)],value=0,label='Maximum size',scale=1,min_width=180)
                     offload=gr.Checkbox(value=True,label='Save GPU memory',info='Keeps unused model parts off the GPU.')
+                    keep_loaded=gr.Checkbox(value=bool(runtime.config().get('keep_loaded',True)),label='Keep Qwen ready',info='Faster next generation. Idle GPU memory is released; model files stay cached in system RAM.')
                     with gr.Accordion('Advanced compatibility',open=False):
                         community=gr.Checkbox(value=False,label='Allow compatible community LoRAs',info='Enable only for compatible Qwen 2.1 adapters.')
                 with gr.Tab('Models'):
@@ -257,8 +258,8 @@ class Script(scripts.Script):
                         button.click(fn=manager.download_selected,inputs=[downloads,approved],outputs=[status])
         self._box=box
         PANELS.append(box)
-        # Preserve all 27 argument positions, including hidden edit controls.
-        return [task,steps,cfg,profile,side,offload,community,consent,mask,*refs,spectrum,degrid,speed_enabled,speed_name,speed_strength,refiner,style_name,composite,pixel_drift]
+        # Preserve existing positions; new controls append to the contract.
+        return [task,steps,cfg,profile,side,offload,community,consent,mask,*refs,spectrum,degrid,speed_enabled,speed_name,speed_strength,refiner,style_name,composite,pixel_drift,keep_loaded]
 
 
 # --------------------------------------------------------------------------- #

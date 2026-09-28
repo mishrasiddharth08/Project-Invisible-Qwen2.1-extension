@@ -77,6 +77,14 @@ if __name__ == "__main__":
     unittest.main()
 
 class SpectrumOptionsTests(unittest.TestCase):
+    def test_keep_loaded_is_read_from_appended_ui_control(self):
+        forge=load_forge()
+        refs=[None]*9
+        values=['t2i',40,1,'auto',0,True,False,False,None]+refs+[False,True,False,'(none)',1.0,'off','(none)',False,False,True]
+        script=types.SimpleNamespace(_pi_qwen21=True,args_from=0,args_to=len(values))
+        result=forge.options(types.SimpleNamespace(alwayson_scripts=[script]),types.SimpleNamespace(script_args=values))
+        self.assertTrue(result['keep_loaded'])
+
     def test_extra_checkbox_does_not_become_reference_image(self):
         forge=load_forge()
         refs=[object() for _ in range(9)]

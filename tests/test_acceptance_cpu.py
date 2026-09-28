@@ -568,10 +568,12 @@ class RuntimeAcceptanceTests(unittest.TestCase):
         self.torch_patch.start()
         runtime._pipe = None
         runtime._key = None
+        runtime._release_pending = False
 
     def tearDown(self):
         runtime._pipe = None
         runtime._key = None
+        runtime._release_pending = False
         self.torch_patch.stop()
         self.module_patch.stop()
 
@@ -605,10 +607,17 @@ class RuntimeAcceptanceTests(unittest.TestCase):
             self.run_generate(profile='auto',offload=True)
         self.assertTrue(self.last_load.args[2])
 
-    def test_default_releases_worker_once_after_whole_batch(self):
+    def test_config_default_keeps_worker_after_whole_batch(self):
         p=self.p();p.batch_size=2
         with mock.patch.object(runtime,'release') as release:
             self.run_generate(p=p)
+        self.assertEqual(len(self.pipe.calls),2)
+        release.assert_not_called()
+
+    def test_explicit_release_happens_once_after_whole_batch(self):
+        p=self.p();p.batch_size=2
+        with mock.patch.object(runtime,'release') as release:
+            self.run_generate(p=p,keep_loaded=False)
         self.assertEqual(len(self.pipe.calls),2)
         release.assert_called_once()
 
@@ -616,6 +625,12 @@ class RuntimeAcceptanceTests(unittest.TestCase):
         with mock.patch.object(runtime,'release') as release:
             self.run_generate(keep_loaded=True)
         release.assert_not_called()
+
+    def test_deferred_selection_change_releases_kept_worker_after_run(self):
+        runtime._release_pending=True
+        with mock.patch.object(runtime,'release') as release:
+            self.run_generate(keep_loaded=True)
+        release.assert_called_once()
 
     def test_post_load_validation_error_releases_worker(self):
         with mock.patch.object(runtime,'release') as release:
@@ -656,6 +671,14 @@ class RuntimeAcceptanceTests(unittest.TestCase):
 
     def test_resident_fit_skips_when_no_weights_are_measurable(self):
         self.assertFalse(runtime.resident_fit({'folder':None,'files':{}},False,self.torch))
+
+    def test_resident_fit_reuses_matching_direct_worker_without_remeasuring_free_vram(self):
+        bundle={'folder':'Qwen-Image-2.1','files':{}}
+        prof={'side':1024,'offload':False}
+        runtime._pipe=object()
+        runtime._key=runtime._resident_key(bundle,prof)+(False,)
+        cuda=types.SimpleNamespace(mem_get_info=lambda:(_ for _ in ()).throw(AssertionError('must not measure')))
+        self.assertFalse(runtime.resident_fit(bundle,False,types.SimpleNamespace(cuda=cuda),prof))
 
 
     def test_t2i_does_not_send_image_argument(self):

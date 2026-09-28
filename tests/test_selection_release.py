@@ -43,7 +43,9 @@ class SelectionReleaseTests(unittest.TestCase):
         process=Mock();process.poll.return_value=None
         with patch.object(runtime,'_pipe',SimpleNamespace(_process=process)), \
              patch.object(runtime,'release') as release, \
-             patch.object(runtime,'_generating',True):
+             patch.object(runtime,'_generating',True), \
+             patch.object(runtime,'_release_pending',False):
             runtime.release_on_selection()
             process.terminate.assert_not_called()
             release.assert_not_called()
+            self.assertTrue(runtime._release_pending)

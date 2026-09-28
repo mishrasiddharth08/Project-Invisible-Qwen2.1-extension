@@ -19,13 +19,16 @@ LOCK=threading.RLock()
 _pipe=None
 _key=None
 _generating=False  # True between pipe() dispatch and result collection
+_release_pending=False
 
 def release_on_selection():
+    global _release_pending
     # A selection change cancels this extension's dedicated worker, never Forge.
     # Killing a worker mid-generation crashed Forge (preset switch during a run),
     # so an active generation is left alone: it finishes, and the stale pipe is
     # released right after by the normal end-of-run path.
     if _generating:
+        _release_pending=True
         print('[PI-Qwen21] Preset/selection changed during generation; the running job will finish first.')
         return
     pipe=_pipe
@@ -36,8 +39,9 @@ def release_on_selection():
     release()
 
 def release():
-    global _pipe, _key
+    global _pipe, _key, _release_pending
     with LOCK:
+        _release_pending=False
         if _pipe is None:
             return
         if _pipe is not None:
@@ -65,6 +69,9 @@ def load(bundle, prof, offload=True):
     _pipe,_key=pipe,key
     return pipe
 
+def _resident_key(bundle,prof):
+    return (bundle['folder'],tuple(sorted(bundle.get('files',{}).items())),tuple(sorted(prof.items())))
+
 def headswap_context(p):
     for script in getattr(getattr(p,'scripts',None),'alwayson_scripts',[]) or []:
         callback=getattr(script,'headswap_external_context',None)
@@ -89,7 +96,7 @@ def save_output(result,p,seed,prompt,info,shared,images):
     print('[PI-Qwen21] Saved: '+str(filename))
     return str(filename)
 
-def resident_fit(folder, offload, torch):
+def resident_fit(folder, offload, torch, prof=None):
     """Decide offload by what was actually selected, not by tier.
 
     Compare actual free VRAM with selected weights and activation headroom.
@@ -97,6 +104,9 @@ def resident_fit(folder, offload, torch):
     """
     if offload:
         return offload
+    if _pipe is not None and _key is not None and prof is not None:
+        if _key[:3] == _resident_key(folder,prof) and _key[3] is False:
+            return False
     weights_gb=0.0
     paths=[Path(path) for path in (folder.get('files') or {}).values() if path]
     if not paths and folder.get('folder'):
@@ -192,12 +202,13 @@ def generate(p, selected, options):
                 print('[PI-Qwen21] Style LoRA: '+style_name)
         p.steps=max(1,int(getattr(p,'steps',None) or options.get('steps',40)))
         total=max(1,int(p.batch_size))*max(1,int(p.n_iter))
-        display=ForgeProgress(shared,p.steps,total)
+        display=ForgeProgress(shared,p.steps,total,refiner=options.get('refiner','off'))
+        completed=False
         try:
             folder=resolve(selected, False, prof)
             if folder.get('files'):
                 print('[PI-Qwen21] Using dedicated 2.1 components: '+', '.join(f'{kind}={Path(path).name}' for kind,path in folder['files'].items()))
-            offload=resident_fit(folder,offload,torch)
+            offload=resident_fit(folder,offload,torch,prof)
             try:
                 pipe=load(folder,prof,offload)
             except torch.cuda.OutOfMemoryError as exc:
@@ -312,10 +323,10 @@ def generate(p, selected, options):
                 all_prompts=output_prompts,all_negative_prompts=output_negatives)
             result.comments=('Saved: '+'; '.join(saved_files)) if saved_files else 'No output files saved; check saving settings or interruption status.'
             if output: result.width,result.height=output[0].size
+            completed=True
             return result
         finally:
             try:
                 display.close()
             finally:
-                # Keep weights across the batch, then free worker RAM and VRAM.
-                if not options.get('keep_loaded',False): release()
+                if not completed or _release_pending or not options.get('keep_loaded',False): release()
