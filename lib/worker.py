@@ -341,7 +341,7 @@ def main():
                     lora.apply(pipe, [(a["path"], float(a["weight"])) for a in adapters])
                     speedup=bool(command.get('spectrum',False))
                     emit('status',status='encoding')
-                    with spectrum.accelerate(pipe,enabled=speedup,steps=command['num_inference_steps'],stop=stop) as cache_stats, _sampling_heartbeat(pipe,stop,command['num_inference_steps'],completed_steps,
+                    with spectrum.accelerate(pipe,enabled=speedup,steps=command['num_inference_steps'],stop=stop,cfg=command.get('true_cfg_scale',1.0)) as cache_stats, _sampling_heartbeat(pipe,stop,command['num_inference_steps'],completed_steps,
                                              lambda text: emit('status',status=text)):
                         output = pipe(**kwargs).images
                     if deferred_decode:

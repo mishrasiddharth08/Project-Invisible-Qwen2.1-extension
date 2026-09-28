@@ -98,8 +98,13 @@ def _output(model, args, kwargs, feature):
 
 
 @contextlib.contextmanager
-def accelerate(pipe, enabled=False, steps=0, stop=None):
-    """Temporarily accelerate one pipeline request and always restore hooks."""
+def accelerate(pipe, enabled=False, steps=0, stop=None, cfg=1.0):
+    """Temporarily accelerate one pipeline request and always restore hooks.
+
+    At True CFG > 1 forecast errors are amplified by the guidance delta, so
+    skipping is made deliberately conservative: longer warmup, more history
+    before the first forecast, and forecasts never adjacent to each other.
+    """
     stats = SpectrumStats(reason="disabled")
     if not enabled:
         yield stats
@@ -117,6 +122,11 @@ def accelerate(pipe, enabled=False, steps=0, stop=None):
 
     import torch
 
+    high_cfg = float(cfg or 1.0) > 1.0
+    warmup = 5 if high_cfg else 3
+    min_history = 4 if high_cfg else 3
+    max_consecutive = 0 if high_cfg else 1  # forecasts never adjacent at high CFG
+
     original = model.forward
     history = []
     call = 0
@@ -133,10 +143,10 @@ def accelerate(pipe, enabled=False, steps=0, stop=None):
         cache_mode = _argument(args, kwargs, "kv_cache_mode", 8)
         actual = (
             cache_mode != "cached"
-            or index < 3
+            or index < warmup
             or index >= total - 2
-            or len(history) < 3
-            or consecutive >= 1
+            or len(history) < min_history
+            or consecutive > max_consecutive
         )
         if not actual:
             predicted = _forecast(torch, history, coord)
