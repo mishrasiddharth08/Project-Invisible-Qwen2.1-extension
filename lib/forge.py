@@ -58,6 +58,7 @@ def options(runner,p):
                 result['speed_strength']=speed_strength(item(13,1.0))
             if len(values)>len(KEYS)+14: result['refiner']=str(control_value(values[len(KEYS)+14],'off') or 'off').lower()
             if len(values)>len(KEYS)+15: result['style_lora']=str(control_value(values[len(KEYS)+15],'(none)') or '(none)')
+            if len(values)>len(KEYS)+16: result['composite']=bool(values[len(KEYS)+16])
             break
     # The built-in Forge Spectrum accordion patches Forge's UNet, which this
     # extension never runs (dedicated diffusers worker). Honor its toggle

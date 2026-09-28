@@ -235,6 +235,7 @@ class Script(scripts.Script):
                         consent=gr.State(False)  # Generate is always local-only.
                         degrid=gr.Checkbox(value=bool(runtime.config().get('moire_cleanup',True)),label='DeGrid cleanup (removes grid/noise patterns)',info='On by default; uncheck only if outputs look over-smoothed')
                         spectrum=gr.Checkbox(value=False,label='Spectrum speedup (experimental; may change details)',info='Extra acceleration pass; disable if output looks off')
+                        composite=gr.Checkbox(value=False,label='Edit composite (keep original background)',info='img2img only: blends the edit back over the original so untouched areas stay pixel-perfect')
                 with gr.Tab('Speed boost'):
                     # The single featured turbo LoRA: Fast auto-selects it.
                     turbo=list(manager.FEATURED_CHOICES)[0]
@@ -292,9 +293,9 @@ class Script(scripts.Script):
         # MUST stay in this exact order - lib/forge.py reads these by index:
         # task, steps, cfg, profile, side, offload, community, consent, mask,
         # refs[0..8], spectrum, degrid, speed_enabled, speed_name, speed_strength,
-        # refiner, style_name.
+        # refiner, style_name, composite.
         # New controls append at the end only.
-        return [task,steps,cfg,profile,side,offload,community,consent,mask,*refs,spectrum,degrid,speed_enabled,speed_name,speed_strength,refiner,style_name]
+        return [task,steps,cfg,profile,side,offload,community,consent,mask,*refs,spectrum,degrid,speed_enabled,speed_name,speed_strength,refiner,style_name,composite]
 
 # --------------------------------------------------------------------------- #
 # boot: install the generation hooks and clean up on extension unload

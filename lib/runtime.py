@@ -269,6 +269,19 @@ def generate(p, selected, options):
                         result=remove_moire(result,strength=cleanup)
                     result=alpha_clean.clean(result)
                     if headswap: result=headswap.finish_image(result,i)
+                    if options.get('composite') and primary:
+                        # Klein-style edit composite: keep the original's
+                        # untouched pixels; blend in only what actually changed.
+                        from . import composite as klein
+                        try:
+                            original=primary[0] if isinstance(primary[0],str) else primary[0]
+                            if isinstance(original,str):
+                                from PIL import Image as _I; original=_I.open(original)
+                            original=original.convert('RGB').resize(result.size)
+                            result,changed=klein.composite(original,result)
+                            print(f'[PI-Qwen21] Klein composite: {changed*100:.1f}% of pixels kept from the edit.')
+                        except Exception as exc:
+                            print('[PI-Qwen21] Klein composite skipped:',exc)
                     display.publish(result, final=True)
                     info=f'{generation_prompt}\nNegative prompt: {generation_negative}\nSteps: {p.steps}, Sampler: Euler, Schedule type: simple, CFG scale: {generation_cfg}, Seed: {current_seed}, Size: {p.width}x{p.height}, Model: Qwen-Image-2.1'
                     info+=f', Qwen moire cleanup: {cleanup:g}'
