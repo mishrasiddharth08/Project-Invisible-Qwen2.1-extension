@@ -1,3 +1,10 @@
+# September 28, 2026 — model reuse and total steps
+
+- Keep the Qwen worker available between runs; Memory settings can release it after each run. Existing GPU offload remains active.
+- Avoid reloading a resident model because its own weights reduced free VRAM. Release safely after a preset switch or failed run.
+- Total progress includes every image and the optional 4-step Turbo or 10-step Quality refinement. Preview events do not count twice.
+- Live speed and memory comparison is pending; Forge was unavailable during these checks.
+
 # September 28, 2026 — saved slider collision
 
 - Use a unique Qwen Turbo strength label and ID to avoid other engine.py defaults.

@@ -1,3 +1,7 @@
+# 28 September 2026 — worker reuse and progress
+
+198 CPU/UI checks passed, including Forge saved-default loading. Coverage includes deferred model release, resident-cache reuse, batch/refiner totals and duplicate preview events. Forge was unavailable for a fresh GPU run, so loading-time, VRAM and output-quality improvements remain unmeasured.
+
 # Validation — September 28, 2026
 
 193 automated tests passed in this update, including real Gradio panel construction,
