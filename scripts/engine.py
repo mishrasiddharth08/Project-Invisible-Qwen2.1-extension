@@ -200,6 +200,8 @@ class Script(scripts.Script):
                     degrid=gr.Checkbox(value=bool(runtime.config().get('moire_cleanup',True)),label='Remove grid patterns',info='Turn off if fine details look too smooth.')
                 if is_img2img:
                     with gr.Tab('Edit'):
+                        lanpaint=gr.Checkbox(value=False,label='LanPaint masked edit',info='Experimental. Paint a mask in native img2img Inpaint. Slower; preserves unmasked pixels.')
+                        lanpaint_steps=gr.Slider(1,5,value=2,step=1,label='LanPaint thinking steps')
                         with gr.Row(elem_classes=['pi-q21-pair']):
                             pixel_drift=gr.Checkbox(value=False,label='Align edit to source',info='PixelDriftFix: correct small framing shifts.')
                             composite=gr.Checkbox(value=False,label='Preserve background',info='Blend unchanged areas with the original.')
@@ -212,6 +214,8 @@ class Script(scripts.Script):
                                         refs.append(gr.Image(type='pil',sources=['upload'],label=f'Reference {row*3+col+2}',height=120,show_download_button=False,min_width=80,elem_classes=['pi-q21-ref']))
                 else:
                     composite=gr.State(False)
+                    lanpaint=gr.State(False)
+                    lanpaint_steps=gr.State(2)
                     pixel_drift=gr.State(False)
                     refs=[gr.State(None) for _ in range(9)]
                 with gr.Tab('Speed'):
@@ -259,7 +263,7 @@ class Script(scripts.Script):
         self._box=box
         PANELS.append(box)
         # Preserve existing positions; new controls append to the contract.
-        return [task,steps,cfg,profile,side,offload,community,consent,mask,*refs,spectrum,degrid,speed_enabled,speed_name,speed_strength,refiner,style_name,composite,pixel_drift,keep_loaded]
+        return [task,steps,cfg,profile,side,offload,community,consent,mask,*refs,spectrum,degrid,speed_enabled,speed_name,speed_strength,refiner,style_name,composite,pixel_drift,keep_loaded,lanpaint,lanpaint_steps]
 
 
 # --------------------------------------------------------------------------- #

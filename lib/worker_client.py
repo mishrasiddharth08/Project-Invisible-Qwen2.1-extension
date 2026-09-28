@@ -112,7 +112,7 @@ class WorkerPipeline:
                  height=1024, num_inference_steps=40, generator=None, image=None,
                  mask_image=None, use_kv_cache=True, callback_on_step_end=None,
                  output_resolution=None, preview_every=0, preview_size=256,
-                 status_callback=None, spectrum=False, sigmas=None, refiner='off'):
+                 status_callback=None, spectrum=False, sigmas=None, refiner='off', lanpaint=False, lanpaint_steps=2):
         from PIL import Image
         with self._lock, tempfile.TemporaryDirectory(prefix="job-", dir=self._temp.name) as td:
             job = Path(td)
@@ -133,6 +133,7 @@ class WorkerPipeline:
                 spectrum=bool(spectrum),
                 sigmas=([float(s) for s in sigmas] if sigmas else None),
                 refiner=str(refiner or 'off').lower(),
+                lanpaint=bool(lanpaint),lanpaint_steps=int(lanpaint_steps),
             ))
             interrupted = None
             while True:

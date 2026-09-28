@@ -1,5 +1,15 @@
 # September 28, 2026 — model reuse and total steps
 
+## 2026-09-28 — LanPaint masked editing
+
+- Optional native img2img/Inpaint controls with 1–5 thinking steps; disabled by default.
+- Dedicated Qwen 2.1 adapter for the pinned LanPaint core; no ComfyUI installation or global sampler changes.
+- Preserve unmasked RGBA pixels; validate masks; restore hooks on cancel/failure; disable conflicting acceleration and finishing controls during masked edits.
+- Real 256-pixel GPU execution test passed with exact unmasked preservation. See [LanPaint notes](docs/LANPAINT.md); output quality is not yet benchmarked.
+- 204 automated tests run: 203 passed, one environment-dependent test skipped.
+- Preserve upstream GPL-3.0 source/license and all prior community acknowledgments.
+
+
 - Keep the Qwen worker available between runs; Memory settings can release it after each run. Existing GPU offload remains active.
 - Avoid reloading a resident model because its own weights reduced free VRAM. Release safely after a preset switch or failed run.
 - Total progress includes every image and the optional 4-step Turbo or 10-step Quality refinement. Preview events do not count twice.

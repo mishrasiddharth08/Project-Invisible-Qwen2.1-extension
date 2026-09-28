@@ -104,6 +104,9 @@ def resident_fit(folder, offload, torch, prof=None):
     """
     if offload:
         return offload
+    # A matching direct-resident worker already paid the VRAM cost. Current
+    # free memory therefore looks low; measuring it again would wrongly turn
+    # on offload, change the cache key and reload the whole model.
     if _pipe is not None and _key is not None and prof is not None:
         if _key[:3] == _resident_key(folder,prof) and _key[3] is False:
             return False
@@ -179,6 +182,16 @@ def generate(p, selected, options):
             raise ValueError('All image editing must use the img2img tab. Upload the main image there.')
         if is_edit and not primary:
             raise ValueError('Upload the main image in the img2img tab before editing.')
+        use_lanpaint=bool(options.get('lanpaint',False))
+        if use_lanpaint:
+            from .lanpaint import prepare_mask
+            if not is_edit or headswap:
+                raise ValueError('LanPaint requires img2img Inpaint without Head Swap.')
+            mask=prepare_mask(primary[0],mask,bool(getattr(p,'inpainting_mask_invert',0)))
+            if not 1<=int(options.get('lanpaint_steps',2))<=5:
+                raise ValueError('LanPaint thinking steps must be 1–5.')
+            options.update(spectrum=False,refiner='off',pixel_drift=False,composite=False)
+            print('[PI-Qwen21] LanPaint: Spectrum, refiner and alignment disabled for this masked edit.')
         refs=primary
         if headswap and mask is not None:
             raise ValueError('Use Head Swap protected-head mode and its mask editor for Qwen 2.1; clear the native inpaint mask.')
@@ -257,6 +270,8 @@ def generate(p, selected, options):
                     if speed_sigmas: args['sigmas']=speed_sigmas
                     if generation_refs: args['image']=generation_refs
                     if mask is not None: args['mask_image']=mask
+                    if use_lanpaint:
+                        args.update(lanpaint=True,lanpaint_steps=int(options.get('lanpaint_steps',2)))
                     if 'use_kv_cache' in params: args['use_kv_cache']=True
                     if 'callback_on_step_end' in params: args['callback_on_step_end']=display.step
                     if 'preview_every' in params: args['preview_every']=display.preview_every
@@ -295,10 +310,14 @@ def generate(p, selected, options):
                             print(f'[PI-Qwen21] Klein composite: {changed*100:.1f}% of pixels kept from the edit.')
                         except Exception as exc:
                             print('[PI-Qwen21] Klein composite skipped:',exc)
+                    if use_lanpaint:
+                        from .lanpaint import preserve
+                        result=preserve(primary[0],result,mask)
                     display.publish(result, final=True)
                     info=f'{generation_prompt}\nNegative prompt: {generation_negative}\nSteps: {p.steps}, Sampler: Euler, Schedule type: simple, CFG scale: {generation_cfg}, Seed: {current_seed}, Size: {p.width}x{p.height}, Model: Qwen-Image-2.1'
                     info+=f', Qwen moire cleanup: {cleanup:g}'
                     info+=f', DeGrid: {"auto" if cleanup else "off"}'
+                    if use_lanpaint: info+=f", LanPaint thinking steps: {int(options.get('lanpaint_steps',2))}"
                     info+=f', PixelDriftFix: {drift_status}'
                     info+=f", Spectrum requested: {bool(options.get('spectrum',False))}"
                     if spectrum_report:
@@ -329,4 +348,5 @@ def generate(p, selected, options):
             try:
                 display.close()
             finally:
+                # Keep weights across the batch, then free worker RAM and VRAM.
                 if not completed or _release_pending or not options.get('keep_loaded',False): release()

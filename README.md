@@ -100,3 +100,9 @@ Report your Forge version, GPU, precision, steps, CFG, enabled options and relev
 - **The Forge / AUTOMATIC1111 community** - for the extension ecosystem this plugs into
 
 Special thanks to u/malcolmrey for support and inspiration. Thank you also to the Forge Neo, Diffusers, Qwen, DeGrid, Spectrum and wider open-source communities.
+
+## September 28, 2026 — LanPaint masked editing
+
+Optional **LanPaint masked edit** is now inside **img2img → Qwen · Image 2.1 → Edit**. Paint a mask in native Inpaint, choose 1–5 thinking steps, and press Generate. Unmasked source pixels are preserved, including alpha. More thinking takes longer.
+
+[Usage, tests and limitations](docs/LANPAINT.md). Restart Forge after updating. Existing acknowledgments remain above.

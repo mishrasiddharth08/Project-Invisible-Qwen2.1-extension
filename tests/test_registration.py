@@ -77,6 +77,16 @@ if __name__ == "__main__":
     unittest.main()
 
 class SpectrumOptionsTests(unittest.TestCase):
+    def test_lanpaint_controls_append_without_shifting_existing_options(self):
+        forge=load_forge()
+        values=['edit',40,1,'auto',0,True,False,False,None]+[None]*9+[False,True,False,'(none)',1.0,'off','(none)',False,False,True,True,3]
+        script=types.SimpleNamespace(_pi_qwen21=True,args_from=0,args_to=len(values))
+        result=forge.options(types.SimpleNamespace(alwayson_scripts=[script]),types.SimpleNamespace(script_args=values))
+        self.assertEqual(result['refs'],[None]*9)
+        self.assertTrue(result['keep_loaded'])
+        self.assertTrue(result['lanpaint'])
+        self.assertEqual(result['lanpaint_steps'],3)
+
     def test_keep_loaded_is_read_from_appended_ui_control(self):
         forge=load_forge()
         refs=[None]*9

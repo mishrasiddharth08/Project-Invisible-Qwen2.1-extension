@@ -256,6 +256,12 @@ def main():
             torch.cuda.reset_peak_memory_stats()
             refs = [image(p) for p in command.get("images", [])]
             mask = image(command.get("mask"))
+            use_lanpaint=bool(command.get('lanpaint',False))
+            if use_lanpaint:
+                lanpaint=__import__(alias+'.lib.lanpaint',fromlist=['sampling'])
+                mask=lanpaint.prepare_mask(refs[0] if refs else None,mask)
+                command['spectrum']=False
+                command['refiner']='off'
             preview_every=max(0,int(command.get('preview_every',0) or 0))
             preview_size=max(64,min(256,int(command.get('preview_size',256) or 256)))
             preview_path=Path(command.get('preview') or Path(command['output']).with_name('preview.png'))
@@ -312,7 +318,9 @@ def main():
                     preview_active=False
             if refs:
                 kwargs["image"] = refs
-            if mask is not None:
+            if use_lanpaint:
+                kwargs['use_kv_cache']=False
+            elif mask is not None:
                 if "mask_image" not in inspect.signature(pipe.__call__).parameters:
                     raise ValueError("Installed QwenImage21Pipeline does not support mask_image")
                 kwargs["mask_image"] = mask
@@ -343,7 +351,11 @@ def main():
                     emit('status',status='encoding')
                     with spectrum.accelerate(pipe,enabled=speedup,steps=command['num_inference_steps'],stop=stop,cfg=command.get('true_cfg_scale',1.0)) as cache_stats, _sampling_heartbeat(pipe,stop,command['num_inference_steps'],completed_steps,
                                              lambda text: emit('status',status=text)):
-                        output = pipe(**kwargs).images
+                        context=(lanpaint.sampling(pipe,refs[0],mask,command['width'],command['height'],
+                            command.get('lanpaint_steps',2),command.get('true_cfg_scale',1),int(command['seed']),
+                            stop,lambda text: emit('status',status=text)) if use_lanpaint else contextlib.nullcontext())
+                        with context:
+                            output = pipe(**kwargs).images
                     if deferred_decode:
                         # The pipeline's denoising locals and KV caches are now
                         # out of scope before the memory-heavy VAE decode.
@@ -376,6 +388,7 @@ def main():
                             print('[PI-Qwen21] Refiner pass failed; keeping base image.', file=log)
                             traceback.print_exc(file=log)
                     result = alpha_clean.clean(result)
+                    if use_lanpaint: result=lanpaint.preserve(refs[0],result,mask)
                     result.save(command["output"], format="PNG")
                     if preview_every > 0:
                         emit('preview',step=max(0,completed_steps[0]-1),timestep=None,
