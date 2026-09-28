@@ -49,6 +49,42 @@ def align(original, generated, iterations=64):
         return generated
 
 
+def drift_fix(original, generated, min_matches=10):
+    """PixelDriftFix-style realignment (Mozer/ComfyUI-PixelDriftFix).
+
+    Feature-matched homography ('flat_4_points' mode): fixes the framing/
+    perspective drift an edit pass introduces, then resizes the result to the
+    exact source size. Falls back to plain resize when OpenCV or enough
+    matches are unavailable. The mesh mode of the original node is
+    deliberately not ported (slow, and its own README ranks it worse).
+    """
+    import cv2
+    orig = _to_array(original)
+    gen = _to_array(generated.resize(original.size)) if generated.size != original.size else _to_array(generated)
+    gray_o = cv2.cvtColor(orig.astype(numpy.uint8), cv2.COLOR_RGB2GRAY)
+    gray_g = cv2.cvtColor(gen.astype(numpy.uint8), cv2.COLOR_RGB2GRAY)
+    detector = cv2.SIFT_create() if hasattr(cv2, 'SIFT_create') else cv2.ORB_create()
+    k1, d1 = detector.detectAndCompute(gray_o, None)
+    k2, d2 = detector.detectAndCompute(gray_g, None)
+    if d1 is None or d2 is None or len(k1) < min_matches or len(k2) < min_matches:
+        return PIL_from_array(gen)
+    matcher = cv2.BFMatcher()
+    matches = matcher.knnMatch(d2, d1, k=2)
+    good = [m for m, n in matches if m.distance < 0.75 * n.distance] if matches else []
+    if len(good) < min_matches:
+        return PIL_from_array(gen)
+    src = numpy.float32([k2[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
+    dst = numpy.float32([k1[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
+    h, w = gray_o.shape
+    matrix, inliers = cv2.findHomography(src, dst, cv2.RANSAC, 4.0)
+    if matrix is None or inliers is None or int(inliers.sum()) < min_matches:
+        return generated
+    warped = cv2.warpPerspective(gen, matrix, (w, h),
+                                 flags=cv2.INTER_LINEAR,
+                                 borderMode=cv2.BORDER_REPLICATE)
+    return PIL_from_array(warped)
+
+
 def PIL_from_array(array):
     from PIL import Image
     return Image.fromarray(numpy.clip(array, 0, 255).astype(numpy.uint8), 'RGB')
@@ -148,8 +184,19 @@ def blend(original, generated, mask, feather=9):
 
 
 def composite(original, generated, color_threshold=12.0,
-              structure_threshold=0.12, match_colors=True, feather=9):
-    """Full Klein-style pass; returns (blended image, changed-pixel share)."""
+              structure_threshold=0.12, match_colors=True, feather=9,
+              drift=True):
+    """Klein-style pass with PixelDriftFix realignment; returns (image, share).
+
+    Order matters: drift_fix first re-frames the edit onto the source grid,
+    then the change detection sees aligned images (fewer false diffs along
+    edges, which is exactly the drift artifact it exists to remove).
+    """
+    if drift:
+        try:
+            generated = drift_fix(original, generated)
+        except Exception:
+            pass  # alignment is best-effort; detection still works unaligned
     mask = change_mask(original, generated, color_threshold, structure_threshold)
     clean = refine(mask)
     if match_colors:

@@ -53,6 +53,20 @@ class CompositeTests(unittest.TestCase):
         matched = composite.color_match(base, edited, composite.change_mask(base, edited))
         self.assertEqual(matched.size, base.size)
 
+    def test_drift_fix_resizes_mismatched_edit_to_source(self):
+        # PixelDriftFix contract: output always matches the source size.
+        base = solid((90, 140, 60), size=(48, 48))
+        edited = with_patch(base, (250, 240, 10)).resize((40, 40))
+        fixed = composite.drift_fix(base, edited)
+        self.assertEqual(fixed.size, base.size)
+
+    def test_composite_with_drift_unchanged_result_contract(self):
+        base = solid((120, 80, 40))
+        edited = with_patch(base, (250, 240, 10))
+        blended, share = composite.composite(base, edited)
+        self.assertGreater(share, 0.01)
+        self.assertEqual(blended.size, base.size)
+
 
 if __name__ == '__main__':
     unittest.main()
