@@ -54,7 +54,7 @@ The **Models** tab contains setup instructions and optional downloads. Downloads
 |---|---|
 | Finish | Refiner and grid-pattern cleanup |
 | Edit — img2img only | PixelDriftFix alignment, background compositing, up to nine extra references |
-| Speed | Turbo LoRA, strength and optional Spectrum acceleration |
+| Speed | Turbo LoRA, sharp sampler and optional Spectrum acceleration |
 | Style | Photography style selection, detail-fix LoRAs, texture-fix VAE and approved downloads |
 | Memory | VRAM budget, maximum size, offload and advanced adapter compatibility |
 | Models | Collapsed setup guide and approved model downloads |
