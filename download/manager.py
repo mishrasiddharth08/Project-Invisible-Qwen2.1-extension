@@ -50,6 +50,27 @@ STYLE={
 }
 STYLE_CHOICES=['(none)']+list(STYLE)
 
+# Community detail-fix LoRAs (e-n-v-y): reduce the waxy/plastic Qwen look and
+# sharpen fine detail; recommended for full 40-step Quality runs.
+FIX={
+    'Qwen 2.1 Fix v2.0': dict(
+        repo='e-n-v-y/Qwen-Image-2.1-Fix-v2.0',
+        file='qwen2.1-detail-fix-2.0.safetensors', strength=1.0,
+        source='https://huggingface.co/e-n-v-y/Qwen-Image-2.1-Fix-v2.0'),
+    'Qwen 2.1 Fix (Opinionated)': dict(
+        repo='e-n-v-y/Qwen-Image-2.1-Fix-Opinionated-v1.0',
+        file='qwen2.1-detail-fix-opinionated-v1.0.safetensors', strength=1.0,
+        source='https://huggingface.co/e-n-v-y/Qwen-Image-2.1-Fix-Opinionated-v1.0'),
+}
+FIX_CHOICES=['(none)']+list(FIX)
+
+# madebyollin's texture-fix VAE: decodes with real micro-texture instead of
+# the stock VAE's slightly plastic surface (ECCV 2024 paper method).
+TEXTURE_FIX_VAE=dict(
+    repo='madebyollin/texture-fix-vae-for-qwen-image-2.1',
+    file='texture_fix_vae_for_qwen_image_2.1_bf16.safetensors',
+    source='https://huggingface.co/madebyollin/texture-fix-vae-for-qwen-image-2.1')
+
 # The Viggle card requires its exact sigma nodes, not a plain 6-step linspace,
 # and a scheduler with shift_terminal disabled ("the base config's
 # shift_terminal: 0.02 would wreck the last step"). The shipped 6-step nodes are
@@ -120,6 +141,67 @@ def style_instructions():
         rows.append(f"- [{name}]({entry['source']}): `{entry['file']}`{token}")
     rows.append('Files are stored in `'+str(featured_folder())+'`.')
     return '\n'.join(rows)
+
+def fix_path(name):
+    entry=FIX.get(name)
+    if not entry: return None
+    local=featured_folder()/entry['file']
+    if local.is_file() and local.stat().st_size>8: return local
+    found=find_local_featured().get(name)
+    if found: return Path(found)
+    return local
+
+def download_fix(name, approved=False):
+    """Fetch one detail-fix LoRA after explicit approval. Never called by Generate."""
+    if name is None or str(name).strip() in ('', '(none)'):
+        raise ValueError('Pick a detail-fix LoRA from the dropdown first.')
+    entry=FIX.get(name)
+    if entry is None: raise ValueError('Unknown detail-fix LoRA: '+str(name))
+    if not approved: raise ValueError('Accept the LoRA license and authorize the download first.')
+    local=fix_path(name)
+    if local and local.is_file() and local.stat().st_size>8:
+        return 'Reused existing '+entry['file']+' ('+str(local)+')'
+    target=featured_folder()/entry['file']
+    target.parent.mkdir(parents=True,exist_ok=True)
+    from huggingface_hub import hf_hub_download
+    hf_hub_download(entry['repo'],entry['file'],local_dir=str(target.parent))
+    if not target.is_file() or target.stat().st_size<=8:
+        raise ValueError('Download did not produce '+entry['file'])
+    return 'Downloaded '+entry['file']+' from '+entry['source']
+
+def fix_instructions():
+    rows=['Optional detail-fix LoRAs (e-n-v-y): reduce the waxy/plastic look and sharpen fine detail. Best on full Quality runs (40 steps).']
+    for name,entry in FIX.items():
+        rows.append(f"- [{name}]({entry['source']}): `{entry['file']}`")
+    rows.append('Files are stored in `'+str(featured_folder())+'`.')
+    return '\n'.join(rows)
+
+def texture_vae_path():
+    """Existing texture-fix VAE copy, else None (the stock VAE is the default)."""
+    candidates=[models_root()/'Qwen-Image-2.1'/TEXTURE_FIX_VAE['file'],
+                models_root()/'VAE'/TEXTURE_FIX_VAE['file']]
+    for p in candidates:
+        if p.is_file() and p.stat().st_size>8: return p
+    return None
+
+def download_texture_vae(approved=False):
+    """Fetch madebyollin's texture-fix VAE after explicit approval."""
+    if not approved: raise ValueError('Accept the license and authorize the download first.')
+    existing=texture_vae_path()
+    if existing: return 'Reused existing '+TEXTURE_FIX_VAE['file']+' ('+str(existing)+')'
+    target=models_root()/'Qwen-Image-2.1'/TEXTURE_FIX_VAE['file']
+    target.parent.mkdir(parents=True,exist_ok=True)
+    from huggingface_hub import hf_hub_download
+    hf_hub_download(TEXTURE_FIX_VAE['repo'],TEXTURE_FIX_VAE['file'],local_dir=str(target.parent))
+    if not target.is_file() or target.stat().st_size<=8:
+        raise ValueError('Download did not produce '+TEXTURE_FIX_VAE['file'])
+    return 'Downloaded '+TEXTURE_FIX_VAE['file']+' from '+TEXTURE_FIX_VAE['source']
+
+def texture_vae_instructions():
+    return ('Optional **texture-fix VAE** (madebyollin): decodes with real micro-texture instead of '
+            'the stock VAE\'s slightly plastic surface. Same architecture, drop-in replacement — '
+            f"[download here]({TEXTURE_FIX_VAE['source']}); stored in `"+str(models_root()/'Qwen-Image-2.1')+'`. '
+            'Tick the box below to fetch it after approval; untick to return to the stock VAE.')
 
 def featured_path(name):
     """Existing local copy anywhere (featured folder or Lora folders), else the planned target."""

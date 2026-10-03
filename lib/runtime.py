@@ -172,6 +172,18 @@ def generate(p, selected, options):
                 # Sigmas are built after p.steps is finalized so the count
                 # always matches the schedule.
         p.cfg_scale=cfg  # Keep saved generation metadata consistent with actual inference.
+        fix_adapter=None
+        fix_name=options.get('fix_lora') if options.get('fix_lora') and options.get('fix_lora')!='(none)' else None
+        if fix_name:
+            fix_entry=downloads.FIX.get(fix_name)
+            if fix_entry is None:
+                print('[PI-Qwen21] Unknown detail-fix LoRA selected; ignoring it for this run.')
+            else:
+                fix_path=downloads.fix_path(fix_name)
+                if not fix_path or not fix_path.is_file() or fix_path.stat().st_size<=8:
+                    raise ValueError(fix_name+' is not downloaded yet. Open Qwen Controls > Detail fix and approve the one-time download, or set it to (none). Generate never downloads files.')
+                fix_adapter=(str(fix_path),float(fix_entry['strength']))
+                print('[PI-Qwen21] Detail-fix LoRA: '+fix_name)
         primary=list(getattr(p,'init_images',None) or [])[:1]
         img2img_type=getattr(processing,'StableDiffusionProcessingImg2Img',None)
         is_edit=isinstance(p,img2img_type) if isinstance(img2img_type,type) else bool(primary)
@@ -219,6 +231,16 @@ def generate(p, selected, options):
         completed=False
         try:
             folder=resolve(selected, False, prof)
+            if options.get('texture_vae'):
+                vae=downloads.texture_vae_path()
+                if vae is None:
+                    print('[PI-Qwen21] Texture-fix VAE is ticked but not downloaded; using the stock VAE this run. Download it under Qwen Controls > Detail fix.')
+                elif folder.get('files'):
+                    folder=dict(folder); folder['files']=dict(folder['files'])
+                    folder['files']['vae']=str(vae)
+                    print('[PI-Qwen21] VAE: '+vae.name)
+                else:
+                    print('[PI-Qwen21] Texture-fix VAE applies to component loads only; this run uses a full pipeline folder.')
             if folder.get('files'):
                 print('[PI-Qwen21] Using dedicated 2.1 components: '+', '.join(f'{kind}={Path(path).name}' for kind,path in folder['files'].items()))
             offload=resident_fit(folder,offload,torch,prof)
@@ -256,7 +278,7 @@ def generate(p, selected, options):
             shared.state.job_count=total
             try:
                 _generating=True
-                extra=[a for a in (style_adapter,speed_adapter) if a]
+                extra=[a for a in (fix_adapter,style_adapter,speed_adapter) if a]
                 if extra: adapter.apply(pipe,list(adapters)+extra)
                 else: adapter.apply(pipe,adapters)
                 for i in range(total):
@@ -268,7 +290,7 @@ def generate(p, selected, options):
                         plan,generation_refs=headswap.prepare(i,user_prompt,negative,current_seed,cfg,turbo)
                         generation_prompt,head_adapters=adapter.parse(plan.positive,options.get('community',False) or headswap is not None)
                         generation_negative=plan.negative; generation_cfg=plan.cfg
-                        adapter.apply(pipe,head_adapters+([a for a in (style_adapter,speed_adapter) if a]))
+                        adapter.apply(pipe,head_adapters+([a for a in (fix_adapter,style_adapter,speed_adapter) if a]))
                         if len(generation_refs)+len(refs[1:])>10: raise ValueError('Too many additional Qwen references; keep at most eight alongside Head Swap.')
                         generation_refs+=refs[1:]
                     display.start_image(i,p.width,p.height)
@@ -330,6 +352,7 @@ def generate(p, selected, options):
                         info+=f", Spectrum actual passes: {spectrum_report.get('actual',0)}, Spectrum forecast passes: {spectrum_report.get('forecast',0)}"
                     if speed_entry: info+=f", Speed LoRA: {speed_name} ({speed_adapter[1]:g})"
                     if style_adapter: info+=f", Style LoRA: {style_name}"
+                    if fix_adapter: info+=f", Detail fix: {fix_name}"
                     if refiner_mode!='off': info+=f", Refiner: {refiner_mode}"
                     if headswap: info+='\nHead Swap: '+headswap.metadata()
                     p._pi_qwen21_image_index=i

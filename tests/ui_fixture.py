@@ -33,7 +33,7 @@ def build():
                     gr.Button('Validate controls',visible=False).click(lambda *values: None,inputs=values,outputs=[])
                     controls.append(values)
     for edit,values in zip((False,True),controls):
-        assert len(values)==30
+        assert len(values)==32
         assert values[0].value==('edit' if edit else 't2i')
         assert values[3].value=='auto' and values[5].value is True
         assert values[18].label=='Spectrum acceleration'
@@ -41,7 +41,7 @@ def build():
         assert isinstance(values[26],gr.Checkbox if edit else gr.State)
         assert isinstance(values[28],gr.Checkbox if edit else gr.State)
         assert all(isinstance(x,gr.Image if edit else gr.State) for x in values[9:18])
-    print('Both real Gradio panels built; all 30 control slots verified.',flush=True)
+    print('Both real Gradio panels built; all 32 control slots verified.',flush=True)
     return app
 
 if __name__=='__main__':

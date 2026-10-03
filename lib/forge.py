@@ -65,6 +65,8 @@ def options(runner,p):
             if len(values)>len(KEYS)+18: result['keep_loaded']=bool(values[len(KEYS)+18])
             if len(values)>len(KEYS)+19: result['lanpaint']=bool(control_value(values[len(KEYS)+19],False))
             if len(values)>len(KEYS)+20: result['lanpaint_steps']=int(control_value(values[len(KEYS)+20],2))
+            if len(values)>len(KEYS)+21: result['fix_lora']=str(control_value(values[len(KEYS)+21],'(none)') or '(none)')
+            if len(values)>len(KEYS)+22: result['texture_vae']=bool(values[len(KEYS)+22])
             break
     # The built-in Forge Spectrum accordion patches Forge's UNet, which this
     # extension never runs (dedicated diffusers worker). Honor its toggle

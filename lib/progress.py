@@ -23,7 +23,7 @@ class ForgeProgress:
         state.current_image_sampling_step = 0
         state.textinfo = 'Qwen: loading model'
         state.job = 'Qwen-Image-2.1'
-        total_bar = getattr(shared, "total_tqdm", None)
+        total_bar = getattr(shared, 'total_tqdm', None)
         if total_bar is not None:
             total_bar.updateTotal(steps * total)
         opts = shared.opts

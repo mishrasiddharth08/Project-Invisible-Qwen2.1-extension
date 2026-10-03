@@ -242,6 +242,15 @@ class Script(scripts.Script):
                         style_approved=gr.Checkbox(value=False,label='I accept the license and approve this download')
                         style_button=gr.Button('Download selected style',size='sm')
                     style_button.click(fn=manager.download_style,inputs=[style_name,style_approved],outputs=[style_status])
+                    with gr.Accordion('Detail fix (removes the plastic look)',open=False):
+                        fix_name=gr.Dropdown(manager.FIX_CHOICES,value='(none)',label='Detail-fix LoRA',info='Best on full Quality runs; download once below.')
+                        texture_vae=gr.Checkbox(value=False,label='Use the texture-fix VAE',info='Real micro-texture instead of the stock VAE\'s plastic surface.')
+                        gr.Markdown(manager.fix_instructions())
+                        gr.Markdown(manager.texture_vae_instructions())
+                        fix_approved=gr.Checkbox(value=False,label='I accept the license and approve these downloads')
+                        fix_button=gr.Button('Download selected detail fix',size='sm')
+                        fix_status=gr.Markdown(elem_classes=['pi-q21-status'])
+                    fix_button.click(fn=manager.download_fix,inputs=[fix_name,fix_approved],outputs=[fix_status])
                 with gr.Tab('Memory'):
                     with gr.Row(elem_classes=['pi-q21-pair']):
                         profile=gr.Dropdown(['auto','4','6','8','12','16','20','24'],value='auto',label='VRAM budget',info='Auto detects your GPU.',scale=1,min_width=180)
@@ -263,7 +272,7 @@ class Script(scripts.Script):
         self._box=box
         PANELS.append(box)
         # Preserve existing positions; new controls append to the contract.
-        return [task,steps,cfg,profile,side,offload,community,consent,mask,*refs,spectrum,degrid,speed_enabled,speed_name,speed_strength,refiner,style_name,composite,pixel_drift,keep_loaded,lanpaint,lanpaint_steps]
+        return [task,steps,cfg,profile,side,offload,community,consent,mask,*refs,spectrum,degrid,speed_enabled,speed_name,speed_strength,refiner,style_name,composite,pixel_drift,keep_loaded,lanpaint,lanpaint_steps,fix_name,texture_vae]
 
 
 # --------------------------------------------------------------------------- #
