@@ -211,6 +211,11 @@ def resolve(selected=None, confirmed=False, prof=None):
         alternatives=(['qwen_image_2.1_int8_convrot.safetensors','qwen_image_2.1_bf16.safetensors'] if kind=='dit' else
                       ['qwen3vl_8b_int8_convrot.safetensors','qwen3vl_8b_w4a8.safetensors','qwen3vl_8b_bf16.safetensors'])
         if not files[kind]: files[kind]=next((p for p in inventory[kind] if Path(p).name.lower() in alternatives),None)
+    if not files['te'] and inventory['te']:
+        # scan() admits renamed encoders by structure, never by a family label alone.
+        files['te']=min(inventory['te'],key=lambda p:(
+            0 if prof['te'] in Path(p).name.lower() else
+            1 if 'int8_convrot' in Path(p).name.lower() else 2,Path(p).name.lower()))
     if single:
         files['dit']=str(selected)
         if not Path(selected).is_file(): raise ValueError('Selected checkpoint no longer exists')

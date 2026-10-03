@@ -1,4 +1,5 @@
 """Packed-weight-safe layer offload for very small GPUs."""
+from contextlib import contextmanager, nullcontext
 from types import SimpleNamespace
 
 
@@ -24,13 +25,37 @@ def _chunked_rms(module, x, original, torch, max_float_bytes=8 * 2**20):
     return out
 
 
+def _chunked_swiglu(module, x, original, torch, max_intermediate_bytes=8 * 2**20,
+                    hold=None):
+    """Run token-independent SwiGLU slices without two full MLP temporaries."""
+    if torch.is_grad_enabled() or x.ndim < 2:
+        return original(x)
+    tokens=x.numel() // max(1,x.shape[-1])
+    hidden=int(module.proj.out_features)
+    rows=max(1,max_intermediate_bytes // max(1,hidden * x.element_size() * 2))
+    if rows >= tokens:
+        return original(x)
+    source=x.reshape(tokens,x.shape[-1])
+    result=torch.empty((*x.shape[:-1],module.out.out_features),device=x.device,dtype=x.dtype)
+    target=result.reshape(tokens,module.out.out_features)
+    scope=hold((module.gate_layer,module.proj,module.out)) if hold else nullcontext()
+    with scope:
+        for start in range(0,tokens,rows):
+            end=min(tokens,start+rows)
+            part=source[start:end]
+            gate=module.activation_fn(module.gate_layer(part))
+            gate.mul_(module.proj(part))
+            target[start:end].copy_(module.out(gate))
+    return result
+
+
 def _move_own(module, device):
     """Move only tensors owned by one module, preserving tensor subclasses."""
     module._apply(lambda value: value.to(device=device, non_blocking=False), recurse=False)
 
 
 class LayerOffload:
-    def __init__(self, torch, device='cuda'):
+    def __init__(self, torch, device='cuda', release_between_components=False):
         self.torch = torch
         self.device = torch.device(device)
         self.handles = []
@@ -38,7 +63,38 @@ class LayerOffload:
         self.patches = []
         self.method_patches = []
         self.cpu_components = set()
+        self.release_between_components = bool(release_between_components)
+        self.held_modules = set()
         self.cancel = lambda: False
+
+    @contextmanager
+    def hold(self, modules):
+        """Keep a small cooperating group resident for one chunked operation."""
+        moved=[]
+        try:
+            self.trim_cached()
+            for module in modules:
+                _move_own(module,self.device)
+                self.held_modules.add(module)
+                moved.append(module)
+            yield
+        finally:
+            for module in reversed(moved):
+                self.held_modules.discard(module)
+                _move_own(module,'cpu')
+
+    def trim_cached(self, min_unused_bytes=256 * 2**20):
+        """Release cache only when fragmentation threatens the tight ceiling."""
+        if not (self.release_between_components and self.torch.cuda.is_available()):
+            return False
+        allocated=getattr(self.torch.cuda,'memory_allocated',None)
+        reserved=getattr(self.torch.cuda,'memory_reserved',None)
+        if not (callable(allocated) and callable(reserved)):
+            return False
+        if max(0,int(reserved())-int(allocated())) < int(min_unused_bytes):
+            return False
+        self.torch.cuda.empty_cache()
+        return True
 
     def send(self, value, device):
         if self.torch.is_tensor(value):
@@ -65,9 +121,23 @@ class LayerOffload:
 
         self.handles.append(component.register_forward_pre_hook(root_before, with_kwargs=True))
         for module in component.modules():
+            if (self.release_between_components and
+                    module.__class__.__name__ == 'QwenImage21TransformerBlock'):
+                def trim_before_block(_module,_args):
+                    self.trim_cached()
+                    # A pre-hook returning bool replaces positional inputs.
+                    # Keep keyword hidden_states untouched.
+                    return None
+                self.handles.append(module.register_forward_pre_hook(trim_before_block))
             if module.__class__.__name__ == 'QwenImage21RMS_norm':
                 original=module.forward
                 module.forward=lambda x,_m=module,_o=original: _chunked_rms(_m,x,_o,self.torch)
+                self.patches.append((module,original))
+            if (self.release_between_components and
+                    module.__class__.__name__ == 'QwenImage21SwiGLUFeedForward'):
+                original=module.forward
+                module.forward=lambda x,_m=module,_o=original: _chunked_swiglu(
+                    _m,x,_o,self.torch,hold=self.hold)
                 self.patches.append((module,original))
             if not (list(module.parameters(recurse=False)) or list(module.buffers(recurse=False))):
                 continue
@@ -77,7 +147,7 @@ class LayerOffload:
             def before(_module, _args, _depth=depth, _component=component):
                 if self.cancel():
                     raise InterruptedError('Generation interrupted')
-                if _depth[0] == 0:
+                if _depth[0] == 0 and _module not in self.held_modules:
                     target='cpu' if _component in self.cpu_components else self.device
                     _move_own(_module,target)
                 _depth[0] += 1
@@ -87,7 +157,7 @@ class LayerOffload:
                 # pre-hook, before depth increments. Never underflow state.
                 if _depth[0] > 0:
                     _depth[0] -= 1
-                if _depth[0] == 0:
+                if _depth[0] == 0 and _module not in self.held_modules:
                     _move_own(_module,'cpu')
                 return output
 
@@ -98,6 +168,22 @@ class LayerOffload:
                 handle = module.register_forward_hook(after)
             self.handles.append(handle)
             self.modules.append(module)
+        if self.release_between_components:
+            def release_after_component(_module, _args, output, _component=component):
+                # Low profiles run against a strict allocator ceiling. Once a
+                # whole component finishes, its weights are back on CPU, so
+                # return their now-unused cache blocks before the next large
+                # INT8 output allocation.
+                self.offload_component(_component)
+                if self.torch.cuda.is_available():
+                    self.torch.cuda.empty_cache()
+                return output
+
+            try:
+                handle=component.register_forward_hook(release_after_component, always_call=True)
+            except TypeError:  # old PyTorch fallback
+                handle=component.register_forward_hook(release_after_component)
+            self.handles.append(handle)
         return component
 
     def offload_component(self, component):
@@ -148,15 +234,16 @@ class LayerOffload:
         self.patches.clear()
         self.method_patches.clear()
         self.cpu_components.clear()
+        self.held_modules.clear()
 
 
 def enable(pipe, torch, prof=None):
-    manager = LayerOffload(torch)
+    budget=float((prof or {}).get('vram_gb') or 0)
+    manager = LayerOffload(torch,release_between_components=0 < budget <= 8)
     for name in ('text_encoder','transformer','vae'):
         component=getattr(pipe,name,None)
         if component is not None and hasattr(component,'modules'):
             manager.install(component)
-    budget=float((prof or {}).get('vram_gb') or 0)
     if 0 < budget <= 8 and getattr(pipe,'vae',None) is not None:
         # Six GB cannot fit Qwen's final full-frame VAE activations. Decode the
         # same latents on CPU; 8 GB first tries GPU then recovers on OOM.

@@ -1,4 +1,5 @@
 """Strict 2.1 identity and local-only inventory. Never guess an older architecture."""
+import re
 import json
 import struct
 import time
@@ -61,6 +62,23 @@ def is_dit_file(path):
     mlp = any('.img_mlp.' in k or '.txt_mlp.' in k for k in lowered)
     return blocks and attn and mlp
 
+def is_text_encoder_file(path):
+    """Accept renamed Qwen3-VL 8B weights only after checking their architecture."""
+    try:
+        h=header(path)
+    except (OSError, ValueError, TypeError):
+        return False
+    keys=[k for k in h if k!='__metadata__']
+    if any(k.lower().endswith(tuple(x.lower() for x in _ADAPTER_SUFFIXES)) for k in keys):
+        return False
+    if not any(k in h for k in ('visual.patch_embed.proj.weight','model.visual.patch_embed.proj.weight')):
+        return False
+    layers={int(m.group(1)) for k in keys if (m:=re.match(r'model\.layers\.(\d+)\.',k))}
+    if layers!=set(range(36)):
+        return False
+    return all(h.get(f'model.layers.{i}.input_layernorm.weight',{}).get('shape')==[4096]
+               and f'model.layers.{i}.self_attn.q_proj.weight' in h for i in range(36))
+
 def identity(folder):
     p = Path(folder)
     try:
@@ -109,6 +127,8 @@ def scan(base=None, refresh=False):
         if not d.is_dir():
             continue
         for p in d.rglob('*.safetensors'):
+            if sub=='text_encoder' and p.name.lower() not in NAMES['te'] and is_text_encoder_file(p):
+                result['te'].append(str(p.resolve()))
             if sub in ('Stable-diffusion', 'diffusion_models') and p.name.lower() not in NAMES['dit'] and is_dit_file(p):
                 # Community mirror under a renamed file (e.g. Civitai).
                 result['dit'].append(str(p.resolve()))

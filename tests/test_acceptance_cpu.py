@@ -796,7 +796,7 @@ class SpeedLoraAcceptanceTests(unittest.TestCase):
             "modules": modules_mod, "modules.processing": processing,
             "modules.shared": shared, "modules.images": images_mod,
             "torch": types.SimpleNamespace(cuda=FakeCuda, Generator=FakeGenerator),
-        }), mock.patch.object(manager, "featured_path", return_value=None):
+        }), mock.patch.object(runtime.downloads, "featured_path", return_value=None):
             with self.assertRaisesRegex(ValueError, "never downloads"):
                 runtime.generate(p, "selected", dict(
                     task="t2i", steps=40, true_cfg=1, profile="24", side=1024,

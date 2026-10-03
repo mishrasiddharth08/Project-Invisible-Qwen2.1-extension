@@ -236,7 +236,13 @@ def generate(p, selected, options):
             if headswap and float(prof.get('vram_gb',99))<=8:
                 side=min(side or requested_side,416 if prof['vram_gb']<=6 else 640)
             side=min(requested_side,side) if side else requested_side
-            p.width,p.height=bucket(p.width,p.height,side)
+            if headswap and getattr(headswap,'region',None) is not None:
+                # The head-swap session owns the crop geometry. Aspect buckets
+                # can squeeze its head when mapped back to the original scene.
+                scale=min(1.0,side/requested_side)
+                p.width,p.height=(max(32,int(v*scale)//32*32) for v in (p.width,p.height))
+            else:
+                p.width,p.height=bucket(p.width,p.height,side)
             p.steps=max(1,int(getattr(p,'steps',None) or options.get('steps',40))); p.cfg_scale=cfg
             # User steps always win: choosing Fast auto-selects the turbo LoRA
             # and matches the slider, but a slider moved by hand is never overridden.

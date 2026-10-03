@@ -37,6 +37,17 @@ class HeadSwapBridgeTests(unittest.TestCase):
         self.assertEqual((result.width,result.height),(40,60))
         self.assertEqual(closed,[True])
 
+    def test_protected_crop_preserves_rectangular_canvas(self):
+        p=self.p([Image.new('RGB',(704,768))]); p.width,p.height=704,768
+        session=NS(region=object(),owner=NS(last_report={}),
+                   prepare=Mock(return_value=(NS(positive='swap',negative='',cfg=1),p.init_images)),
+                   finish_image=lambda image,index:image,metadata=lambda:'protected')
+        @contextmanager
+        def callback(request): yield session
+        p.scripts=NS(alwayson_scripts=[NS(headswap_external_context=callback)])
+        self.run_generate(p,side=768)
+        self.assertEqual((self.pipe.calls[0]['width'],self.pipe.calls[0]['height']),(704,768))
+
     def test_external_hook_cleanup_runs_on_sampling_error(self):
         p=self.p([Image.new('RGB',(64,64))]); closed=[]
         @contextmanager

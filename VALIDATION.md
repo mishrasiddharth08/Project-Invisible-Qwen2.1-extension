@@ -1,3 +1,11 @@
+## 3 October 2026 — head-swap crop and low-memory repair
+
+- Protected Universal Head Swap crops retain their rectangular dimensions rather than being changed to an aspect bucket. Normal generation keeps existing bucket behavior.
+- The low-memory layer offloader chunks token-independent SwiGLU activations, holds packed weights once per MLP invocation and releases them on failure. Conditional allocator-cache trimming returns no replacement hook inputs.
+- Renamed Qwen3-VL 8B encoders are accepted only after architecture checks. Incompatible Qwen3.5 9B encoders remain excluded; existing verified files are reused without downloading or renaming.
+- 219 tests passed, one skipped, in both the installed source and public release checkout.
+- One real INT8 head-swap worker run with BFS Alternative v1.1, a character adapter and six-step Turbo completed under a simulated 8 GiB profile: 77.26 seconds total; sampled whole-GPU peak 5,491 MiB; worker allocator peak 2,466 MiB allocated and 3,206 MiB reserved. This was an RTX 5090 test, not physical 8 GiB hardware. Other quantizations, 6 GiB operation and perfect image quality remain unverified.
+
 # 28 September 2026 — worker reuse and progress
 
 198 CPU/UI checks passed, including Forge saved-default loading. Coverage includes deferred model release, resident-cache reuse, batch/refiner totals and duplicate preview events. Forge was unavailable for a fresh GPU run, so loading-time, VRAM and output-quality improvements remain unmeasured.

@@ -51,6 +51,17 @@ class RMS(torch.nn.Module):
         return torch.nn.functional.normalize(x.float(),dim=1).to(x.dtype)*self.scale*self.gamma+self.bias
 
 
+class SwiGLU(torch.nn.Module):
+    def __init__(self,hidden=8,inner=16):
+        super().__init__()
+        self.proj=torch.nn.Linear(hidden,inner,bias=False)
+        self.out=torch.nn.Linear(inner,hidden,bias=False)
+        self.gate_layer=torch.nn.Linear(hidden,inner,bias=False)
+        self.activation_fn=torch.nn.SiLU()
+    def forward(self,x):
+        return self.out(self.activation_fn(self.gate_layer(x))*self.proj(x))
+
+
 class DecodeVAE(torch.nn.Module):
     def __init__(self):
         super().__init__();self.proj=torch.nn.Linear(4,4,bias=False)
@@ -62,6 +73,69 @@ class DecodeVAE(torch.nn.Module):
 
 
 class LowVramTests(unittest.TestCase):
+    def test_tight_profile_releases_cached_blocks_after_component(self):
+        events=[]
+        fake=types.SimpleNamespace(
+            cuda=types.SimpleNamespace(is_available=lambda:True,
+                                       empty_cache=lambda:events.append('release')),
+            device=torch.device,is_tensor=torch.is_tensor)
+        model=torch.nn.Sequential(torch.nn.Linear(2,2),torch.nn.ReLU())
+        manager=offload.LayerOffload(fake,device='cpu',release_between_components=True)
+        manager.install(model)
+        model(torch.zeros(1,2))
+        self.assertEqual(events,['release'])
+        manager.remove()
+
+    def test_normal_profile_keeps_allocator_cache_between_components(self):
+        events=[]
+        fake=types.SimpleNamespace(
+            cuda=types.SimpleNamespace(is_available=lambda:True,
+                                       empty_cache=lambda:events.append('release')),
+            device=torch.device,is_tensor=torch.is_tensor)
+        model=torch.nn.Linear(2,2)
+        manager=offload.LayerOffload(fake,device='cpu')
+        manager.install(model)
+        model(torch.zeros(1,2))
+        self.assertEqual(events,[])
+        manager.remove()
+
+    def test_enable_limits_component_cache_release_to_8gb_and_below(self):
+        fake=types.SimpleNamespace(
+            cuda=types.SimpleNamespace(is_available=lambda:False,empty_cache=lambda:None),
+            device=torch.device,is_tensor=torch.is_tensor)
+        low=types.SimpleNamespace(text_encoder=torch.nn.Linear(2,2),transformer=None,vae=None)
+        normal=types.SimpleNamespace(text_encoder=torch.nn.Linear(2,2),transformer=None,vae=None)
+        self.assertTrue(offload.enable(low,fake,{'vram_gb':8}).release_between_components)
+        self.assertFalse(offload.enable(normal,fake,{'vram_gb':12}).release_between_components)
+
+    def test_fragmentation_trim_is_thresholded_and_low_profile_only(self):
+        state={'allocated':100*2**20,'reserved':300*2**20};events=[]
+        cuda=types.SimpleNamespace(
+            is_available=lambda:True,
+            memory_allocated=lambda:state['allocated'],
+            memory_reserved=lambda:state['reserved'],
+            empty_cache=lambda:events.append('trim'))
+        fake=types.SimpleNamespace(cuda=cuda,device=torch.device,is_tensor=torch.is_tensor)
+        low=offload.LayerOffload(fake,device='cpu',release_between_components=True)
+        self.assertFalse(low.trim_cached())
+        state['reserved']=500*2**20
+        self.assertTrue(low.trim_cached())
+        normal=offload.LayerOffload(fake,device='cpu')
+        self.assertFalse(normal.trim_cached())
+        self.assertEqual(events,['trim'])
+
+    def test_hold_trims_fragmentation_before_resident_weight_group(self):
+        events=[]
+        cuda=types.SimpleNamespace(
+            is_available=lambda:True,memory_allocated=lambda:0,
+            memory_reserved=lambda:512*2**20,
+            empty_cache=lambda:events.append('trim'))
+        fake=types.SimpleNamespace(cuda=cuda,device=torch.device,is_tensor=torch.is_tensor)
+        manager=offload.LayerOffload(fake,device='cpu',release_between_components=True)
+        with manager.hold((torch.nn.Linear(2,2),)):
+            events.append('held')
+        self.assertEqual(events,['trim','held'])
+
     @unittest.skipUnless(torch.cuda.is_available(),'CUDA unavailable')
     def test_gpu_decode_oom_falls_back_to_exact_cpu_latents_and_restores_method(self):
         vae=DecodeVAE();original=vae.decode
@@ -99,6 +173,67 @@ class LowVramTests(unittest.TestCase):
         self.assertTrue(manager.patches)
         manager.remove()
         self.assertEqual(module.forward,original)
+
+    def test_chunked_swiglu_matches_original(self):
+        module=SwiGLU()
+        x=torch.randn(2,19,8)
+        with torch.inference_mode():
+            expected=module(x)
+            actual=offload._chunked_swiglu(module,x,module.forward,torch,max_intermediate_bytes=128)
+        torch.testing.assert_close(actual,expected)
+
+    def test_tight_profile_patches_and_restores_qwen_swiglu(self):
+        SwiGLU.__name__='QwenImage21SwiGLUFeedForward'
+        module=SwiGLU();original=module.forward
+        manager=offload.LayerOffload(torch,device='cpu',release_between_components=True)
+        manager.install(module)
+        self.assertNotEqual(module.forward,original)
+        manager.remove()
+        self.assertEqual(module.forward,original)
+
+    def test_chunked_swiglu_holds_three_weights_once(self):
+        module=SwiGLU();events=[]
+        class Scope:
+            def __enter__(self): events.append(('enter',3))
+            def __exit__(self,*_args): events.append(('exit',3))
+        with torch.inference_mode():
+            offload._chunked_swiglu(module,torch.randn(2,19,8),module.forward,torch,
+                                    max_intermediate_bytes=128,
+                                    hold=lambda modules:(events.append(('weights',len(modules))) or Scope()))
+        self.assertEqual(events,[('weights',3),('enter',3),('exit',3)])
+
+    def test_held_weights_release_after_chunk_failure(self):
+        SwiGLU.__name__='QwenImage21SwiGLUFeedForward'
+        module=SwiGLU();manager=offload.LayerOffload(
+            torch,device='cpu',release_between_components=True)
+        manager.install(module)
+        module.proj.forward=lambda _x: (_ for _ in ()).throw(RuntimeError('fixture'))
+        with torch.inference_mode(),self.assertRaisesRegex(RuntimeError,'fixture'):
+            offload._chunked_swiglu(module,torch.randn(2,19,8),module.forward,torch,
+                                    max_intermediate_bytes=128,hold=manager.hold)
+        self.assertFalse(manager.held_modules)
+        self.assertTrue(all(parameter.device.type=='cpu' for child in
+                            (module.gate_layer,module.proj,module.out)
+                            for parameter in child.parameters(recurse=False)))
+        manager.remove()
+
+    def test_cache_trim_hook_preserves_keyword_block_inputs(self):
+        class QwenImage21TransformerBlock(torch.nn.Module):
+            def forward(self,hidden_states): return hidden_states+1
+        model=QwenImage21TransformerBlock()
+        manager=offload.LayerOffload(torch,device='cpu',release_between_components=True)
+        manager.trim_cached=lambda:True
+        manager.install(model)
+        self.assertEqual(model(hidden_states=torch.zeros(1)).item(),1)
+        manager.remove()
+
+    def test_normal_profile_does_not_patch_qwen_swiglu(self):
+        SwiGLU.__name__='QwenImage21SwiGLUFeedForward'
+        module=SwiGLU();original=module.forward
+        manager=offload.LayerOffload(torch,device='cpu')
+        manager.install(module)
+        self.assertEqual(module.forward,original)
+        manager.remove()
 
     def test_owner_move_preserves_packed_subclass(self):
         module=PackedLinear()
