@@ -305,6 +305,10 @@ def generate(p, selected, options):
                     if 'preview_every' in params: args['preview_every']=display.preview_every
                     if 'status_callback' in params: args['status_callback']=display.status
                     if 'spectrum' in params: args['spectrum']=bool(options.get('spectrum',False))
+                    if not speed_sigmas and options.get('sampler_sharp') is not None:
+                        # DPM++ 2M Sharp applies to the plain schedule only;
+                        # turbo runs keep their exact distilled sigma path.
+                        args['sampler_sharpness']=float(options['sampler_sharp'])
                     if 'output_resolution' in params: args['output_resolution']=max(p.width,p.height)
                     refiner_mode=str(options.get('refiner') or 'off').lower()
                     if refiner_mode!='off' and 'refiner' in params: args['refiner']=refiner_mode

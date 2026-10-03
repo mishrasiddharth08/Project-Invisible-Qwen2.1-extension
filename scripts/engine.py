@@ -225,6 +225,7 @@ class Script(scripts.Script):
                         speed_name=gr.Dropdown(['(none)',turbo],value='(none)',label='Turbo model',scale=1,min_width=180)
                         speed_strength=gr.Slider(0.0,1.5,value=1.0,step=0.05,label='Qwen Turbo strength',elem_id=f'pi_q21_{mode}_turbo_strength',scale=1,min_width=180)
                     spectrum=gr.Checkbox(value=False,label='Spectrum acceleration',info='Experimental; can change details. Turn off for an exact baseline.')
+                    sharp=gr.Dropdown([('Off',0),('DPM++ 2M Sharp 0.15',0.15),('Strong 0.35',0.35)],value=0,label='Sharp sampler',info='DPM++ 2M Sharp (envy-ai): sharpened denoised history. Quality runs only; turbo keeps its exact schedule.')
                     speed_status=gr.Markdown(elem_classes=['pi-q21-status'])
                     with gr.Accordion('Download turbo model',open=False):
                         gr.Markdown(manager.featured_instructions())
@@ -272,7 +273,7 @@ class Script(scripts.Script):
         self._box=box
         PANELS.append(box)
         # Preserve existing positions; new controls append to the contract.
-        return [task,steps,cfg,profile,side,offload,community,consent,mask,*refs,spectrum,degrid,speed_enabled,speed_name,speed_strength,refiner,style_name,composite,pixel_drift,keep_loaded,lanpaint,lanpaint_steps,fix_name,texture_vae]
+        return [task,steps,cfg,profile,side,offload,community,consent,mask,*refs,spectrum,degrid,speed_enabled,speed_name,speed_strength,refiner,style_name,composite,pixel_drift,keep_loaded,lanpaint,lanpaint_steps,fix_name,texture_vae,sharp]
 
 
 # --------------------------------------------------------------------------- #
