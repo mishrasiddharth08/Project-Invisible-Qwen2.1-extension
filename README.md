@@ -116,3 +116,7 @@ See [usage, research and validation](docs/QWEN_ENHANCER.md). Thanks to capitan01
 ## October 4, 2026 — native Forge compatibility
 
 Project Invisible now coexists with the native engine proposed in Forge PR #1512. Use `qwen-image-2.1` for this extension or `qwen21` with a regular checkpoint for native Forge after installing its support. [Details and test limits](docs/FORGE_NATIVE_QWEN21.md).
+
+## Optional detail fix missing
+
+A saved preset can select a detail-fix LoRA you have not downloaded. Generate now continues without it and records a warning. To use it, open **Qwen > Finish > Detail fix**, select the file and approve its download. Choose **(none)** to disable it. Restart Forge after this update.

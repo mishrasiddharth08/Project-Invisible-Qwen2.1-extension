@@ -173,6 +173,7 @@ def generate(p, selected, options):
                 # always matches the schedule.
         p.cfg_scale=cfg  # Keep saved generation metadata consistent with actual inference.
         fix_adapter=None
+        fix_skipped=None
         fix_name=options.get('fix_lora') if options.get('fix_lora') and options.get('fix_lora')!='(none)' else None
         if fix_name:
             fix_entry=downloads.FIX.get(fix_name)
@@ -181,9 +182,11 @@ def generate(p, selected, options):
             else:
                 fix_path=downloads.fix_path(fix_name)
                 if not fix_path or not fix_path.is_file() or fix_path.stat().st_size<=8:
-                    raise ValueError(fix_name+' is not downloaded yet. Open Qwen Controls > Detail fix and approve the one-time download, or set it to (none). Generate never downloads files.')
-                fix_adapter=(str(fix_path),float(fix_entry['strength']))
-                print('[PI-Qwen21] Detail-fix LoRA: '+fix_name)
+                    fix_skipped=fix_name
+                    print('[PI-Qwen21] Optional detail fix unavailable: '+fix_name+'. Generating without it. Download it under Qwen > Finish > Detail fix, or select (none).')
+                else:
+                    fix_adapter=(str(fix_path),float(fix_entry['strength']))
+                    print('[PI-Qwen21] Detail-fix LoRA: '+fix_name)
         primary=list(getattr(p,'init_images',None) or [])[:1]
         img2img_type=getattr(processing,'StableDiffusionProcessingImg2Img',None)
         is_edit=isinstance(p,img2img_type) if isinstance(img2img_type,type) else bool(primary)
@@ -371,6 +374,7 @@ def generate(p, selected, options):
                     if speed_entry: info+=f", Speed LoRA: {speed_name} ({speed_adapter[1]:g})"
                     if style_adapter: info+=f", Style LoRA: {style_name}"
                     if fix_adapter: info+=f", Detail fix: {fix_name}"
+                    if fix_skipped: info+=f", Detail fix skipped (missing file): {fix_skipped}"
                     if refiner_mode!='off': info+=f", Refiner: {refiner_mode}"
                     if headswap: info+='\nHead Swap: '+headswap.metadata()
                     p._pi_qwen21_image_index=i

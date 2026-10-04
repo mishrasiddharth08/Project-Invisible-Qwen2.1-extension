@@ -1,3 +1,9 @@
+# October 4, 2026 — optional detail-fix recovery
+
+- Missing or empty optional detail-fix files restored by saved presets no longer block Generate. The run skips that adapter, prints a warning and records the skip in image metadata.
+- Existing detail-fix files still apply normally. Generate never downloads files; downloads still require approval.
+- 258 tests passed, one skipped (259 total), including missing/empty/available adapter cases.
+
 # October 4, 2026 — Forge PR #1512 compatibility and VAE memory
 
 255 passed, one skipped (256 total) in both source and installed copies. Native/extension ownership, older Forge fallback, API overrides and VAE strip boundaries are covered. GPU worker checks passed with weighted phrases/references, LanPaint, Spectrum, cancellation and recovery. One large actual Diffusers VAE upsampler produced identical FP32/FP16/BF16 outputs using about 23% less peak allocated memory for that isolated operation. Whole-generation speed/VRAM gains and unmerged native PR inference remain unverified. Details: [Forge compatibility](docs/FORGE_NATIVE_QWEN21.md).

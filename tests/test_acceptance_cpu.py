@@ -597,15 +597,43 @@ class RuntimeAcceptanceTests(unittest.TestCase):
         with mock.patch.object(runtime, "resolve", return_value=bundle), \
              mock.patch.object(runtime, "load", return_value=self.pipe) as loader, \
              mock.patch.object(runtime.adapter, "parse", side_effect=lambda text, community: (text, [])), \
-             mock.patch.object(runtime.adapter, "apply"):
+             mock.patch.object(runtime.adapter, "apply") as applied:
             result = runtime.generate(p, "selected", self.options(**options))
             self.last_load = loader.call_args
+            self.last_adapters = applied.call_args
         return p, result
 
     def test_auto_profile_respects_memory_checkbox_on_large_gpu(self):
         with mock.patch.object(runtime,'hardware_profile',return_value=dict(side=0,offload=False)):
             self.run_generate(profile='auto',offload=True)
         self.assertTrue(self.last_load.args[2])
+
+    def test_missing_optional_detail_fix_does_not_block_or_download(self):
+        downloads=runtime.downloads
+        with mock.patch.object(downloads,'fix_path',return_value=None), \
+             mock.patch.object(downloads,'download_fix') as fetch:
+            _,result=self.run_generate(fix_lora='Qwen 2.1 Fix v2.0')
+        self.assertEqual(len(self.pipe.calls),1)
+        self.assertIn('Detail fix skipped (missing file)',result.info)
+        fetch.assert_not_called()
+
+    def test_empty_optional_detail_fix_is_skipped(self):
+        downloads=runtime.downloads
+        with tempfile.TemporaryDirectory() as td:
+            missing=Path(td)/'fix.safetensors';missing.write_bytes(b'')
+            with mock.patch.object(downloads,'fix_path',return_value=missing):
+                _,result=self.run_generate(fix_lora='Qwen 2.1 Fix v2.0')
+        self.assertIn('Detail fix skipped (missing file)',result.info)
+
+    def test_available_optional_detail_fix_is_applied_and_recorded(self):
+        downloads=runtime.downloads
+        with tempfile.TemporaryDirectory() as td:
+            local=Path(td)/'fix.safetensors';local.write_bytes(b'fixture-weights')
+            with mock.patch.object(downloads,'fix_path',return_value=local):
+                _,result=self.run_generate(fix_lora='Qwen 2.1 Fix v2.0')
+        self.assertIn('Detail fix: Qwen 2.1 Fix v2.0',result.info)
+        self.assertNotIn('Detail fix skipped',result.info)
+        self.assertIn((str(local),1.0),self.last_adapters.args[1])
 
     def test_config_default_keeps_worker_after_whole_batch(self):
         p=self.p();p.batch_size=2

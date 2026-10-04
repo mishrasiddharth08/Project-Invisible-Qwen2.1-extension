@@ -1,3 +1,9 @@
+# October 4, 2026 — optional detail-fix recovery
+
+- Missing or empty optional detail-fix files restored by saved presets no longer block Generate. The run skips that adapter, prints a warning and records the skip in image metadata.
+- Existing detail-fix files still apply normally. Generate never downloads files; downloads still require approval.
+- 258 tests passed, one skipped (259 total), including missing/empty/available adapter cases.
+
 # October 4, 2026 — native Forge compatibility (PR #1512)
 
 - Native `qwen21` preset and regular checkpoints now remain under Forge control.

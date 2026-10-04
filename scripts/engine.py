@@ -249,7 +249,7 @@ class Script(scripts.Script):
                         style_button=gr.Button('Download selected style',size='sm')
                     style_button.click(fn=manager.download_style,inputs=[style_name,style_approved],outputs=[style_status])
                     with gr.Accordion('Detail fix (removes the plastic look)',open=False):
-                        fix_name=gr.Dropdown(manager.FIX_CHOICES,value='(none)',label='Detail-fix LoRA',info='Best on full Quality runs; download once below.')
+                        fix_name=gr.Dropdown(manager.FIX_CHOICES,value='(none)',label='Detail-fix LoRA',info='Optional; download once below. Missing files are skipped with a warning.')
                         texture_vae=gr.Checkbox(value=False,label='Use the texture-fix VAE',info='Real micro-texture instead of the stock VAE\'s plastic surface.')
                         gr.Markdown(manager.fix_instructions())
                         gr.Markdown(manager.texture_vae_instructions())
