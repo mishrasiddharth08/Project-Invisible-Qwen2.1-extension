@@ -2,8 +2,11 @@
 onUiUpdate(function () {
     const root = gradioApp();
     if (!root) return;
-    const picker = root.querySelector('#setting_sd_model_checkpoint input');
-    const active = /qwen[-_]image[-_]2[._]1/i.test(picker ? picker.value : '');
+    // Native Forge's qwen21 preset owns its own cards. Follow the server's
+    // extension-panel visibility instead of guessing ownership by filename.
+    const active = [...root.querySelectorAll('.pi-q21-panel')].some(
+        panel => !panel.hidden && getComputedStyle(panel).display !== 'none'
+    );
     root.querySelectorAll('.card').forEach(card => {
         const disabled = active && card.textContent.includes('pi_qwen21_incompatible');
         card.classList.toggle('pi-qwen21-incompatible', disabled);

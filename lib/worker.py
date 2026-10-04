@@ -25,6 +25,12 @@ def _quantized(bundle,prof=None):
     return any(any(tag in str(value).lower() for tag in ('int8','w4a8','convrot','fp8','nvfp4','mxfp8')) for value in values if value)
 
 def _prepare_pipe(pipe,prof,offload,quantized=False):
+    # PR #1512 uses halo strips to bound temporary VAE upsampling memory.
+    # Apply only known local upsamplers; keep full-image decode without seams.
+    from importlib.util import spec_from_file_location, module_from_spec
+    spec=spec_from_file_location('_pi_qwen21_vae_memory',Path(__file__).with_name('vae_memory.py'))
+    memory=module_from_spec(spec);spec.loader.exec_module(memory)
+    pipe._pi_vae_strips=memory.install(pipe.vae)
     # Qwen 2.1 tiled decoding introduces colored seams and damages alpha.
     if hasattr(pipe.vae,'disable_tiling'): pipe.vae.disable_tiling()
     if hasattr(pipe.vae,'enable_slicing'): pipe.vae.enable_slicing()

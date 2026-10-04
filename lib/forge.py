@@ -12,6 +12,15 @@ def selected(p=None):
     if value==LABEL: return str(Path(__file__).resolve().parents[1]/'resources'/'qwen21'/'model_index.json')
     ci=sd_models.checkpoints_list.get(value) or sd_models.checkpoint_aliases.get(value)
     if ci is not None and getattr(ci,'_pi_qwen21',False): return ci.filename
+    # PR #1512 adds a native engine and a distinct qwen21 preset. Only
+    # extension-owned markers override that explicit native selection.
+    preset=(getattr(p,'override_settings',{}) or {}).get('forge_preset',getattr(shared.opts,'forge_preset',None))
+    if preset=='qwen21':
+        try:
+            from modules_forge import presets
+            if hasattr(presets.PresetArch,'qwen21'): return None
+        except (ImportError,AttributeError):
+            pass
     filename=getattr(ci,'filename','')
     if Path(filename).name.lower() in NAMES['dit']: return filename
     # Community mirrors rename DiT files (e.g. Civitai); recognize by contents.

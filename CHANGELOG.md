@@ -1,3 +1,11 @@
+# October 4, 2026 — native Forge compatibility (PR #1512)
+
+- Native `qwen21` preset and regular checkpoints now remain under Forge control.
+- Project Invisible aliases keep the isolated worker; panel and LoRA-card restrictions follow engine ownership.
+- Adapted halo-strip VAE upsampling to reduce temporary memory without full-image tile seams; known modules only, automatic above threshold. Isolated GPU operation used about 23% less memory with identical FP32/FP16/BF16 output.
+- API preset overrides and older Forge versions are covered. 255 tests passed, one skipped.
+- [Compatibility and usage](docs/FORGE_NATIVE_QWEN21.md). No Forge-core changes; native PR inference remains untested.
+
 # October 4, 2026 — reference and phrase priorities
 
 - Adapted both capitan01R enhancer features to the existing isolated Diffusers worker.

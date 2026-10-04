@@ -165,6 +165,7 @@ class WorkerTransportTests(unittest.TestCase):
         (self.root / "lib/components.py").write_text(textwrap.dedent(COMPONENTS), encoding="utf-8")
         (self.root / "lora/adapter.py").write_text(textwrap.dedent(ADAPTER), encoding="utf-8")
         shutil.copy2(Path(worker_client.__file__).with_name("worker.py"), self.root / "lib/worker.py")
+        shutil.copy2(Path(worker_client.__file__).with_name("vae_memory.py"), self.root / "lib/vae_memory.py")
         shutil.copy2(Path(worker_client.__file__).with_name("preview.py"), self.root / "lib/preview.py")
         shutil.copy2(Path(worker_client.__file__).with_name("spectrum.py"), self.root / "lib/spectrum.py")
         shutil.copy2(Path(worker_client.__file__).with_name("alpha.py"), self.root / "lib/alpha.py")

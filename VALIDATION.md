@@ -1,3 +1,7 @@
+# October 4, 2026 — Forge PR #1512 compatibility and VAE memory
+
+255 passed, one skipped (256 total) in both source and installed copies. Native/extension ownership, older Forge fallback, API overrides and VAE strip boundaries are covered. GPU worker checks passed with weighted phrases/references, LanPaint, Spectrum, cancellation and recovery. One large actual Diffusers VAE upsampler produced identical FP32/FP16/BF16 outputs using about 23% less peak allocated memory for that isolated operation. Whole-generation speed/VRAM gains and unmerged native PR inference remain unverified. Details: [Forge compatibility](docs/FORGE_NATIVE_QWEN21.md).
+
 # October 4, 2026 — enhancer
 
 247 tests run: 246 passed and one skipped. A real RTX 5090 256-pixel, two-step CFG 2 edit with independently weighted positive/negative phrases, reference priority and native KV caching succeeded. Unweighted txt2img subsequently succeeded in the same worker. See docs/QWEN_ENHANCER.md for scope; this is execution validation, not a visual-quality benchmark.

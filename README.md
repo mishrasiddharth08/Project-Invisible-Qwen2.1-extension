@@ -112,3 +112,7 @@ Optional **LanPaint masked edit** is now inside **img2img → Qwen · Image 2.1 
 Optional **Weighted prompt phrases** is inside **Qwen → Finish**; use `(warm lighting:1.3)` in positive or negative prompts. **img2img → Qwen → Edit → Reference priorities** accepts `1:1.2, 2:0.8`. Defaults retain native behavior. Restart Forge after updating.
 
 See [usage, research and validation](docs/QWEN_ENHANCER.md). Thanks to capitan01R for the upstream MIT-licensed enhancer; earlier acknowledgments are preserved.
+
+## October 4, 2026 — native Forge compatibility
+
+Project Invisible now coexists with the native engine proposed in Forge PR #1512. Use `qwen-image-2.1` for this extension or `qwen21` with a regular checkpoint for native Forge after installing its support. [Details and test limits](docs/FORGE_NATIVE_QWEN21.md).

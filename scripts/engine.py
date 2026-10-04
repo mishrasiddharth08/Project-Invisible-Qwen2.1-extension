@@ -159,13 +159,15 @@ def after_component(component,**kwargs):
         for radio,is_img2img in list(_QUALITY_RADIOS):
             if is_img2img == (mode=='img2img'):
                 _bind_quality(radio,component)
-    if elem_id!='setting_sd_model_checkpoint' or not PANELS: return
+    if elem_id not in ('setting_sd_model_checkpoint','setting_forge_preset') or not PANELS: return
     if component in _BOUND_CHECKPOINTS: return
     from gradio.context import Context
     if Context.root_block is None: return
     panels=list(PANELS)
     def changed(value):
-        active='qwen-image-2.1' in str(value).lower() or 'qwen_image_2.1' in str(value).lower()
+        from types import SimpleNamespace
+        key='forge_preset' if elem_id=='setting_forge_preset' else 'sd_model_checkpoint'
+        active=bool(forge.selected(SimpleNamespace(override_settings={key:value})))
         if not active: runtime.release_on_selection()
         return [gr.update(visible=active) for _ in panels]
     component.change(fn=changed,inputs=[component],outputs=panels,queue=False)
