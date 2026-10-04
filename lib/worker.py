@@ -331,11 +331,15 @@ def main():
             use_sharp = sharpness is not None and float(sharpness) != 0.0 and not sigmas
             if getattr(pipe, 'scheduler', None) is not None and getattr(pipe, '_pi_qwen21_base_scheduler_config', None) is None:
                 pipe._pi_qwen21_base_scheduler_config = dict(pipe.scheduler.config)
+            config = dict(getattr(pipe, '_pi_qwen21_base_scheduler_config', None) or {})
+            # A single native sigma is 1: terminal stretching divides 0 by 0.
+            # Disable it for this request only; the immutable base is retained.
+            if int(command['num_inference_steps']) == 1:
+                config['shift_terminal'] = None
             if sigmas:
                 # Speed LoRAs are distilled against exact sigma nodes and a
                 # scheduler with shift_terminal disabled; the base config's
                 # 0.02 wrecks the last step (see the Viggle model card).
-                config = dict(pipe._pi_qwen21_base_scheduler_config)
                 config['shift_terminal'] = None
                 from diffusers import FlowMatchEulerDiscreteScheduler
                 pipe.scheduler = FlowMatchEulerDiscreteScheduler.from_config(config)
@@ -345,13 +349,14 @@ def main():
                 # the standard schedule. Only applies to the plain schedule -
                 # turbo runs keep their exact distilled sigma path.
                 sharp_sampling = __import__(alias + ".lib.sampling", fromlist=["build"])
-                config = dict(pipe._pi_qwen21_base_scheduler_config)
+                from diffusers import FlowMatchEulerDiscreteScheduler
+                pipe.scheduler = FlowMatchEulerDiscreteScheduler.from_config(config)
                 pipe.scheduler = sharp_sampling.build(
                     pipe.scheduler, sharpness=float(sharpness))
                 pipe._pi_sharp_scheduler = True
             elif getattr(pipe, '_pi_qwen21_base_scheduler_config', None) is not None:
                 from diffusers import FlowMatchEulerDiscreteScheduler
-                pipe.scheduler = FlowMatchEulerDiscreteScheduler.from_config(pipe._pi_qwen21_base_scheduler_config)
+                pipe.scheduler = FlowMatchEulerDiscreteScheduler.from_config(config)
                 pipe._pi_sharp_scheduler = False
             supported = params
             kwargs = {k: v for k, v in kwargs.items() if k in supported}
@@ -361,12 +366,16 @@ def main():
                     lora.apply(pipe, [(a["path"], float(a["weight"])) for a in adapters])
                     speedup=bool(command.get('spectrum',False))
                     emit('status',status='encoding')
+                    enhancement=contextlib.nullcontext()
+                    if command.get('phrase_weights') or command.get('reference_priorities'):
+                        enhancer=__import__(alias+'.lib.enhancer',fromlist=['apply'])
+                        enhancement=enhancer.apply(pipe,command.get('phrase_weights',False),command.get('reference_priorities',''),lambda text: emit('status',status=text))
                     with spectrum.accelerate(pipe,enabled=speedup,steps=command['num_inference_steps'],stop=stop,cfg=command.get('true_cfg_scale',1.0)) as cache_stats, _sampling_heartbeat(pipe,stop,command['num_inference_steps'],completed_steps,
                                              lambda text: emit('status',status=text)):
                         context=(lanpaint.sampling(pipe,refs[0],mask,command['width'],command['height'],
                             command.get('lanpaint_steps',2),command.get('true_cfg_scale',1),int(command['seed']),
                             stop,lambda text: emit('status',status=text)) if use_lanpaint else contextlib.nullcontext())
-                        with context:
+                        with enhancement, context:
                             output = pipe(**kwargs).images
                     if deferred_decode:
                         # The pipeline's denoising locals and KV caches are now
@@ -390,8 +399,14 @@ def main():
                             if name in sys.modules:
                                 importlib.reload(sys.modules[name])
                             refiner = __import__(name, fromlist=["run"])
-                            result = refiner.run(pipe, torch, result, command, kwargs,
-                                                 emit, log)
+                            refinement=contextlib.nullcontext()
+                            if command.get('phrase_weights'):
+                                # Refiner re-encodes raw prompts. Keep phrase syntax
+                                # meaningful; its latent-start pass has no reference keys.
+                                refinement=enhancer.apply(pipe,True,'',lambda text: emit('status',status=text))
+                            with refinement:
+                                result = refiner.run(pipe, torch, result, command, kwargs,
+                                                     emit, log)
                         except InterruptedError:
                             raise
                         except Exception:

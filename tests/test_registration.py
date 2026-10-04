@@ -77,6 +77,15 @@ if __name__ == "__main__":
     unittest.main()
 
 class SpectrumOptionsTests(unittest.TestCase):
+    def test_enhancer_controls_append_after_existing_controls(self):
+        forge=load_forge()
+        values=['edit',40,1,'auto',0,True,False,False,None]+[None]*9+[False,True,False,'(none)',1.0,'off','(none)',False,False,True,False,2,'(none)',False,0,True,'1:1.2']
+        script=types.SimpleNamespace(_pi_qwen21=True,args_from=0,args_to=len(values))
+        result=forge.options(types.SimpleNamespace(alwayson_scripts=[script]),types.SimpleNamespace(script_args=values))
+        self.assertEqual(result['refs'],[None]*9)
+        self.assertEqual(result['phrase_weights'],True)
+        self.assertEqual(result['reference_priorities'],'1:1.2')
+
     def test_lanpaint_controls_append_without_shifting_existing_options(self):
         forge=load_forge()
         values=['edit',40,1,'auto',0,True,False,False,None]+[None]*9+[False,True,False,'(none)',1.0,'off','(none)',False,False,True,True,3]

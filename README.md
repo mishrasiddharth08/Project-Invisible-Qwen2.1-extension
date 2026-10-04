@@ -106,3 +106,9 @@ Special thanks to u/malcolmrey for support and inspiration. Thank you also to th
 Optional **LanPaint masked edit** is now inside **img2img → Qwen · Image 2.1 → Edit**. Paint a mask in native Inpaint, choose 1–5 thinking steps, and press Generate. Unmasked source pixels are preserved, including alpha. More thinking takes longer.
 
 [Usage, tests and limitations](docs/LANPAINT.md). Restart Forge after updating. Existing acknowledgments remain above.
+
+## October 4, 2026 — reference and phrase priorities
+
+Optional **Weighted prompt phrases** is inside **Qwen → Finish**; use `(warm lighting:1.3)` in positive or negative prompts. **img2img → Qwen → Edit → Reference priorities** accepts `1:1.2, 2:0.8`. Defaults retain native behavior. Restart Forge after updating.
+
+See [usage, research and validation](docs/QWEN_ENHANCER.md). Thanks to capitan01R for the upstream MIT-licensed enhancer; earlier acknowledgments are preserved.

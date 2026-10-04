@@ -1,3 +1,13 @@
+# October 4, 2026 — reference and phrase priorities
+
+- Adapted both capitan01R enhancer features to the existing isolated Diffusers worker.
+- Optional positive/negative `(phrase:weight)` syntax and per-reference priorities, without embedding or pixel scaling.
+- Preserve normalized attention, native prefix caching and padding; validate exact token rows; restore request-local processors/hooks.
+- 247 automated tests run: 246 passed, one skipped. Real weighted CFG/reference GPU test and subsequent unweighted worker reuse passed.
+- Fixed single-step scheduler terminal stretching producing non-finite latents; ordinary later schedules retain their original settings.
+- GPU boundary checks passed: neutral pixel identity, two references, zero/max priorities, uncached attention, LanPaint, Spectrum, cancellation/recovery and a separate refiner run.
+- Added research, beginner instructions and MIT attribution. See [enhancer guide](docs/QWEN_ENHANCER.md). Image-quality improvements are not yet benchmarked.
+
 # September 28, 2026 — model reuse and total steps
 
 ## 2026-09-28 — LanPaint masked editing

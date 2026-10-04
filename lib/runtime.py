@@ -209,6 +209,14 @@ def generate(p, selected, options):
             raise ValueError('Use Head Swap protected-head mode and its mask editor for Qwen 2.1; clear the native inpaint mask.')
         refs.extend(im for im in options.get('refs',[]) if im is not None)
         if len(refs)>10: raise ValueError('At most 10 reference images are supported.')
+        from .enhancer import references,phrases
+        priorities=references(options.get('reference_priorities',''))
+        if priorities and max(priorities)>len(refs):
+            raise ValueError('Selected reference is missing. Main img2img image is reference 1.')
+        if headswap and (priorities or options.get('phrase_weights')):
+            raise ValueError('Turn off phrase/reference weighting when using protected Head Swap.')
+        if options.get('phrase_weights'):
+            phrases(prompt);phrases(negative)
         if task=='rgba': prompt='This is an RGBA image with transparency. '+prompt+'. The image has alpha channel and the background is transparent.'
         style_adapter=None
         style_name=options.get('style_lora') if options.get('style_lora') else None
@@ -297,6 +305,10 @@ def generate(p, selected, options):
                     args=dict(prompt=generation_prompt,negative_prompt=generation_negative if generation_cfg>1 else None,true_cfg_scale=generation_cfg,width=p.width,height=p.height,num_inference_steps=p.steps,generator=torch.Generator('cpu').manual_seed(current_seed))
                     if speed_sigmas: args['sigmas']=speed_sigmas
                     if generation_refs: args['image']=generation_refs
+                    if options.get('phrase_weights') or priorities:
+                        if 'phrase_weights' not in params:
+                            raise ValueError('Restart Forge to load the enhancer worker update.')
+                        args.update(phrase_weights=bool(options.get('phrase_weights')),reference_priorities=str(options.get('reference_priorities','')))
                     if mask is not None: args['mask_image']=mask
                     if use_lanpaint:
                         args.update(lanpaint=True,lanpaint_steps=int(options.get('lanpaint_steps',2)))
@@ -350,6 +362,8 @@ def generate(p, selected, options):
                     info+=f', Qwen moire cleanup: {cleanup:g}'
                     info+=f', DeGrid: {"auto" if cleanup else "off"}'
                     if use_lanpaint: info+=f", LanPaint thinking steps: {int(options.get('lanpaint_steps',2))}"
+                    effective_priorities='; '.join(f'{index}:{strength:g}' for index,strength in sorted(priorities.items())) or 'native'
+                    info+=f", Phrase weights: {bool(options.get('phrase_weights'))}, Reference priorities: {effective_priorities}"
                     info+=f', PixelDriftFix: {drift_status}'
                     info+=f", Spectrum requested: {bool(options.get('spectrum',False))}"
                     if spectrum_report:

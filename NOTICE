@@ -2,3 +2,5 @@ Qwen is licensed under Qwen RESEARCH LICENSE AGREEMENT, Copyright (c) 2026 Hangz
 Independent Forge adapter, not an official Qwen product. Adapter files newly written; hook pattern adapted from project-invisible-ideogram-4. No upstream model code modified or relicensed.
 
 LanPaint: GPL-3.0 core from scraed/LanPaint at 2d7912f9a5efe5ece8de334c7ca18317b8288c39; license and provenance in lib/vendor/lanpaint/. The lib/lanpaint.py bridge is GPL-3.0. Other component and model licenses remain unchanged.
+
+Qwen 2.1 enhancer: adapted from capitan01R/ComfyUI-qwen_img_2_1_enhancer at e7204ab908526381c67cd8276adc7aa2e9581c95, Copyright (c) 2026 capitan01R, MIT. License in lib/vendor/qwen_enhancer/LICENSE. Other licenses and credits remain unchanged.

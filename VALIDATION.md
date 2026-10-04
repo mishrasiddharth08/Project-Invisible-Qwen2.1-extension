@@ -1,3 +1,9 @@
+# October 4, 2026 — enhancer
+
+247 tests run: 246 passed and one skipped. A real RTX 5090 256-pixel, two-step CFG 2 edit with independently weighted positive/negative phrases, reference priority and native KV caching succeeded. Unweighted txt2img subsequently succeeded in the same worker. See docs/QWEN_ENHANCER.md for scope; this is execution validation, not a visual-quality benchmark.
+
+GPU matrix: one-step endpoint, two-step native/neutral exact pixel identity, uncached zero phrase, two references at strengths 0 and 8, LanPaint, Spectrum, cancellation and subsequent worker reuse passed. A separate four-step Turbo refiner with phrase weighting passed. The single-step scheduler defect found during testing is fixed without changing later native schedules. These small 256-pixel execution checks do not establish image quality, all adapters, all GPU vendors or full native gallery acceptance.
+
 # 28 September 2026 — worker reuse and progress
 
 198 CPU/UI checks passed, including Forge saved-default loading. Coverage includes deferred model release, resident-cache reuse, batch/refiner totals and duplicate preview events. Forge was unavailable for a fresh GPU run, so loading-time, VRAM and output-quality improvements remain unmeasured.

@@ -196,10 +196,12 @@ class Script(scripts.Script):
             consent=gr.State(False)
             with gr.Tabs(elem_classes=['pi-q21-tools']):
                 with gr.Tab('Finish'):
+                    phrase_weights=gr.Checkbox(value=False,label='Weighted prompt phrases',info='Experimental. Example: (warm lighting:1.3). Works independently for positive and negative prompts.')
                     refiner=gr.Dropdown(['Off','Turbo (fast)','Quality (best)'],value='Off',label='Refine details')
                     degrid=gr.Checkbox(value=bool(runtime.config().get('moire_cleanup',True)),label='Remove grid patterns',info='Turn off if fine details look too smooth.')
                 if is_img2img:
                     with gr.Tab('Edit'):
+                        reference_priorities=gr.Textbox(value='',label='Reference priorities',placeholder='1:1.2, 2:0.8',info='Image number 1–10:strength 0–8. Strength 1 is native. Main image is reference 1.')
                         lanpaint=gr.Checkbox(value=False,label='LanPaint masked edit',info='Experimental. Paint a mask in native img2img Inpaint. Slower; preserves unmasked pixels.')
                         lanpaint_steps=gr.Slider(1,5,value=2,step=1,label='LanPaint thinking steps')
                         with gr.Row(elem_classes=['pi-q21-pair']):
@@ -214,6 +216,7 @@ class Script(scripts.Script):
                                         refs.append(gr.Image(type='pil',sources=['upload'],label=f'Reference {row*3+col+2}',height=120,show_download_button=False,min_width=80,elem_classes=['pi-q21-ref']))
                 else:
                     composite=gr.State(False)
+                    reference_priorities=gr.State('')
                     lanpaint=gr.State(False)
                     lanpaint_steps=gr.State(2)
                     pixel_drift=gr.State(False)
@@ -273,7 +276,7 @@ class Script(scripts.Script):
         self._box=box
         PANELS.append(box)
         # Preserve existing positions; new controls append to the contract.
-        return [task,steps,cfg,profile,side,offload,community,consent,mask,*refs,spectrum,degrid,speed_enabled,speed_name,speed_strength,refiner,style_name,composite,pixel_drift,keep_loaded,lanpaint,lanpaint_steps,fix_name,texture_vae,sharp]
+        return [task,steps,cfg,profile,side,offload,community,consent,mask,*refs,spectrum,degrid,speed_enabled,speed_name,speed_strength,refiner,style_name,composite,pixel_drift,keep_loaded,lanpaint,lanpaint_steps,fix_name,texture_vae,sharp,phrase_weights,reference_priorities]
 
 
 # --------------------------------------------------------------------------- #
