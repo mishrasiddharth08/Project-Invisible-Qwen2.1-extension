@@ -1,38 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="780" viewBox="0 0 1200 780" role="img" aria-labelledby="title desc">
-<title id="title">A cleaner workspace in your Forge theme</title><desc id="desc">Qwen controls stay inside Forge. Choose a tab; keep the main workflow.</desc>
-<rect width="1200" height="780" rx="24" fill="#10151f"/>
-<style>text{font-family:Arial,sans-serif}.title{fill:#e8ecf4;font-size:36px;font-weight:700}.sub{fill:#9fb0c9;font-size:20px}.label{fill:#8fa3c4;font-size:24px;font-weight:700}.body{fill:#dfe7f5;font-size:19px}</style>
-<text x="48" y="70" class="title">A cleaner workspace in your Forge theme</text>
-<text x="48" y="112" class="sub">Qwen controls stay inside Forge. Choose a tab; keep the main workflow.</text>
-<rect x="48" y="160" width="352" height="204" rx="14" fill="#1b2230" stroke="#3c4a63"/>
-<text x="70" y="202" class="label">Finish</text>
-<text x="70" y="242" class="body">Refine details</text>
-<text x="70" y="271" class="body">Remove grid patterns</text>
-<text x="70" y="300" class="body">Output and mode stay above</text>
-<rect x="424" y="160" width="352" height="204" rx="14" fill="#1b2230" stroke="#3c4a63"/>
-<text x="446" y="202" class="label">Edit</text>
-<text x="446" y="242" class="body">Align edit to source</text>
-<text x="446" y="271" class="body">Preserve background</text>
-<text x="446" y="300" class="body">Optional reference images</text>
-<rect x="800" y="160" width="352" height="204" rx="14" fill="#1b2230" stroke="#3c4a63"/>
-<text x="822" y="202" class="label">Speed</text>
-<text x="822" y="242" class="body">Turbo model + strength</text>
-<text x="822" y="271" class="body">Spectrum acceleration</text>
-<text x="822" y="300" class="body">Downloads stay collapsed</text>
-<rect x="48" y="390" width="352" height="204" rx="14" fill="#1b2230" stroke="#3c4a63"/>
-<text x="70" y="432" class="label">Style</text>
-<text x="70" y="472" class="body">Photography styles</text>
-<text x="70" y="501" class="body">Automatic prompt trigger</text>
-<text x="70" y="530" class="body">Approved downloads only</text>
-<rect x="424" y="390" width="352" height="204" rx="14" fill="#1b2230" stroke="#3c4a63"/>
-<text x="446" y="432" class="label">Memory</text>
-<text x="446" y="472" class="body">Auto VRAM budget</text>
-<text x="446" y="501" class="body">Size cap and GPU offload</text>
-<text x="446" y="530" class="body">Advanced options collapsed</text>
-<rect x="800" y="390" width="352" height="204" rx="14" fill="#1b2230" stroke="#3c4a63"/>
-<text x="822" y="432" class="label">Models</text>
-<text x="822" y="472" class="body">Setup guide</text>
-<text x="822" y="501" class="body">Choose model files</text>
-<text x="822" y="530" class="body">Approve before downloading</text>
-<text x="48" y="704" class="sub">Edit appears only in img2img. Native prompts, steps, CFG, Generate and gallery remain in place.</text>
-<text x="48" y="742" fill="#9fb0c9" font-family="Arial,sans-serif" font-size="16">PROJECT INVISIBLE · QWEN-IMAGE-2.1 · SEPTEMBER 28, 2026</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="900" viewBox="0 0 1280 900" role="img" aria-labelledby="title desc">
+<title id="title">Qwen Image 2.1 Full workflows map</title><desc id="desc">A beginner map of workflow presets, edit tools, native generation, organized option groups, readiness checks, and the 60-position saved-settings contract.</desc>
+<rect width="1280" height="900" rx="24" fill="#10151f"/><style>text{font-family:Arial,sans-serif}.title{fill:#f1f5fb;font-size:34px;font-weight:700}.sub{fill:#9fb0c9;font-size:18px}.label{fill:#9bb7e8;font-size:22px;font-weight:700}.body{fill:#dfe7f5;font-size:17px}.small{fill:#b8c6da;font-size:15px}</style>
+<text x="48" y="62" class="title">Qwen Image 2.1 · Full workflows</text><text x="48" y="96" class="sub">Choose a workflow, use only the tools you need, then Generate normally in Forge.</text>
+<rect x="48" y="132" width="370" height="160" rx="14" fill="#1b2230" stroke="#48658f"/><text x="70" y="172" class="label">1 · Choose workflow</text><text x="70" y="208" class="body">Pick a preset for your task</text><text x="70" y="237" class="body">Simple defaults fill in the details</text><text x="70" y="266" class="small">You can still adjust native settings</text>
+<rect x="455" y="132" width="370" height="160" rx="14" fill="#1b2230" stroke="#48658f"/><text x="477" y="172" class="label">2 · Edit tools</text><text x="477" y="208" class="body">Source proportions + references</text><text x="477" y="237" class="body">Outpaint preview + protected source</text><text x="477" y="266" class="small">Zero overlap preserves source pixels</text>
+<rect x="862" y="132" width="370" height="160" rx="14" fill="#1b2230" stroke="#48658f"/><text x="884" y="172" class="label">3 · Generate normally</text><text x="884" y="208" class="body">Use Forge Generate</text><text x="884" y="237" class="body">Native save + gallery flow</text><text x="884" y="266" class="small">Prompt, seed, size, steps and CFG stay native</text>
+<path d="M418 212h37M825 212h37" stroke="#789bd1" stroke-width="3"/>
+<rect x="48" y="326" width="370" height="142" rx="14" fill="#1b2230" stroke="#3c4a63"/><text x="70" y="366" class="label">Finish · Speed</text><text x="70" y="402" class="body">Detail cleanup, Turbo and Spectrum</text><text x="70" y="431" class="small">Refiner/Spectrum: default engine only</text>
+<rect x="455" y="326" width="370" height="142" rx="14" fill="#1b2230" stroke="#3c4a63"/><text x="477" y="366" class="label">Style · Memory</text><text x="477" y="402" class="body">Style helpers, VRAM budget and offload</text><text x="477" y="431" class="small">Advanced options stay collapsed</text>
+<rect x="862" y="326" width="370" height="142" rx="14" fill="#1b2230" stroke="#3c4a63"/><text x="884" y="366" class="label">Models · Full workflows</text><text x="884" y="402" class="body">Model choices, setup help and diagnostics</text><text x="884" y="431" class="small">Readiness check inspects files only</text>
+<rect x="48" y="510" width="1184" height="280" rx="16" fill="#151d29" stroke="#5e7fab"/><text x="72" y="552" class="label">Readiness check</text><text x="72" y="586" class="sub">Before a full workflow, confirm the required local parts:</text>
+<text x="82" y="626" class="body">✓ Qwen Image 2.1 model</text><text x="420" y="626" class="body">✓ Qwen3-VL text encoder</text><text x="790" y="626" class="body">✓ Qwen 2.1 VAE</text>
+<text x="82" y="663" class="body">✓ Comfy components</text><text x="420" y="663" class="body">✓ RES4LYF components</text><text x="790" y="663" class="body">✓ Union / pose assets when used</text>
+<text x="82" y="700" class="body">✓ Decoder precision: BF16 baseline</text><text x="790" y="700" class="body">✓ No automatic downloads</text>
+<rect x="72" y="728" width="1136" height="42" rx="10" fill="#223047"/><text x="92" y="756" class="body">Saved settings: 60 positions · new controls append safely · older positions remain unchanged</text>
+<text x="48" y="850" class="sub">PROJECT INVISIBLE · QWEN-IMAGE-2.1 · OCTOBER 6, 2026</text></svg>

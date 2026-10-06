@@ -3,7 +3,18 @@
 Qwen 2.1 inside Forge's existing **txt2img**, **img2img**, **Generate** and gallery workflow.
 Independent community extension; not an official Qwen product.
 
-## September 28, 2026 update
+## October 6, 2026 update
+
+- Added audited workflow presets inside the existing Forge pages; the script contract now has **60 positions**, with all new values appended for saved-setting compatibility.
+- Added an optional isolated **Full workflows** backend for native Qwen 2.1 Euler/Simple, RES 2S/Beta, Union ControlNet, merged-Turbo selection and local prompt rewriting.
+- Added source-proportion editing, reference-size limits, pose-map preparation, outpaint canvas preview, protected RGBA compositing and a local-only readiness check.
+- Downloads remain explicit. **Generate never downloads models, backend code, preprocessors or adapters.**
+
+![Qwen 2.1 workflow map](docs/img/ui-tour.svg)
+
+[Full-workflow UI guide, requirements and tested limits](docs/FULL_WORKFLOWS.md)
+
+## Earlier interface update
 
 - Original Forge theme colors with aligned, responsive tabs and less clutter.
 - Memory saving now respects its checkbox in Auto mode. Workers unload after a batch.
@@ -11,8 +22,6 @@ Independent community extension; not an official Qwen product.
 - Optional PixelDriftFix-style alignment for img2img, with alpha preservation.
 - Native Forge controls stay visible; reference upload/remove buttons remain usable.
 - Qwen Turbo strength has a unique saved setting; disabled turbo no longer validates stale slider values from another extension.
-
-![Qwen panel guide](docs/img/ui-tour.svg)
 
 ## Install or update
 
@@ -52,12 +61,12 @@ The **Models** tab contains setup instructions and optional downloads. Downloads
 
 | Tab | Controls |
 |---|---|
-| Finish | Refiner and grid-pattern cleanup |
-| Edit â€” img2img only | PixelDriftFix alignment, background compositing, up to nine extra references |
-| Speed | Turbo LoRA, sharp sampler and optional Spectrum acceleration |
+| Finish | Refiner, weighted prompt phrases and grid-pattern cleanup |
+| Edit â€” img2img only | Workflow tools, source proportions, outpaint preview, pose guide, masking, alignment and up to nine extra references |
+| Speed | Viggle Turbo LoRA, exact distilled schedule, sharp sampler, cache and optional Spectrum |
 | Style | Photography style selection, detail-fix LoRAs, texture-fix VAE and approved downloads |
 | Memory | VRAM budget, maximum size, offload and advanced adapter compatibility |
-| Models | Collapsed setup guide and approved model downloads |
+| Models | Default/Full engine, sampler/scheduler, Union, prompt enhancer, merged Turbo, readiness check and approved downloads |
 
 **Fast** selects the turbo adapter and eight steps. Download that adapter first. Native step changes remain respected. The distilled turbo path uses **CFG 1**, even if a higher value was entered. Use the ordinary model for CFG above 1. Refiner passes take additional time and memory; they reuse the loaded model.
 
@@ -98,6 +107,10 @@ Report your Forge version, GPU, precision, steps, CFG, enabled options and relev
 - [**Haoming02 / sd-webui-forge-classic (neo branch)**](https://github.com/Haoming02/sd-webui-forge-classic/tree/neo) - the Forge Neo tree this extension targets
 - [**ComfyUI**](https://github.com/comfyanonymous/ComfyUI) - reference for upstream sampler/scheduler coverage
 - **The Forge / AUTOMATIC1111 community** - for the extension ecosystem this plugs into
+
+- IntoTheLatent — supplied workflow designs.
+- [AiWithYou / AiKimi](https://github.com/AiWithYou/aikimi-forge-neo) — readiness and editing inspiration.
+- [RES4LYF](https://github.com/ClownsharkBatwing/RES4LYF), Viggle and VideoX-Fun — sampler, distilled model and control references; original licenses remain in force.
 
 Special thanks to u/malcolmrey for support and inspiration. Thank you also to the Forge Neo, Diffusers, Qwen, DeGrid, Spectrum and wider open-source communities.
 

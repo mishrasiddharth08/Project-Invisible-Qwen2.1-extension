@@ -36,6 +36,8 @@ class ForgeProgress:
             self.bar = tqdm(total=steps, desc='Current image', position=0, leave=False, file=getattr(shared, 'progress_print_out', None))
 
     def status(self, text):
+        if self.shared.state.interrupted or self.shared.state.skipped:
+            raise InterruptedError('Generation interrupted')
         self.shared.state.textinfo = f'Qwen: image {self.index+1}/{self.total} | ' + str(text)
 
     def start_image(self, index, width=256, height=256):

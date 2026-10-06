@@ -1,3 +1,27 @@
+# October 6, 2026 — Full workflows release evidence
+
+The existing Forge UI contract now contains **60 positions**. New controls remain appended; native prompt, steps, CFG, seed, size, Generate, save and gallery controls remain authoritative.
+
+The complete suite ran in both source and installed copies: **319 tests, 318 passed and one unrelated test skipped**. Real panel construction verified both Forge panels and all 60 positions.
+
+Post-installation worker matrix also passed all five cases: T2I, edit, Union strength 0, Union strength 1 and masked outpainting. Each decoded an RGBA PNG; each returned to 32 MiB allocated in that worker. Total test session: 190 seconds, then clean process close. These are small 256-pixel/two-step execution checks, not a generation-speed or visual-quality benchmark.
+
+RTX 5090 isolated-worker evidence:
+
+- Basic T2I, reference edit, Union strength 0 and 1, masked/outpaint compositing and a separate 25-step generation passed at 256×256.
+- RES 2S/Beta at 50 steps passed. Viggle r256 LoRA passed at Euler/6 steps with exact sigmas `1, .9375, .875, .75, .5, .25`.
+- CFG 2 with a negative prompt, cache off/on, two references, cancellation followed by same-worker recovery, and Union strength 2 over the 0.25–0.75 interval passed.
+- Cache-off and cache-on outputs were byte-identical for the tested seed. The two-reference case peaked near 8.0 GiB allocated; the Union strength-2 case peaked near 10.3 GiB. These are worker allocator figures, not total board usage.
+- A separate 8 GB-profile weighted Union run passed at 256×256, peaking at 4058 MiB allocated and returning to 256 MiB idle allocated memory.
+
+Boundaries:
+
+- **Tested live:** local INT8 ConvRot Qwen 2.1 DiT and Qwen3-VL encoder, BF16 VAE, Euler/Simple, RES 2S/Beta, base plus Viggle Turbo LoRA, Union model, masking/outpaint preservation, cancellation/recovery.
+- **Prompt enhancer:** real Qwen3.5-9B loading, one-second status updates, a hard 64-token cap, cancellation and recovery passed. The bounded non-thinking run emitted one-second status updates, then failed after 77 seconds because its 64-token output was truncated before valid JSON completed. Complete rewrite-to-image output remains unproven. Thorough mode remains untested live.
+- **Merged Turbo:** source, filename, license, hash and architecture path are verified, but the 7.3 GB merged checkpoint was not downloaded or GPU-tested in this validation session.
+- **Pose:** uploaded pose maps and local-asset checks are CPU-tested. Automatic OpenPose/DWPose execution was not tested because their local preprocessor weights were absent. No preprocessor download occurs during Generate.
+- These small images prove execution and routing. They do not prove universal visual quality, all resolutions, all GPUs, every adapter combination or a fresh end-to-end Forge gallery session.
+
 # October 4, 2026 — optional detail-fix recovery
 
 - Missing or empty optional detail-fix files restored by saved presets no longer block Generate. The run skips that adapter, prints a warning and records the skip in image metadata.

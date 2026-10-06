@@ -78,6 +78,15 @@ def options(runner,p):
             if len(values)>len(KEYS)+22: result['texture_vae']=bool(values[len(KEYS)+22])
             if len(values)>33: result['phrase_weights']=bool(control_value(values[33],False))
             if len(values)>34: result['reference_priorities']=str(control_value(values[34],'') or '')
+            for index,key,default in ((35,'workflow','Custom'),(36,'pose','off'),(37,'outpaint',False),
+                    (38,'pad_left',0),(39,'pad_right',0),(40,'pad_top',0),(41,'pad_bottom',0),
+                    (42,'pad_overlap',0),(43,'reference_mp',0),(44,'kv_cache',True),(45,'follow_source',False)):
+                if len(values)>index: result[key]=control_value(values[index],default)
+            for index,key,default in ((46,'backend','diffusers'),(47,'comfy_root',''),(48,'control_enabled',False),
+                    (49,'control_model','(none)'),(50,'control_guide',None),(51,'control_strength',1.),
+                    (52,'control_start',0.),(53,'control_end',1.),(54,'comfy_sampler','euler'),(55,'comfy_scheduler','simple'),
+                    (56,'rewrite_prompt',False),(57,'prompt_encoder',''),(58,'merged_turbo',False),(59,'rewrite_thinking',False)):
+                if len(values)>index: result[key]=control_value(values[index],default)
             if len(values)>len(KEYS)+23: result['sampler_sharp']=control_value(values[len(KEYS)+23],0)
             break
     # The built-in Forge Spectrum accordion patches Forge's UNet, which this

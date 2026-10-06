@@ -24,6 +24,52 @@ FEATURED={
 }
 FEATURED_CHOICES=list(FEATURED)
 
+MERGED_TURBO=dict(repo='Viggle/Qwen-Image-2.1-viggle-turbo',
+    file='Qwen-Image-2.1-viggle-turbo-v0.2.1-6step-int8_convrot.safetensors',
+    sha256='d1b7845f435dff38c49d4201b56b963d9302eee18e5fdfea2974950f024edab2',
+    source='https://huggingface.co/Viggle/Qwen-Image-2.1-viggle-turbo')
+
+def download_union(approved=False):
+    if not approved: raise ValueError('Accept the publisher license and approve the Union model download first.')
+    filename='qwen_image_2.1_fun_controlnet_union_int8_convrot.safetensors'
+    for name in ('model_patches','ControlNet','Qwen-Image-2.1'):
+        folder=models_root()/name
+        if folder.is_dir():
+            for path in folder.rglob(filename):
+                if path.stat().st_size>8:return 'Reused '+str(path)
+    target=models_root()/'model_patches';target.mkdir(parents=True,exist_ok=True)
+    from huggingface_hub import hf_hub_download
+    path=Path(hf_hub_download('Comfy-Org/Qwen-Image-2.1','model_patches/'+filename,local_dir=str(target)))
+    import hashlib
+    digest=hashlib.sha256()
+    with path.open('rb') as stream:
+        for block in iter(lambda:stream.read(8*1024*1024),b''):digest.update(block)
+    if digest.hexdigest()!='07aa961570ac0e03d4ca936aecd76854d077a33cde69b5092399afba01b3715d':
+        raise ValueError('Union checkpoint checksum mismatch; do not use it.')
+    return 'Downloaded and verified '+str(path)
+
+def merged_turbo_path():
+    for name in ('Qwen-Image-2.1','diffusion_models','Stable-diffusion'):
+        folder=models_root()/name
+        if folder.is_dir():
+            for path in folder.rglob(MERGED_TURBO['file']):
+                if path.is_file() and path.stat().st_size>8:return path
+    return None
+
+def download_merged_turbo(approved=False):
+    if not approved: raise ValueError('Accept the model license and approve the merged Turbo download first.')
+    local=merged_turbo_path()
+    if local:return 'Reused '+str(local)
+    target=models_root()/'diffusion_models';target.mkdir(parents=True,exist_ok=True)
+    from huggingface_hub import hf_hub_download
+    local=Path(hf_hub_download(MERGED_TURBO['repo'],MERGED_TURBO['file'],local_dir=str(target)))
+    import hashlib
+    digest=hashlib.sha256()
+    with local.open('rb') as stream:
+        for block in iter(lambda:stream.read(8*1024*1024),b''):digest.update(block)
+    if digest.hexdigest()!=MERGED_TURBO['sha256']:raise ValueError('Merged Turbo checksum mismatch; do not use this file.')
+    return 'Downloaded and verified '+str(local)
+
 # One-click photography-style LoRAs by Danrisi (single small files). Each is
 # driven by a trigger token the card documents; the runtime prepends it.
 STYLE={

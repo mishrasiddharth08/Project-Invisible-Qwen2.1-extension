@@ -1,4 +1,6 @@
 _deps/
+_comfy/
+_deps_comfy/
 __pycache__/
 *.py[cod]
 logs/

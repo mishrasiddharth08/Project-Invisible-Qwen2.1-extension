@@ -34,9 +34,11 @@ class WorkerPipeline:
         self._temp = tempfile.TemporaryDirectory(prefix="pi-qwen21-worker-")
         base = Path(self._temp.name)
         (ROOT/'logs').mkdir(exist_ok=True)
-        self._log = ROOT/'logs'/'worker.log'
+        comfy=(prof or {}).get('backend')=='comfy'
+        self._log = ROOT/'logs'/('comfy-worker.log' if comfy else 'worker.log')
         forge_root = forge_root or self._forge_root()
-        command = [sys.executable, str(ROOT / "lib/worker.py"), "--root", str(ROOT),
+        executable=(prof or {}).get('comfy_python') if comfy else None
+        command = [executable or sys.executable, str(ROOT / ('lib/comfy_worker.py' if comfy else 'lib/worker.py')), "--root", str(ROOT),
                    "--forge-root", str(forge_root), "--log", str(self._log)]
         self._process = subprocess.Popen(
             command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
@@ -112,13 +114,16 @@ class WorkerPipeline:
                  height=1024, num_inference_steps=40, generator=None, image=None,
                  mask_image=None, use_kv_cache=True, callback_on_step_end=None,
                  output_resolution=None, preview_every=0, preview_size=256,
-                 status_callback=None, spectrum=False, sigmas=None, refiner='off', lanpaint=False, lanpaint_steps=2, sampler_sharpness=None, phrase_weights=False, reference_priorities=''):
+                 status_callback=None, spectrum=False, sigmas=None, refiner='off', lanpaint=False, lanpaint_steps=2, sampler_sharpness=None, phrase_weights=False, reference_priorities='',
+                 comfy_sampler='euler',comfy_scheduler='simple',control_model='',control_image=None,control_strength=1.,control_start=0.,control_end=1.,
+                 rewrite_prompt=False,prompt_encoder='',system_prompt='',rewrite_thinking=False):
         from PIL import Image
         with self._lock, tempfile.TemporaryDirectory(prefix="job-", dir=self._temp.name) as td:
             job = Path(td)
             refs = [] if image is None else (list(image) if isinstance(image, (list, tuple)) else [image])
             image_paths = [self._save(value, job / ("input-%02d.png" % i)) for i, value in enumerate(refs)]
             mask_path = self._save(mask_image, job / "mask.png")
+            control_path = self._save(control_image, job / 'control.png')
             output = job / "output.png"
             preview = job / "preview.png"
             stop = job / "stop"
@@ -128,6 +133,11 @@ class WorkerPipeline:
                 num_inference_steps=int(num_inference_steps), seed=self._seed(generator),
                 images=image_paths, mask=mask_path, use_kv_cache=bool(use_kv_cache),
                 output_resolution=output_resolution, output=str(output), stop=str(stop),
+                comfy_sampler=str(comfy_sampler),comfy_scheduler=str(comfy_scheduler),control_model=str(control_model or ''),
+                control_image=control_path,control_strength=float(control_strength),control_start=float(control_start),control_end=float(control_end),
+                rewrite_prompt=bool(rewrite_prompt),prompt_encoder=str(prompt_encoder or ''),
+                system_prompt=str(system_prompt or ''),
+                rewrite_thinking=bool(rewrite_thinking),
                 preview_every=int(preview_every or 0),preview_size=int(preview_size or 256),preview=str(preview),
                 adapters=[dict(path=p, weight=w) for p, w in self._adapters],
                 spectrum=bool(spectrum),
@@ -142,7 +152,10 @@ class WorkerPipeline:
                 value = self._read()
                 kind = value.get("type")
                 if kind == 'status':
-                    if status_callback is not None: status_callback(value.get('status',''))
+                    if status_callback is not None and interrupted is None:
+                        try:status_callback(value.get('status',''))
+                        except InterruptedError as exc:
+                            interrupted=exc;stop.touch()
                     continue
                 if kind == 'preview':
                     if callback_on_step_end is not None and interrupted is None:
@@ -170,7 +183,8 @@ class WorkerPipeline:
                     raise interrupted
                 self._pi_cuda_memory=value.get("cuda_memory",{})
                 with Image.open(value["path"]) as result:
-                    return SimpleNamespace(images=[result.copy()],spectrum=value.get('spectrum',{}))
+                    return SimpleNamespace(images=[result.copy()],spectrum=value.get('spectrum',{}),
+                        rewritten_prompt=value.get('rewritten_prompt'),backend=value.get('backend'))
 
     def unload_lora_weights(self):
         self._adapters = []

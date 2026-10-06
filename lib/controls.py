@@ -9,7 +9,7 @@ def speed_updates(enabled, turbo, native=False):
 
 def quality_updates(value, turbo):
     import gradio as gr
-    fast=value==8
+    fast=value in (6,8)
     return gr.update(value=fast), gr.update(value=turbo) if fast else gr.skip()
 
 def control_value(value, default=None):

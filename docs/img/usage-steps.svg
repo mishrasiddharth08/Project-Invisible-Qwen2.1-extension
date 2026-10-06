@@ -1,38 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="780" viewBox="0 0 1200 780" role="img" aria-labelledby="title desc">
-<title id="title">From prompt to picture</title><desc id="desc">Start simple. Add speed or finishing options only when you need them.</desc>
-<rect width="1200" height="780" rx="24" fill="#10151f"/>
-<style>text{font-family:Arial,sans-serif}.title{fill:#e8ecf4;font-size:36px;font-weight:700}.sub{fill:#9fb0c9;font-size:20px}.label{fill:#8fa3c4;font-size:24px;font-weight:700}.body{fill:#dfe7f5;font-size:19px}</style>
-<text x="48" y="70" class="title">From prompt to picture</text>
-<text x="48" y="112" class="sub">Start simple. Add speed or finishing options only when you need them.</text>
-<rect x="48" y="160" width="352" height="204" rx="14" fill="#1b2230" stroke="#3c4a63"/>
-<text x="70" y="202" class="label">1  Select</text>
-<text x="70" y="242" class="body">Qwen 2.1 preset</text>
-<text x="70" y="271" class="body">Compatible DiT + encoder</text>
-<text x="70" y="300" class="body">Qwen 2.1 VAE</text>
-<rect x="424" y="160" width="352" height="204" rx="14" fill="#1b2230" stroke="#3c4a63"/>
-<text x="446" y="202" class="label">2  Describe</text>
-<text x="446" y="242" class="body">Write your prompt</text>
-<text x="446" y="271" class="body">For edits, upload the source</text>
-<text x="446" y="300" class="body">Use native img2img</text>
-<rect x="800" y="160" width="352" height="204" rx="14" fill="#1b2230" stroke="#3c4a63"/>
-<text x="822" y="202" class="label">3  Set quality</text>
-<text x="822" y="242" class="body">Start with Quality mode</text>
-<text x="822" y="271" class="body">Choose native steps + CFG</text>
-<text x="822" y="300" class="body">Keep memory saving on</text>
-<rect x="48" y="390" width="352" height="204" rx="14" fill="#1b2230" stroke="#3c4a63"/>
-<text x="70" y="432" class="label">4  Generate</text>
-<text x="70" y="472" class="body">Use Forge Generate</text>
-<text x="70" y="501" class="body">Watch native progress</text>
-<text x="70" y="530" class="body">Review the gallery result</text>
-<rect x="424" y="390" width="352" height="204" rx="14" fill="#1b2230" stroke="#3c4a63"/>
-<text x="446" y="432" class="label">5  Tune</text>
-<text x="446" y="472" class="body">Fast: turbo LoRA + CFG 1</text>
-<text x="446" y="501" class="body">Spectrum: approximate</text>
-<text x="446" y="530" class="body">Compare with a fixed seed</text>
-<rect x="800" y="390" width="352" height="204" rx="14" fill="#1b2230" stroke="#3c4a63"/>
-<text x="822" y="432" class="label">6  Finish</text>
-<text x="822" y="472" class="body">Refiner and grid cleanup</text>
-<text x="822" y="501" class="body">Optional edit alignment</text>
-<text x="822" y="530" class="body">Batch ends: models unload</text>
-<text x="48" y="704" class="sub">Models reload for the next batch. Restart Forge after updates; browser refresh alone is insufficient.</text>
-<text x="48" y="742" fill="#9fb0c9" font-family="Arial,sans-serif" font-size="16">PROJECT INVISIBLE · QWEN-IMAGE-2.1 · SEPTEMBER 28, 2026</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="900" viewBox="0 0 1280 900" role="img" aria-labelledby="title desc">
+<title id="title">Qwen Image 2.1 beginner workflow</title><desc id="desc">Six simple steps from readiness check and workflow selection to editing, generation, review, and optional tuning.</desc>
+<rect width="1280" height="900" rx="24" fill="#10151f"/><style>text{font-family:Arial,sans-serif}.title{fill:#f1f5fb;font-size:34px;font-weight:700}.sub{fill:#9fb0c9;font-size:18px}.label{fill:#9bb7e8;font-size:22px;font-weight:700}.body{fill:#dfe7f5;font-size:17px}.small{fill:#b8c6da;font-size:15px}</style>
+<text x="48" y="62" class="title">From idea to picture</text><text x="48" y="96" class="sub">Start with a preset. The advanced controls can wait.</text>
+<rect x="48" y="132" width="370" height="174" rx="14" fill="#1b2230" stroke="#48658f"/><text x="70" y="172" class="label">1 · Check readiness</text><text x="70" y="208" class="body">Open Models · Full workflows</text><text x="70" y="237" class="body">Confirm required local files</text><text x="70" y="266" class="small">The check does not load or download models</text>
+<rect x="455" y="132" width="370" height="174" rx="14" fill="#1b2230" stroke="#48658f"/><text x="477" y="172" class="label">2 · Pick a workflow</text><text x="477" y="208" class="body">Choose the closest preset</text><text x="477" y="237" class="body">Write your prompt</text><text x="477" y="266" class="small">Native seed, size, steps and CFG remain available</text>
+<rect x="862" y="132" width="370" height="174" rx="14" fill="#1b2230" stroke="#48658f"/><text x="884" y="172" class="label">3 · Add a source</text><text x="884" y="208" class="body">For edits, upload the source image</text><text x="884" y="237" class="body">Preview proportions or outpainting</text><text x="884" y="266" class="small">Add references only when needed</text>
+<rect x="48" y="350" width="370" height="174" rx="14" fill="#1b2230" stroke="#3c4a63"/><text x="70" y="390" class="label">4 · Generate</text><text x="70" y="426" class="body">Use Forge Generate</text><text x="70" y="455" class="body">Watch normal progress</text><text x="70" y="484" class="small">Saving follows the native workflow</text>
+<rect x="455" y="350" width="370" height="174" rx="14" fill="#1b2230" stroke="#3c4a63"/><text x="477" y="390" class="label">5 · Review</text><text x="477" y="426" class="body">Inspect the result and metadata</text><text x="477" y="455" class="body">Keep a useful seed for comparisons</text><text x="477" y="484" class="small">Browser/gallery acceptance remains pending</text>
+<rect x="862" y="350" width="370" height="174" rx="14" fill="#1b2230" stroke="#3c4a63"/><text x="884" y="390" class="label">6 · Tune only if needed</text><text x="884" y="426" class="body">Finish, Speed, Style or Memory</text><text x="884" y="455" class="body">Change one thing, then compare</text><text x="884" y="484" class="small">Prompt enhancer thorough mode is experimental</text>
+<rect x="48" y="574" width="1184" height="190" rx="16" fill="#151d29" stroke="#5e7fab"/><text x="72" y="616" class="label">Simple rules</text><text x="82" y="656" class="body">• BF16 is the verified VAE decoder baseline.</text><text x="82" y="691" class="body">• Zero outpaint overlap preserves the original source pixels.</text><text x="82" y="726" class="body">• Keep native Forge settings; advanced tools remain grouped in the Qwen panel.</text>
+<text x="48" y="850" class="sub">PROJECT INVISIBLE · QWEN-IMAGE-2.1 · OCTOBER 6, 2026</text></svg>

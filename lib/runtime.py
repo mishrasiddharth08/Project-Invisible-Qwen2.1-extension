@@ -138,12 +138,28 @@ def generate(p, selected, options):
     with LOCK, headswap_context(p) as headswap:
         defaults=config()
         options={**defaults,**options}
+        backend=str(options.get('backend','diffusers') or 'diffusers')
+        if backend not in ('diffusers','comfy'): raise ValueError('Unknown Qwen generation engine.')
+        merged_turbo=bool(options.get('merged_turbo',False))
+        if merged_turbo and backend!='comfy': raise ValueError('Merged Turbo currently requires the Full workflows engine.')
+        if merged_turbo and options.get('speed_enabled'): raise ValueError('Turn off the separate Turbo LoRA when using a merged Turbo checkpoint.')
         prof=hardware_profile(torch,options.get('profile','auto'))
+        if backend=='comfy':
+            from .comfy_setup import root_path
+            base=Path(__file__).resolve().parents[1]
+            comfy_root=str(options.get('comfy_root') or root_path())
+            prof=dict(prof,backend='comfy',comfy_root=comfy_root,
+                      comfy_deps=str(base/'_deps_comfy'),res4lyf=str(Path(comfy_root)/'custom_nodes'/'RES4LYF'))
+            if options.get('spectrum') or str(options.get('refiner') or 'off').lower()!='off':
+                raise ValueError('Full workflow engine currently requires Spectrum and the extra refiner off.')
+        elif options.get('control_enabled') or options.get('rewrite_prompt'):
+            raise ValueError('Union ControlNet and local prompt enhancement require the Full workflows engine.')
         # Respect the visible memory-saving control on every hardware profile.
         offload=bool(options.get('offload',prof.get('offload',True)))
         if headswap: headswap.memory_profile=prof
         prompt=p.prompt if isinstance(p.prompt,str) else p.prompt[0]
-        prompt,p.width,p.height=parse_rewrite(prompt,p.width,p.height)
+        prompt,p.width,p.height=parse_rewrite(prompt,p.width,p.height,
+            (list(getattr(p,'init_images',None) or [])[:1]+[image for image in options.get('refs',[]) if image is not None]))
         user_prompt=prompt
         prompt,adapters=adapter.parse(prompt, options.get('community',False) or headswap is not None)
         negative=p.negative_prompt if isinstance(p.negative_prompt,str) else p.negative_prompt[0]
@@ -152,6 +168,7 @@ def generate(p, selected, options):
             label={'turbo':'Turbo (fast)','quality':'Quality (best)'}.get(refiner_mode,refiner_mode)
             print(f'[PI-Qwen21] Refiner armed: {label} — a short second detail pass runs after each image.')
         cfg=float(getattr(p,'cfg_scale',1.0))
+        if merged_turbo: cfg=1.0
         # Featured speed LoRAs are distilled for few-step CFG-1 sampling.
         speed_name=options.get('speed_lora') if options.get('speed_enabled') else None
         speed_entry=downloads.FEATURED.get(speed_name) if speed_name else None
@@ -197,12 +214,43 @@ def generate(p, selected, options):
             raise ValueError('All image editing must use the img2img tab. Upload the main image there.')
         if is_edit and not primary:
             raise ValueError('Upload the main image in the img2img tab before editing.')
+        if options.get('control_enabled') and not is_edit:
+            raise ValueError('Use img2img for image-based ControlNet guidance.')
+        from . import workflows,workflow_images
+        recipe=str(options.get('workflow','Custom') or 'Custom')
+        if recipe!='Custom': workflows.settings(recipe,is_edit)
+        pose=str(options.get('pose','off') or 'off')
+        outpainting=bool(options.get('outpaint',False))
+        if (pose!='off' or outpainting or options.get('follow_source')) and not is_edit:
+            raise ValueError('Pose guides, source proportions and outpainting require img2img.')
+        if headswap and (pose!='off' or outpainting):
+            raise ValueError('Disable Head Swap before using pose guidance or outpainting.')
+        if pose!='off' and (outpainting or mask is not None or options.get('lanpaint')):
+            raise ValueError('Pose guidance cannot be combined with masked editing or outpainting.')
+        if pose!='off':
+            primary=[workflow_images.pose_reference(primary[0],pose)]
+            prompt='Use <image1> as a pose and composition guide for the new image. '+prompt
+        if outpainting:
+            if mask is not None: raise ValueError('Clear the native inpaint mask before outpainting; padding creates its own mask.')
+            canvas,mask=workflow_images.prepare_outpaint(primary[0],options.get('pad_left',0),options.get('pad_right',0),
+                options.get('pad_top',0),options.get('pad_bottom',0),options.get('pad_overlap',0))
+            primary=[canvas]
+            options.update(lanpaint=backend=='diffusers',composite=False,pixel_drift=False)
+            prompt='Extend <image1> into the gray padding, continuing the scene naturally and preserving the existing picture. '+prompt
+        if outpainting or options.get('follow_source'):
+            p.width,p.height=primary[0].size
         use_lanpaint=bool(options.get('lanpaint',False))
+        if backend=='comfy' and use_lanpaint:
+            raise ValueError('For Full workflows masked editing, turn LanPaint off and enable Union ControlNet.')
+        if backend=='comfy' and (mask is not None or outpainting):
+            if not options.get('control_enabled'): raise ValueError('Full workflow inpainting/outpainting requires Union ControlNet.')
+            from .lanpaint import prepare_mask
+            mask=prepare_mask(primary[0],mask,False if outpainting else bool(getattr(p,'inpainting_mask_invert',0)))
         if use_lanpaint:
             from .lanpaint import prepare_mask
             if not is_edit or headswap:
                 raise ValueError('LanPaint requires img2img Inpaint without Head Swap.')
-            mask=prepare_mask(primary[0],mask,bool(getattr(p,'inpainting_mask_invert',0)))
+            mask=prepare_mask(primary[0],mask,False if outpainting else bool(getattr(p,'inpainting_mask_invert',0)))
             if not 1<=int(options.get('lanpaint_steps',2))<=5:
                 raise ValueError('LanPaint thinking steps must be 1–5.')
             options.update(spectrum=False,refiner='off',pixel_drift=False,composite=False)
@@ -212,6 +260,11 @@ def generate(p, selected, options):
             raise ValueError('Use Head Swap protected-head mode and its mask editor for Qwen 2.1; clear the native inpaint mask.')
         refs.extend(im for im in options.get('refs',[]) if im is not None)
         if len(refs)>10: raise ValueError('At most 10 reference images are supported.')
+        reference_mp=float(options.get('reference_mp',0) or 0)
+        if reference_mp:
+            # Preserve the original masked source for exact final compositing.
+            refs=[image if index==0 and mask is not None else workflow_images.fit_reference(image,reference_mp)
+                  for index,image in enumerate(refs)]
         from .enhancer import references,phrases
         priorities=references(options.get('reference_priorities',''))
         if priorities and max(priorities)>len(refs):
@@ -242,6 +295,11 @@ def generate(p, selected, options):
         completed=False
         try:
             folder=resolve(selected, False, prof)
+            if merged_turbo:
+                merged_file=downloads.merged_turbo_path()
+                if merged_file is None: raise ValueError('Merged Turbo model is missing. Approve its separate download under Full workflow backend.')
+                if not folder.get('files'): raise ValueError('Merged Turbo requires separate base model components.')
+                folder=dict(folder);folder['files']=dict(folder['files'],transformer=str(merged_file))
             if options.get('texture_vae'):
                 vae=downloads.texture_vae_path()
                 if vae is None:
@@ -274,13 +332,16 @@ def generate(p, selected, options):
                 # can squeeze its head when mapped back to the original scene.
                 scale=min(1.0,side/requested_side)
                 p.width,p.height=(max(32,int(v*scale)//32*32) for v in (p.width,p.height))
+            elif outpainting or options.get('follow_source'):
+                scale=min(1.0,side/requested_side)
+                p.width,p.height=(max(32,min(int(side)//32*32,round(v*scale/32)*32)) for v in (p.width,p.height))
             else:
                 p.width,p.height=bucket(p.width,p.height,side)
             p.steps=max(1,int(getattr(p,'steps',None) or options.get('steps',40))); p.cfg_scale=cfg
             # User steps always win: choosing Fast auto-selects the turbo LoRA
             # and matches the slider, but a slider moved by hand is never overridden.
             if speed_entry: speed_sigmas=downloads.turbo_sigmas(p.steps)
-            p.sampler_name='Euler'
+            p.sampler_name=str(options.get('comfy_sampler','euler')) if backend=='comfy' else 'Euler'
             seed=int(p.seed if p.seed is not None else -1)
             if seed<0: seed=random.randrange(2**32)
             p.seed=seed
@@ -313,14 +374,32 @@ def generate(p, selected, options):
                             raise ValueError('Restart Forge to load the enhancer worker update.')
                         args.update(phrase_weights=bool(options.get('phrase_weights')),reference_priorities=str(options.get('reference_priorities','')))
                     if mask is not None: args['mask_image']=mask
+                    if backend=='comfy':
+                        import math
+                        control_path=str(options.get('control_model','') or '') if options.get('control_enabled') else ''
+                        if options.get('control_enabled') and control_path in ('','(none)'):
+                            raise ValueError('Select the downloaded Qwen 2.1 Union control model file.')
+                        strength=float(options.get('control_strength',1.));start=float(options.get('control_start',0.));end=float(options.get('control_end',1.))
+                        if not all(math.isfinite(v) for v in (strength,start,end)) or not 0<=strength<=2 or not 0<=start<end<=1:
+                            raise ValueError('Control strength must be 0–2; start/end must satisfy 0 <= start < end <= 1.')
+                        if control_path and mask is None and options.get('control_guide') is None:
+                            raise ValueError('Upload a pose, depth or edge map in Control guide.')
+                        args.update(comfy_sampler=str(options.get('comfy_sampler','euler')),
+                            comfy_scheduler=str(options.get('comfy_scheduler','simple')),control_model=control_path,
+                            control_image=options.get('control_guide'),control_strength=strength,control_start=start,control_end=end,
+                            rewrite_prompt=bool(options.get('rewrite_prompt')),prompt_encoder=str(options.get('prompt_encoder','') or ''))
+                        args['rewrite_thinking']=bool(options.get('rewrite_thinking',False))
+                        if options.get('rewrite_prompt'):
+                            resource=Path(__file__).resolve().parents[1]/'resources'/'workflows'/('prompt-enhancer-edit.txt' if generation_refs else 'prompt-enhancer-t2i.txt')
+                            args['system_prompt']=resource.read_text(encoding='utf-8')
                     if use_lanpaint:
                         args.update(lanpaint=True,lanpaint_steps=int(options.get('lanpaint_steps',2)))
-                    if 'use_kv_cache' in params: args['use_kv_cache']=True
+                    if 'use_kv_cache' in params: args['use_kv_cache']=bool(options.get('kv_cache',True))
                     if 'callback_on_step_end' in params: args['callback_on_step_end']=display.step
                     if 'preview_every' in params: args['preview_every']=display.preview_every
                     if 'status_callback' in params: args['status_callback']=display.status
                     if 'spectrum' in params: args['spectrum']=bool(options.get('spectrum',False))
-                    if not speed_sigmas and options.get('sampler_sharp') is not None:
+                    if backend=='diffusers' and not speed_sigmas and options.get('sampler_sharp') is not None:
                         # DPM++ 2M Sharp applies to the plain schedule only;
                         # turbo runs keep their exact distilled sigma path.
                         args['sampler_sharpness']=float(options['sampler_sharp'])
@@ -330,6 +409,9 @@ def generate(p, selected, options):
                     try:
                         response=pipe(**args)
                         result=response.images[0]
+                        if getattr(response,'rewritten_prompt',None):
+                            generation_prompt=response.rewritten_prompt
+                            p.width,p.height=result.size
                         spectrum_report=getattr(response,'spectrum',{})
                     except torch.cuda.OutOfMemoryError as exc:
                         release()
@@ -357,11 +439,13 @@ def generate(p, selected, options):
                             print(f'[PI-Qwen21] Klein composite: {changed*100:.1f}% of pixels kept from the edit.')
                         except Exception as exc:
                             print('[PI-Qwen21] Klein composite skipped:',exc)
-                    if use_lanpaint:
+                    if use_lanpaint or (backend=='comfy' and mask is not None):
                         from .lanpaint import preserve
                         result=preserve(primary[0],result,mask)
                     display.publish(result, final=True)
-                    info=f'{generation_prompt}\nNegative prompt: {generation_negative}\nSteps: {p.steps}, Sampler: Euler, Schedule type: simple, CFG scale: {generation_cfg}, Seed: {current_seed}, Size: {p.width}x{p.height}, Model: Qwen-Image-2.1'
+                    actual_sampler=str(options.get('comfy_sampler','euler')) if backend=='comfy' else 'Euler'
+                    actual_scheduler=str(options.get('comfy_scheduler','simple')) if backend=='comfy' else 'simple'
+                    info=f'{generation_prompt}\nNegative prompt: {generation_negative}\nSteps: {p.steps}, Sampler: {actual_sampler}, Schedule type: {actual_scheduler}, CFG scale: {generation_cfg}, Seed: {current_seed}, Size: {p.width}x{p.height}, Model: Qwen-Image-2.1'
                     info+=f', Qwen moire cleanup: {cleanup:g}'
                     info+=f', DeGrid: {"auto" if cleanup else "off"}'
                     if use_lanpaint: info+=f", LanPaint thinking steps: {int(options.get('lanpaint_steps',2))}"
@@ -375,6 +459,15 @@ def generate(p, selected, options):
                     if style_adapter: info+=f", Style LoRA: {style_name}"
                     if fix_adapter: info+=f", Detail fix: {fix_name}"
                     if fix_skipped: info+=f", Detail fix skipped (missing file): {fix_skipped}"
+                    if merged_turbo: info+=', Merged Turbo DiT: '+str(merged_file.name)
+                    if recipe!='Custom': info+=f", Workflow preset: {recipe}"
+                    if backend=='comfy':
+                        info+=f", Engine: isolated Comfy, Sampler: {options.get('comfy_sampler','euler')}, Scheduler: {options.get('comfy_scheduler','simple')}"
+                        if options.get('control_enabled'): info+=f", Qwen21 Union strength/start/end: {strength:g}/{start:g}/{end:g}"
+                        if options.get('rewrite_prompt'): info+=', Local prompt enhancer: enabled'
+                    if pose!='off': info+=f", Pose guide: {pose} (reference conditioning)"
+                    if outpainting: info+=f", Outpaint padding L/R/T/B: {options.get('pad_left',0)}/{options.get('pad_right',0)}/{options.get('pad_top',0)}/{options.get('pad_bottom',0)}"
+                    info+=f", Prefix KV cache: {bool(options.get('kv_cache',True)) and not use_lanpaint}"
                     if refiner_mode!='off': info+=f", Refiner: {refiner_mode}"
                     if headswap: info+='\nHead Swap: '+headswap.metadata()
                     p._pi_qwen21_image_index=i

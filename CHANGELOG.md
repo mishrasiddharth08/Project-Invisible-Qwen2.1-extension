@@ -1,3 +1,13 @@
+# October 6, 2026 — audited Full workflows
+
+- Added workflow presets without adding a new Forge tab. Native txt2img/img2img, Generate, saving and gallery behavior remain in place.
+- Extended the saved script contract to **60 positions**, appending Full-backend, Union, prompt-rewrite, merged-Turbo and Thorough-rewrite values.
+- Added an isolated Comfy worker with Euler/Simple and RES 2S/Beta, Qwen 2.1 Union, local prompt rewriting, native preview/status reporting and strict component guards.
+- Added local-only readiness diagnostics. They inspect safetensors headers and local paths without importing heavy models or downloading anything.
+- Added source-proportion edits, reference fitting, pose-map preparation, outpaint canvas preview and exact protected RGBA restoration outside masks.
+- Preserved all existing credits. ComfyUI, RES4LYF, Qwen, Viggle, VideoX-Fun, enhancer and model licenses remain applicable; setup/download actions retain explicit approval.
+- See `VALIDATION.md` for the tested GPU matrix and explicit prompt-enhancer, merged-Turbo and pose limits.
+
 # October 4, 2026 — optional detail-fix recovery
 
 - Missing or empty optional detail-fix files restored by saved presets no longer block Generate. The run skips that adapter, prints a warning and records the skip in image metadata.
@@ -21,6 +31,15 @@
 - Fixed single-step scheduler terminal stretching producing non-finite latents; ordinary later schedules retain their original settings.
 - GPU boundary checks passed: neutral pixel identity, two references, zero/max priorities, uncached attention, LanPaint, Spectrum, cancellation/recovery and a separate refiner run.
 - Added research, beginner instructions and MIT attribution. See [enhancer guide](docs/QWEN_ENHANCER.md). Image-quality improvements are not yet benchmarked.
+
+# September 28, 2026 — memory, quality and chocolate UI
+
+- Honor Auto memory saving, reserve free-VRAM headroom, release workers after batches.
+- Separate Spectrum CFG histories, retain sufficient history, reject unstable forecasts.
+- Add optional guarded PixelDriftFix-style alignment with output metadata.
+- Reorganize the chocolate panel; preserve all 27 argument slots and native controls.
+- Restore image actions; remove the global native-accordion hiding script.
+- Refresh README, validation notes and all three SVG guides.
 
 # September 28, 2026 — model reuse and total steps
 
@@ -49,15 +68,6 @@
 
 - Restore Forge theme colors and the original infographic palette.
 - Keep the tabbed layout, alignment and existing fixes.
-
-# September 28, 2026 — memory, quality and chocolate UI
-
-- Honor Auto memory saving, reserve free-VRAM headroom, release workers after batches.
-- Separate Spectrum CFG histories, retain sufficient history, reject unstable forecasts.
-- Add optional guarded PixelDriftFix-style alignment with output metadata.
-- Reorganize the chocolate panel; preserve all 27 argument slots and native controls.
-- Restore image actions; remove the global native-accordion hiding script.
-- Refresh README, validation notes and all three SVG guides.
 
 # Update history
 

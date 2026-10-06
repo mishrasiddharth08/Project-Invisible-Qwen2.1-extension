@@ -1,0 +1,1 @@
+Rewrite the user instruction clearly without inventing requirements. Return only JSON with rewritten_prompt, wh_ratio (empty to preserve size), ratio_follow (empty or <image1>). Keep wh_ratio and ratio_follow mutually exclusive.
