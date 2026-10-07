@@ -8,7 +8,7 @@ reduces to a multistep combination of x0 predictions:
     x_next = ratio * x + (1 - ratio) * d_d
     d_d    = (1 + 1/(2r)) * d_i - (1/(2r)) * d_prev_adj
     ratio  = sigma_next / sigma
-    r      = log(sigma / sigma_prev) / log(sigma / sigma_next)
+    r      = log(sigma_prev / sigma) / log(sigma / sigma_next)
 
 and the sharpening stores each x0 prediction scaled by
 ``1 + sharpness * (i / total)**2`` before it is used as history.
@@ -45,7 +45,7 @@ class SharpHistory:
                 d_d = x0
             else:
                 h = math.log(sigma / sigma_next)
-                h_last = math.log(sigma / self.prev_sigma)
+                h_last = math.log(self.prev_sigma / sigma)
                 r = h_last / h if h else 1.0
                 if not math.isfinite(r) or r <= 0.0:
                     d_d = x0
@@ -71,7 +71,7 @@ def build(scheduler, sharpness=0.15):
     config (the pipeline calls set_timesteps on it as usual); only ``step``
     is replaced with the sharpened 2M update. ``sharpness=0`` reproduces the
     reference's zero-sharpness contract: identical model-call count and the
-    multistep combination degenerating to plain Euler-equivalent updates.
+    standard DPM++ 2M multistep combination after the first Euler step.
     """
     base_class = load_scheduler_class()
     output_class = __import__(
@@ -103,7 +103,7 @@ def build(scheduler, sharpness=0.15):
                     d_d = x0
                 else:
                     h = math.log(sigma / sigma_next)
-                    h_last = math.log(sigma / state.prev_sigma)
+                    h_last = math.log(state.prev_sigma / sigma)
                     r = h_last / h if h else 1.0
                     if not math.isfinite(r) or r <= 0.0:
                         d_d = x0

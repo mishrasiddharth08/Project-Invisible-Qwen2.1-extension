@@ -1,4 +1,4 @@
-# Full workflows UI guide — October 6, 2026
+# Full workflows UI guide — October 7, 2026
 
 The Full workflows engine runs in a separate worker while keeping Forge's normal txt2img/img2img pages, native controls, Generate button, saving and gallery. It does not start a Comfy server, create another environment or patch Forge core.
 
@@ -52,3 +52,9 @@ See [VALIDATION.md](../VALIDATION.md) for exact execution evidence. Union, RES 2
 Existing project acknowledgments remain in the README and NOTICE. Full workflows additionally depend on ComfyUI, RES4LYF, Qwen Image 2.1, Qwen3-VL, Viggle and VideoX-Fun-derived Qwen control concepts. Their original licenses and model terms remain authoritative. Model and code downloads require explicit approval.
 
 Rebuilding references: [IntoTheLatent](../resources/workflows/) supplied workflow designs; [AiWithYou / AiKimi](https://github.com/AiWithYou/aikimi-forge-neo) inspired readiness reports and edit boundaries. Comfy code is pinned to `7a5dad695fe1cae25efcb2550530fb20ef68da3d`, RES4LYF to `26036f647ca15d3048a193daf99a40cecfc3820d`. Their licenses are preserved under `lib/vendor/`. The short T2I prompt-helper resource is an adapted fallback; the edit prompt resource is extracted from the supplied workflow. These are audited adaptations, not promises of pixel-identical Comfy output.
+
+## Refreshed interface
+
+**Workflow preset** shows readable task names. **Starting steps** fills the native steps control; the native value remains editable. Names beginning **Full** require the Full workflows engine. **Merged Turbo** requires a separate model file. Choose **Custom · keep my settings** when you want to adjust everything yourself. **Memory → Keep Qwen ready** controls whether models stay cached between batches.
+
+The Sharp sampler is an optional Default-pipeline feature. Its history-step sign is corrected and checked against four nonuniform log-sigma steps; zero sharpening still uses the multistep method after the first step. Turbo and Full workflows retain their own schedules.

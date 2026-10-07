@@ -1,3 +1,11 @@
+# October 7, 2026 — clearer UI and sampler correction
+
+- Added readable names to every workflow preset while preserving its saved value.
+- Clarified native step selection, outpainting, memory caching and backend restrictions.
+- Refreshed README and all three infographics; preserved acknowledgments and licenses.
+- Incorporated the verified Sharp sampler history-step correction and its CPU regression test.
+- No new GPU jobs were started for this presentation update.
+
 # October 6, 2026 — audited Full workflows
 
 - Added workflow presets without adding a new Forge tab. Native txt2img/img2img, Generate, saving and gallery behavior remain in place.

@@ -1,3 +1,11 @@
+# October 7, 2026 — sampler and interface refresh
+
+Fresh presentation checks: seven CPU-only tests passed, including both real Gradio panels, all 60 control positions, native saved-default handling, workflow callbacks and sampler regressions. Gradio panel construction required a local socket outside the restricted sandbox; GPU visibility stayed disabled. All three infographic SVGs parsed successfully and requested credits remain present.
+
+The retained acceptance log recorded 321 tests: 320 passed, one skipped. Recorded GPU checks also passed Default Euler, corrected Sharp, image editing, Turbo refinement, return to Full workflows and reproducible Union off/on/off. These are earlier sequential worker checks, not new GPU runs for this documentation update. Small 256-pixel outputs establish execution; browser/gallery acceptance and universal quality remain separate checks.
+
+The corrected Sharp history uses `log(previous_sigma/current_sigma)`. A four-step, nonuniform-sigma regression checks varying predictions, strengths 0/0.15/0.5 and scheduler/history consistency.
+
 # October 6, 2026 — Full workflows release evidence
 
 The existing Forge UI contract now contains **60 positions**. New controls remain appended; native prompt, steps, CFG, seed, size, Generate, save and gallery controls remain authoritative.

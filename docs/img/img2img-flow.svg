@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="780" viewBox="0 0 1200 780" role="img" aria-labelledby="title desc">
-<title id="title">Keep the edit aligned</title><desc id="desc">Optional corrections run before the image reaches the gallery and saved PNG.</desc>
+<title id="title">Edit inside native img2img</title><desc id="desc">Source and mask → chosen engine → optional finishing → decoded result.</desc>
 <rect width="1200" height="780" rx="24" fill="#10151f"/>
 <style>text{font-family:Arial,sans-serif}.title{fill:#e8ecf4;font-size:36px;font-weight:700}.sub{fill:#9fb0c9;font-size:20px}.label{fill:#8fa3c4;font-size:24px;font-weight:700}.body{fill:#dfe7f5;font-size:19px}</style>
-<text x="48" y="70" class="title">Keep the edit aligned</text>
-<text x="48" y="112" class="sub">Optional corrections run before the image reaches the gallery and saved PNG.</text>
+<text x="48" y="70" class="title">Edit inside native img2img</text>
+<text x="48" y="112" class="sub">Source and mask → chosen engine → optional finishing → decoded result.</text>
 <rect x="48" y="160" width="352" height="204" rx="14" fill="#1b2230" stroke="#3c4a63"/>
 <text x="70" y="202" class="label">1  Source</text>
 <text x="70" y="242" class="body">Upload in native img2img</text>
@@ -12,11 +12,11 @@
 <rect x="424" y="160" width="352" height="204" rx="14" fill="#1b2230" stroke="#3c4a63"/>
 <text x="446" y="202" class="label">2  Generate</text>
 <text x="446" y="242" class="body">Qwen produces the edit</text>
-<text x="446" y="271" class="body">Optional Spectrum speedup</text>
-<text x="446" y="300" class="body">Separate CFG histories</text>
+<text x="446" y="271" class="body">Default: optional Spectrum</text>
+<text x="446" y="300" class="body">Full: optional Union guidance</text>
 <rect x="800" y="160" width="352" height="204" rx="14" fill="#1b2230" stroke="#3c4a63"/>
 <text x="822" y="202" class="label">3  Finish</text>
-<text x="822" y="242" class="body">Optional refiner pass</text>
+<text x="822" y="242" class="body">Default: optional refiner</text>
 <text x="822" y="271" class="body">Optional grid cleanup</text>
 <text x="822" y="300" class="body">Preserve image alpha</text>
 <rect x="48" y="390" width="352" height="204" rx="14" fill="#1b2230" stroke="#3c4a63"/>
@@ -35,4 +35,4 @@
 <text x="822" y="501" class="body">Alignment status in metadata</text>
 <text x="822" y="530" class="body">No visual-quality guarantee</text>
 <text x="48" y="704" class="sub">Alignment is off by default. Protected head swaps skip this pass; experimental mesh mode is not included.</text>
-<text x="48" y="742" fill="#9fb0c9" font-family="Arial,sans-serif" font-size="16">PROJECT INVISIBLE · QWEN-IMAGE-2.1 · SEPTEMBER 28, 2026</text></svg>
+<text x="48" y="742" fill="#9fb0c9" font-family="Arial,sans-serif" font-size="16">PROJECT INVISIBLE · QWEN-IMAGE-2.1 · OCTOBER 7, 2026</text></svg>

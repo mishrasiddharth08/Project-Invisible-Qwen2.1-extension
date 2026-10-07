@@ -237,7 +237,7 @@ script_callbacks.on_after_component(after_component)
 
 # --------------------------------------------------------------------------- #
 # the Script: AlwaysVisible, ZERO changes to stock pages. ui() is the
-# accordion (17 RETURNED controls = the script-args contract read by
+# accordion (60 returned controls = the script-args contract read by
 # lib/forge.py).
 # --------------------------------------------------------------------------- #
 class Script(scripts.Script):
@@ -250,11 +250,24 @@ class Script(scripts.Script):
         with gr.Accordion('Qwen · Image 2.1',open=False,visible=bool(forge.selected()),elem_classes=['pi-q21-panel']) as box:
             labels={'ITLText25':'IntoTheLatent · Text to image (25)', 'ITLEdit25':'IntoTheLatent · Image edit (25)',
                     'ITLPose25':'IntoTheLatent · Pose reference (25)', 'UltraTextAdapted50':'Ultra · Text to image (Euler adaptation)',
-                    'UltraTurboTextAdapted6':'Ultra Turbo · Text to image (base + LoRA)'}
+                    'UltraTurboTextAdapted6':'Ultra Turbo · Text to image (base + LoRA)',
+                    'Custom':'Custom · keep my settings',
+                    'UltraEdit25':'Ultra · Image edit (25)', 'UltraInpaint25':'Ultra · Masked edit (25)',
+                    'UltraOutpaint25':'Ultra · Expand canvas (25)', 'UltraTurboEdit6':'Turbo · Image edit (6)',
+                    'UltraTurboInpaint6':'Turbo · Masked edit (6)', 'UltraTurboOutpaint6':'Turbo · Expand canvas (6)',
+                    'UltraTextFull50':'Full · Text to image (RES 2S / 50)',
+                    'UltraEditControl25':'Full · Union image edit (25)',
+                    'UltraInpaintControl25':'Full · Union masked edit (25)',
+                    'UltraOutpaintControl25':'Full · Union expand canvas (25)',
+                    'UltraTurboControl6':'Full · Turbo + Union (6)',
+                    'UltraMergedTurboText6':'Merged Turbo · Text to image (6; separate model)',
+                    'UltraMergedTurboEdit6':'Merged Turbo · Image edit (6; separate model)',
+                    'UltraMergedTurboInpaint6':'Merged Turbo · Masked edit (6; separate model)',
+                    'UltraMergedTurboOutpaint6':'Merged Turbo · Expand canvas (6; separate model)'}
             workflow=gr.Dropdown([(labels.get(name,name),name) for name in workflows.choices(is_img2img)],value='Custom',label='Workflow preset',info='Applies starting settings. Native controls remain editable; all editing uses img2img.')
             with gr.Row(elem_classes=['pi-q21-pair','pi-q21-output']):
                 task=gr.Dropdown([('Standard',mode),('Transparent PNG','rgba')],value=mode,label='Output',scale=1,min_width=180)
-                steps=gr.Radio([('Quality',40),('Workflow',25),('Turbo',6),('Fast',8),('Extended',50)],value=40,label='Mode',scale=1,min_width=180)
+                steps=gr.Radio([('Quality',40),('Workflow',25),('Turbo',6),('Fast',8),('Extended',50)],value=40,label='Starting steps',scale=1,min_width=180)
             _QUALITY_RADIOS.append((steps,is_img2img))
             _bind_quality(steps,native)
             mask=gr.State(None)
@@ -263,7 +276,7 @@ class Script(scripts.Script):
             with gr.Tabs(elem_classes=['pi-q21-tools']):
                 with gr.Tab('Finish'):
                     phrase_weights=gr.Checkbox(value=False,label='Weighted prompt phrases',info='Experimental. Example: (warm lighting:1.3). Works independently for positive and negative prompts.')
-                    refiner=gr.Dropdown(['Off','Turbo (fast)','Quality (best)'],value='Off',label='Refine details')
+                    refiner=gr.Dropdown(['Off','Turbo (fast)','Quality (best)'],value='Off',label='Refine details',info='Default pipeline only. Adds a second pass; Full workflows requires Off.')
                     degrid=gr.Checkbox(value=bool(runtime.config().get('moire_cleanup',True)),label='Remove grid patterns',info='Turn off if fine details look too smooth.')
                 if is_img2img:
                     with gr.Tab('Edit'):
@@ -271,7 +284,7 @@ class Script(scripts.Script):
                             pose=gr.Dropdown(['off','Uploaded pose map','OpenPose','DWPose'],value='off',label='Pose guide',info='Uses reference conditioning, not ControlNet. Automatic extraction needs installed pose models.')
                             follow_source=gr.Checkbox(value=False,label='Use source image proportions')
                             ref_mp=gr.Dropdown([('Original references',0),('0.59 MP',0.59),('1 MP',1)],value=0,label='Reference memory limit',info='Downscales conditioning images only. Masked edits keep their source.')
-                            outpaint=gr.Checkbox(value=False,label='Expand canvas (outpaint)',info='Automatically builds the edit mask. Uses LanPaint to preserve the source.')
+                            outpaint=gr.Checkbox(value=False,label='Expand canvas (outpaint)',info='Adds space around the source and creates its mask. Use LanPaint in Default or Union in Full workflows.')
                             with gr.Row():
                                 left=gr.Number(value=0,precision=0,label='Left pixels');right=gr.Number(value=0,precision=0,label='Right pixels')
                                 top=gr.Number(value=0,precision=0,label='Top pixels');bottom=gr.Number(value=0,precision=0,label='Bottom pixels')
@@ -307,9 +320,9 @@ class Script(scripts.Script):
                     with gr.Row(elem_classes=['pi-q21-pair']):
                         speed_name=gr.Dropdown(['(none)',turbo],value='(none)',label='Turbo model',scale=1,min_width=180)
                         speed_strength=gr.Slider(0.0,1.5,value=1.0,step=0.05,label='Qwen Turbo strength',elem_id=f'pi_q21_{mode}_turbo_strength',scale=1,min_width=180)
-                    spectrum=gr.Checkbox(value=False,label='Spectrum acceleration',info='Experimental; can change details. Turn off for an exact baseline.')
+                    spectrum=gr.Checkbox(value=False,label='Spectrum acceleration',info='Default pipeline only. Experimental; may change details. Keep off for an exact baseline.')
                     kv_cache=gr.Checkbox(value=True,label='Cache reference attention',info='Native prefix KV cache. LanPaint disables it for masked sampling.')
-                    sharp=gr.Dropdown([('Off',0),('DPM++ 2M Sharp 0.15',0.15),('Strong 0.35',0.35)],value=0,label='Sharp sampler',info='DPM++ 2M Sharp (envy-ai): sharpened denoised history. Quality runs only; turbo keeps its exact schedule.')
+                    sharp=gr.Dropdown([('Off',0),('DPM++ 2M Sharp 0.15',0.15),('Strong 0.35',0.35)],value=0,label='Sharp sampler',info='DPM++ 2M Sharp (envy-ai): sharpened denoised history. Default pipeline quality runs only; Turbo and Full workflows use their selected schedules.')
                     speed_status=gr.Markdown(elem_classes=['pi-q21-status'])
                     with gr.Accordion('Download turbo model',open=False):
                         gr.Markdown(manager.featured_instructions())
@@ -327,9 +340,9 @@ class Script(scripts.Script):
                         style_approved=gr.Checkbox(value=False,label='I accept the license and approve this download')
                         style_button=gr.Button('Download selected style',size='sm')
                     style_button.click(fn=manager.download_style,inputs=[style_name,style_approved],outputs=[style_status])
-                    with gr.Accordion('Detail fix (removes the plastic look)',open=False):
+                    with gr.Accordion('Detail fix · optional',open=False):
                         fix_name=gr.Dropdown(manager.FIX_CHOICES,value='(none)',label='Detail-fix LoRA',info='Optional; download once below. Missing files are skipped with a warning.')
-                        texture_vae=gr.Checkbox(value=False,label='Use the texture-fix VAE',info='Real micro-texture instead of the stock VAE\'s plastic surface.')
+                        texture_vae=gr.Checkbox(value=False,label='Use the texture-fix VAE',info='Optional alternate compatible VAE. Results vary; compare against the standard decoder.')
                         gr.Markdown(manager.fix_instructions())
                         gr.Markdown(manager.texture_vae_instructions())
                         fix_approved=gr.Checkbox(value=False,label='I accept the license and approve these downloads')
@@ -346,7 +359,7 @@ class Script(scripts.Script):
                         community=gr.Checkbox(value=False,label='Allow compatible community LoRAs',info='Enable only for compatible Qwen 2.1 adapters.')
                 with gr.Tab('Models'):
                     with gr.Accordion('Full workflow backend · advanced',open=False):
-                        backend=gr.Dropdown([('Default pipeline','diffusers'),('Full workflows (isolated Comfy)','comfy')],value='diffusers',label='Generation engine',info='Full workflows run in a separate process, with no server, tab or new environment.')
+                        backend=gr.Dropdown([('Default pipeline','diffusers'),('Full workflows (isolated Comfy)','comfy')],value='diffusers',label='Generation engine',info='Start with Default. Full enables Union and RES 2S; keep Spectrum, Refiner and LanPaint off.')
                         comfy_root=gr.Textbox(value=comfy_setup.root_path(),label='Isolated Comfy code folder')
                         with gr.Row():
                             comfy_sampler=gr.Dropdown(['euler','res_2s'],value='euler',label='Full-workflow sampler')

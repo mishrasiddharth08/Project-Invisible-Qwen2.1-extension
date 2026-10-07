@@ -3,6 +3,15 @@
 Qwen 2.1 inside Forge's existing **txt2img**, **img2img**, **Generate** and gallery workflow.
 Independent community extension; not an official Qwen product.
 
+## October 7, 2026 update
+
+- Clear workflow names now describe the task, step count and required engine.
+- Native **Generate, steps, CFG, seed, size and gallery** remain the main controls. All editing stays in **img2img**.
+- The Sharp sampler now uses its multistep history correctly. This is a sampling correction; it does not promise better results for every prompt.
+- The refreshed guides explain compatible options, progress previews and memory controls.
+
+**Project Invisible:** use a new image engine through the familiar Forge workflow. Optional tools stay inside one collapsed panel; ordinary checkpoints keep their existing behavior. No separate top-level tab, environment or Forge-core patch.
+
 ## October 6, 2026 update
 
 - Added audited workflow presets inside the existing Forge pages; the script contract now has **60 positions**, with all new values appended for saved-setting compatibility.
@@ -72,7 +81,7 @@ The **Models** tab contains setup instructions and optional downloads. Downloads
 
 ### Memory
 
-Offloading reduces GPU residency by using system RAM during generation. After a complete batch, the worker exits and releases its model RAM/VRAM. The next batch reloads the model. Advanced users can set `"keep_loaded": true` in `config.json` to trade idle memory for faster repeated batches.
+Offloading reduces GPU residency by using system RAM during generation. Use **Memory â†’ Keep Qwen ready** for faster repeated batches: model data may remain cached in system RAM while offloading releases idle GPU allocations. Turn it off to close the worker after the batch and release its model RAM/VRAM. Selecting another model requests worker release. Memory retained by Forge or another application is outside this worker.
 
 The resident-fit check uses available VRAM and reserves headroom. It cannot guarantee that every resolution, batch, adapter or GPU will fit. Reduce size or select a lower VRAM budget if needed.
 
@@ -90,9 +99,13 @@ Enable **Edit â†’ Align edit to source** for small unintended framing shifts. It
 
 This is an independent implementation of the recommended SIFT/global-homography workflow in [Mozer/ComfyUI-PixelDriftFix](https://github.com/Mozer/ComfyUI-PixelDriftFix), inspected at commit `62b79b86016e3914e62e258624646afa6cd8d394`. That checkout has no license file; its source is not bundled. Experimental mesh alignment is not included. OpenCV with SIFT is required; missing support leaves the image unchanged. Analysis is capped at a 1536-pixel long side and 6000 features.
 
+## Progress and previews
+
+Current-image and overall-batch progress stay in Forge. Status updates can arrive every second; intermediate image predictions arrive when sampling steps complete. A long step cannot supply a new prediction every second. The final preview uses the decoded image. Preview images are approximate and can change substantially before the result.
+
 ## Checks and limitations
 
-- Automated suite: **193 tests passed** for this update, including real Gradio panel construction and all 27 argument positions.
+- Latest recorded full suite: **321 tests, 320 passed and one skipped**. The UI has 60 control positions. See [validation](VALIDATION.md) for current checks and earlier results.
 - Isolated browser checks covered desktop/narrow layouts and Fast-mode callbacks. The live Forge session was not restarted during installation.
 - Live worker test: RTX 5090, INT8 ConvRot DiT/text encoder, CFG 2, Spectrum on, 512 x 512, 20 steps, seed 987654. A valid PNG was saved with 36 real and 4 forecast passes; test-worker cleanup returned GPU usage to about 1.6 GB. A matched visual-quality comparison and full live Forge gallery validation remain unverified.
 - Memory usage, speed and quality depend on hardware, model precision, resolution and adapters. No universal GPU compatibility is claimed.
@@ -108,9 +121,9 @@ Report your Forge version, GPU, precision, steps, CFG, enabled options and relev
 - [**ComfyUI**](https://github.com/comfyanonymous/ComfyUI) - reference for upstream sampler/scheduler coverage
 - **The Forge / AUTOMATIC1111 community** - for the extension ecosystem this plugs into
 
-- IntoTheLatent — supplied workflow designs.
-- [AiWithYou / AiKimi](https://github.com/AiWithYou/aikimi-forge-neo) — readiness and editing inspiration.
-- [RES4LYF](https://github.com/ClownsharkBatwing/RES4LYF), Viggle and VideoX-Fun — sampler, distilled model and control references; original licenses remain in force.
+- IntoTheLatent â€” supplied workflow designs.
+- [AiWithYou / AiKimi](https://github.com/AiWithYou/aikimi-forge-neo) â€” readiness and editing inspiration.
+- [RES4LYF](https://github.com/ClownsharkBatwing/RES4LYF), Viggle and VideoX-Fun â€” sampler, distilled model and control references; original licenses remain in force.
 
 Special thanks to u/malcolmrey for support and inspiration. Thank you also to the Forge Neo, Diffusers, Qwen, DeGrid, Spectrum and wider open-source communities.
 
