@@ -147,7 +147,7 @@
   "tests/test_vae_memory.py": "fcc37aba5854e17585209785b5ea7b1d73ae9eb17c4c12a3b84a9cfb55884388",
   "tests/test_vram_profiles.py": "15ee8fe67b1092004585f8cd997c29c23f21053467993ccbfe632833d5848fe3",
   "tests/test_worker_final_preview.py": "7c946c97e86206c5594636ce99996f3770ee9db89533096dfeb4bb7f59bad21b",
-  "tests/test_worker_transport.py": "c7e402933a03f77fe5a10679f3da993425d42bbfcb707d6b1eb4c3f8a7252405",
+  "tests/test_worker_transport.py": "71244d44e7fdbe67c3d58adda462647d7569e07bb312651df14fe244048283ae",
   "tests/test_workflow_diagnostics.py": "0db8989cbf7b4edc24dc0e2add9b1d8d82a36b9067c2c993f10ffa9962b8d542",
   "tests/test_workflow_images.py": "84b5ee8fa45b0d214a7b78744a77942a0900c854a0f8fe70ef521157550c5e24",
   "tests/test_workflow_integration.py": "59f191ee69c93602ac2c996f89de52bfb67ce340503e1b42338af7aefb98eee8",
