@@ -239,12 +239,12 @@ class LayerOffload:
 
 def enable(pipe, torch, prof=None):
     budget=float((prof or {}).get('vram_gb') or 0)
-    manager = LayerOffload(torch,release_between_components=0 < budget <= 8)
+    manager = LayerOffload(torch,release_between_components=0 < budget <= 12)
     for name in ('text_encoder','transformer','vae'):
         component=getattr(pipe,name,None)
         if component is not None and hasattr(component,'modules'):
             manager.install(component)
-    if 0 < budget <= 8 and getattr(pipe,'vae',None) is not None:
+    if 0 < budget <= 12 and getattr(pipe,'vae',None) is not None:
         # Six GB cannot fit Qwen's final full-frame VAE activations. Decode the
         # same latents on CPU; 8 GB first tries GPU then recovers on OOM.
         manager.wrap_vae_decode(pipe.vae,force_cpu=False)

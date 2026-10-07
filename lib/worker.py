@@ -20,9 +20,17 @@ def _compute_dtype(torch):
     supported=getattr(torch.cuda,'is_bf16_supported',lambda: False)
     return torch.bfloat16 if supported() else torch.float16
 
+def _ram_module():
+    name='_pi_qwen21_ram_policy'
+    if name not in sys.modules:
+        spec=importlib.util.spec_from_file_location(name,Path(__file__).with_name('ram.py'))
+        module=importlib.util.module_from_spec(spec);sys.modules[name]=module;spec.loader.exec_module(module)
+    return sys.modules[name]
+
+
 def _quantized(bundle,prof=None):
-    values=list((bundle.get('files') or {}).values())
-    return any(any(tag in str(value).lower() for tag in ('int8','w4a8','convrot','fp8','nvfp4','mxfp8')) for value in values if value)
+    return any(_ram_module().packed_factor(path)>1 for path in (bundle.get('files') or {}).values() if path)
+
 
 def _prepare_pipe(pipe,prof,offload,quantized=False):
     # PR #1512 uses halo strips to bound temporary VAE upsampling memory.
@@ -39,8 +47,11 @@ def _prepare_pipe(pipe,prof,offload,quantized=False):
         pipe._pi_offload_mode='direct'
         return
     prof=prof or {}
-    low=prof.get('te')=='w4a8' or int(prof.get('side',9999) or 9999)<=1024
-    if low and (quantized or 0 < float(prof.get('vram_gb') or 0) <= 8):
+    budget=float(prof.get('vram_gb') or 0)
+    low=(0 < budget <= 12 or prof.get('te')=='w4a8' or
+         int(prof.get('side',9999) or 9999)<=1024)
+    portable_stream=bool(prof.get('portable'))
+    if portable_stream or (low and (quantized or 0 < budget <= 8)):
         # Accelerate/Diffusers group hooks assign ``param.data`` and unwrap
         # Forge packed weights. Our owner-module hook preserves subclasses and
         # keeps only the active layer on the GPU (the 6/8 GB recovery path).
@@ -81,11 +92,11 @@ def _set_cuda_budget(torch, prof):
     external=max(0.0,(total_bytes-free_bytes)/2**30)
     # The selected profile is a whole-GPU budget. Subtract memory already used
     # by Forge, the desktop and other processes, then reserve driver/kernel workspace outside the PyTorch allocator.
-    reserve=1.25 if requested<=8 else 0.5
+    reserve=float((prof or {}).get('reserve_gb',1.25 if requested<=8 else 0.5))
     usable=min(requested,total)-external-reserve
     if usable <= 0:
         raise RuntimeError(f'VRAM profile {requested:g} GB has no free worker budget ({external:.1f} GB already in use)')
-    fraction=max(0.01,min(1.0,usable/total))
+    fraction=min(1.0,usable/total)
     torch.cuda.set_per_process_memory_fraction(fraction,0)
     return usable
 
@@ -236,6 +247,8 @@ def main():
                             print('[PI-Qwen21] Packed quantization kernels are unavailable on this GPU; unpacking quantized files to bf16 in system RAM (first load is slower).')
                     dtype=_compute_dtype(torch)
                     params=inspect.signature(components.pipeline).parameters
+                    ram=_ram_module()
+                    ram.preflight(command['bundle'],prof,dequantize=dequantize)
                     if 'dequantize' in params:
                         pipe = components.pipeline(command["bundle"],dtype=dtype,dequantize=dequantize)
                     elif 'dtype' in params:

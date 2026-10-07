@@ -5,7 +5,7 @@ import inspect
 import random
 import threading
 from pathlib import Path
-from .assets import config, hardware_profile, bucket, identity
+from .assets import config, hardware_profile, generation_side, bucket, identity
 from ..download.manager import resolve
 from ..download import manager as downloads
 from ..lora import adapter
@@ -122,6 +122,12 @@ def resident_fit(folder, offload, torch, prof=None):
     mem_info=getattr(torch.cuda,'mem_get_info',None)
     free_gb=(mem_info()[0] if callable(mem_info) else
              torch.cuda.get_device_properties(0).total_memory)/2**30
+    # Manual lower profiles must not bypass their own allocator ceiling.
+    if prof and prof.get('vram_gb'):
+        total_gb=torch.cuda.get_device_properties(0).total_memory/2**30
+        external=max(0.0,total_gb-free_gb)
+        cap=max(0.0,float(prof['vram_gb'])-external-float(prof.get('reserve_gb',.5)))
+        free_gb=min(free_gb,cap)
     # Leave room for activations, KV caches, decoding and the display.
     if weights_gb+max(2.0,weights_gb*0.15)>free_gb:
         print(f'[PI-Qwen21] Selected weights need ~{weights_gb:.0f} GB; '
@@ -144,6 +150,7 @@ def generate(p, selected, options):
         if merged_turbo and backend!='comfy': raise ValueError('Merged Turbo currently requires the Full workflows engine.')
         if merged_turbo and options.get('speed_enabled'): raise ValueError('Turn off the separate Turbo LoRA when using a merged Turbo checkpoint.')
         prof=hardware_profile(torch,options.get('profile','auto'))
+        prof['allow_ram_overcommit']=bool(options.get('allow_ram_overcommit',False))
         if backend=='comfy':
             from .comfy_setup import root_path
             base=Path(__file__).resolve().parents[1]
@@ -321,7 +328,8 @@ def generate(p, selected, options):
             params=inspect.signature(pipe.__call__).parameters
             if mask is not None and 'mask_image' not in params: raise ValueError('This QwenImage21Pipeline does not expose mask_image. Use a painted/circled reference and describe the edit instead.')
             requested_side=max(32,int(p.width),int(p.height))
-            side=int(options.get('side',0)) or prof['side']
+            side=generation_side(prof,int(options.get('side',0)),
+                control=bool(options.get('control_enabled')),cfg=cfg,references=len(primary)+sum(im is not None for im in options.get('refs',[])))
             if float(prof.get('vram_gb',99))<=8 and prof.get('side'):
                 side=min(side or prof['side'],prof['side'])
             if headswap and float(prof.get('vram_gb',99))<=8:

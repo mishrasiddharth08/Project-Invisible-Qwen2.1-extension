@@ -351,8 +351,8 @@ class Script(scripts.Script):
                     fix_button.click(fn=manager.download_fix,inputs=[fix_name,fix_approved],outputs=[fix_status])
                 with gr.Tab('Memory'):
                     with gr.Row(elem_classes=['pi-q21-pair']):
-                        profile=gr.Dropdown(['auto','4','6','8','12','16','20','24'],value='auto',label='VRAM budget',info='Auto detects your GPU.',scale=1,min_width=180)
-                        side=gr.Dropdown([('Automatic',0),('512 px',512),('768 px',768),('1024 px',1024),('1536 px',1536),('2048 px',2048)],value=0,label='Maximum size',scale=1,min_width=180)
+                        profile=gr.Dropdown(['auto','4','6','8','10','12','16','20','24','32'],value='auto',label='VRAM budget',info='Auto detects your GPU.',scale=1,min_width=180)
+                        side=gr.Dropdown([('Automatic',0),('512 px',512),('768 px',768),('1024 px',1024),('1536 px',1536),('2048 px',2048)],value=0,label='Maximum size',info='Auto lowers size for Union, many references or CFG above 1. Manual sizes need more memory.',scale=1,min_width=180)
                     offload=gr.Checkbox(value=True,label='Save GPU memory',info='Keeps unused model parts off the GPU.')
                     keep_loaded=gr.Checkbox(value=bool(runtime.config().get('keep_loaded',True)),label='Keep Qwen ready',info='Faster next generation. Idle GPU memory is released; model files stay cached in system RAM.')
                     with gr.Accordion('Advanced compatibility',open=False):

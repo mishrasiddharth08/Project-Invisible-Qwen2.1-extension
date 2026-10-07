@@ -79,6 +79,25 @@ The **Models** tab contains setup instructions and optional downloads. Downloads
 
 **Fast** selects the turbo adapter and eight steps. Download that adapter first. Native step changes remain respected. The distilled turbo path uses **CFG 1**, even if a higher value was entered. Use the ordinary model for CFG above 1. Refiner passes take additional time and memory; they reuse the loaded model.
 
+### VRAM presets — October 7, 2026
+
+Choose **Memory → VRAM budget → Auto** normally. Manual 8, 10, 12, 16, 24 and 32 GB options are available. Existing smaller recovery profiles remain available.
+
+| VRAM | Preferred DiT / encoder | Auto long side | Union or more than two refs |
+|---|---|---:|---:|
+| 8 GB | INT8 / W4A8 | 1024 | 512 |
+| 10 GB | INT8 / W4A8 | 1024 | 640 |
+| 12 GB | INT8 / INT8 | 1024 | 768 |
+| 16 GB | INT8 / INT8 | 1536 | 1024 |
+| 24 GB | INT8 / INT8 | 2048 | 1536 |
+| 32 GB | INT8 / INT8 | Native buckets | 2048 |
+
+These are conservative starting settings, not hardware benchmarks. Actual free memory, other applications, adapters, reference size and system RAM affect whether a run fits. A manual **Maximum size** overrides Auto sizing except the existing 8 GB safety cap. CFG above 1 also reduces Auto size on smaller profiles. The allocator always reserves workspace and subtracts memory already used by other processes.
+
+24 GB now receives a 24 GB ceiling instead of 20 GB. 32 GB has an enforced ceiling too. Keeping models resident still requires the selected files to fit; **Save GPU memory** remains your choice. On unsupported packed-quantization hardware, compatible BF16 storage and layer streaming at every budget are used; NVIDIA/AMD compatibility and speed still require live testing on the actual supported PyTorch setup. DirectML and CPU-only generation remain unsupported. Nothing downloads during Generate.
+
+System RAM is checked before base models and each new Full-workflow prompt encoder or Union patch are loaded. BF16 and dequantization can need substantially more RAM than packed weights. If the estimate exceeds available RAM, loading stops with a clear message. Experts who accept paging may set `"allow_ram_overcommit": true` in `config.json`; this can be extremely slow and is not a fit guarantee.
+
 ### Memory
 
 Offloading reduces GPU residency by using system RAM during generation. Use **Memory → Keep Qwen ready** for faster repeated batches: model data may remain cached in system RAM while offloading releases idle GPU allocations. Turn it off to close the worker after the batch and release its model RAM/VRAM. Selecting another model requests worker release. Memory retained by Forge or another application is outside this worker.

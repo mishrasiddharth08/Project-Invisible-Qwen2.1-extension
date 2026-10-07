@@ -697,6 +697,15 @@ class RuntimeAcceptanceTests(unittest.TestCase):
             self.assertTrue(runtime.resident_fit(files,True,tiny))
             self.assertFalse(runtime.resident_fit(files,False,roomy))
 
+    def test_manual_lower_budget_forces_offload_despite_free_large_card(self):
+        with tempfile.TemporaryDirectory() as td:
+            weights=Path(td)/'weights.safetensors';weights.write_bytes(b'0'*8)
+            cuda=types.SimpleNamespace(mem_get_info=lambda:(30*2**30,32*2**30),
+                get_device_properties=lambda _:types.SimpleNamespace(total_memory=32*2**30))
+            with mock.patch.object(Path,'stat',return_value=types.SimpleNamespace(st_size=6*2**30)):
+                self.assertTrue(runtime.resident_fit({'files':{'dit':str(weights)}},False,
+                    types.SimpleNamespace(cuda=cuda),{'vram_gb':8,'reserve_gb':1.25}))
+
     def test_resident_fit_skips_when_no_weights_are_measurable(self):
         self.assertFalse(runtime.resident_fit({'folder':None,'files':{}},False,self.torch))
 

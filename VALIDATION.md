@@ -1,3 +1,9 @@
+# October 7, 2026 — VRAM policy validation
+
+Fresh CPU suite: **319 passed, one skipped**; post-installation tier/RAM/UI checks also passed **12/12**; ten CUDA transport fixtures were excluded with GPU visibility disabled. See [machine-readable results](docs/VRAM_CPU_CHECKS.json).
+
+Six capacities (8/10/12/16/24/32 GB), invalid settings, physical-card clamping, external usage, both workers' allocator fractions, manual lower-budget resident-fit checks, low-profile cleanup and conservative workload sizing are covered with fake CUDA and CPU tensors. These checks validate policy, Windows/Linux RAM checks, renamed packed-weight recognition and initialization guards, not actual peak memory or speed on six physical GPUs. Live validation of the new policy is pending the shared GPU test queue; no new GPU test was started.
+
 # October 7, 2026 — sampler and interface refresh
 
 Fresh presentation checks: seven CPU-only tests passed, including both real Gradio panels, all 60 control positions, native saved-default handling, workflow callbacks and sampler regressions. Gradio panel construction required a local socket outside the restricted sandbox; GPU visibility stayed disabled. All three infographic SVGs parsed successfully and requested credits remain present.

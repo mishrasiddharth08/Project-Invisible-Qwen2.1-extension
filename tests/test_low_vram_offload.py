@@ -99,14 +99,16 @@ class LowVramTests(unittest.TestCase):
         self.assertEqual(events,[])
         manager.remove()
 
-    def test_enable_limits_component_cache_release_to_8gb_and_below(self):
+    def test_enable_limits_component_cache_release_to_12gb_and_below(self):
         fake=types.SimpleNamespace(
             cuda=types.SimpleNamespace(is_available=lambda:False,empty_cache=lambda:None),
             device=torch.device,is_tensor=torch.is_tensor)
         low=types.SimpleNamespace(text_encoder=torch.nn.Linear(2,2),transformer=None,vae=None)
         normal=types.SimpleNamespace(text_encoder=torch.nn.Linear(2,2),transformer=None,vae=None)
         self.assertTrue(offload.enable(low,fake,{'vram_gb':8}).release_between_components)
-        self.assertFalse(offload.enable(normal,fake,{'vram_gb':12}).release_between_components)
+        self.assertTrue(offload.enable(normal,fake,{'vram_gb':12}).release_between_components)
+        larger=types.SimpleNamespace(text_encoder=torch.nn.Linear(2,2),transformer=None,vae=None)
+        self.assertFalse(offload.enable(larger,fake,{'vram_gb':16}).release_between_components)
 
     def test_fragmentation_trim_is_thresholded_and_low_profile_only(self):
         state={'allocated':100*2**20,'reserved':300*2**20};events=[]

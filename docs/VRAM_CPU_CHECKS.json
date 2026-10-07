@@ -1,0 +1,9 @@
+{
+  "run": 320,
+  "passed": 319,
+  "skipped": 1,
+  "transport_excluded": 10,
+  "successful": true,
+  "installed_cpu_checks_passed": 12,
+  "gpu_validation": "pending; no GPU jobs started"
+}

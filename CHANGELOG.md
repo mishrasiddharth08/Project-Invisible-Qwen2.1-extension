@@ -1,3 +1,13 @@
+# October 7, 2026 — explicit VRAM profiles
+
+- Added visible 10 GB and 32 GB choices; all six requested capacities have explicit allocator budgets.
+- Corrected the accidental 24-to-20 GB cap and missing 32 GB ceiling.
+- Resident-fit checks respect manual lower budgets even on larger cards.
+- Added conservative Auto sizing for Union, many references and true CFG; manual maximum-size overrides remain available.
+- Extended component-cache release and CPU VAE recovery to 10/12 GB layer-offload profiles; compatible portable weights stream by layer at every capacity. Added a system-RAM guard before either worker loads model tensors.
+- Reserved workspace and external GPU allocations are deducted; tiny positive budgets no longer round their allocation limit upward.
+- CPU-only validation; no new GPU runs or model downloads.
+
 # October 7, 2026 — clearer UI and sampler correction
 
 - Added readable names to every workflow preset while preserving its saved value.

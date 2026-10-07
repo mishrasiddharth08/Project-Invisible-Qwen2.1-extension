@@ -293,6 +293,7 @@ class WorkerContractTests(unittest.TestCase):
         session.backend = backend
         session.vae = object()
         session.control_patches = {}
+        session.prof = {}
         with tempfile.TemporaryDirectory() as td:
             path = Path(td) / "control.safetensors"
             path.write_bytes(b"control")
@@ -349,3 +350,17 @@ class WorkerContractTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class AddonRAMGuard(unittest.TestCase):
+    def test_union_guard_runs_before_patch_loader(self):
+        from tempfile import TemporaryDirectory
+        from unittest.mock import Mock,patch
+        with TemporaryDirectory() as td:
+            path=Path(td)/'control.safetensors';path.write_bytes(b'0'*8)
+            session=object.__new__(worker.Session)
+            session.prof={};session.control_patches={};session.backend=types.SimpleNamespace(register=Mock())
+            with patch.object(worker,'_ram_preflight',side_effect=RuntimeError('RAM guard')) as guard:
+                with self.assertRaisesRegex(RuntimeError,'RAM guard'):
+                    session._control_model(object(),{'control_model':str(path)},None,[],None)
+                guard.assert_called_once();session.backend.register.assert_not_called()

@@ -59,8 +59,8 @@ class GPUWorkerTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError,'no free worker budget'):
             worker._set_cuda_budget(fake,{'vram_gb':6})
 
-    def test_auto_large_profile_has_no_artificial_ceiling(self):
-        self.assertNotIn('vram_gb',hardware_profile(self.torch(gb=32)))
+    def test_auto_large_profile_keeps_physical_budget(self):
+        self.assertEqual(hardware_profile(self.torch(gb=32))['vram_gb'],32)
 
     def test_dtype_prefers_bf16_and_falls_back_to_fp16(self):
         self.assertEqual(worker._compute_dtype(self.torch(bf16=True)),'bf16')

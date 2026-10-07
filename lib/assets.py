@@ -1,5 +1,6 @@
 """Strict 2.1 identity and local-only inventory. Never guess an older architecture."""
 import re
+import math
 import json
 import struct
 import time
@@ -153,24 +154,39 @@ def scan(base=None, refresh=False):
     return result
 
 def profile(gb, override='auto'):
-    if override != 'auto':
-        gb = float(override)
-    # vram_gb is an enforced worker ceiling, not only a quality preset.
-    # Leave headroom for the display driver and Forge's lightweight UI process.
-    if gb <= 4: return dict(dit='int8_convrot',te='w4a8',side=512,offload=True,vram_gb=4)
-    if gb <= 6: return dict(dit='int8_convrot',te='w4a8',side=768,offload=True,vram_gb=6)
-    if gb <= 8: return dict(dit='int8_convrot',te='w4a8',side=1024,offload=True,vram_gb=8)
-    if gb <= 10: return dict(dit='int8_convrot',te='int8_convrot',side=1024,offload=True,vram_gb=10)
-    if gb <= 12: return dict(dit='int8_convrot',te='int8_convrot',side=1024,offload=True,vram_gb=12)
-    if gb <= 16: return dict(dit='int8_convrot',te='int8_convrot',side=1536,offload=True,vram_gb=16)
-    # 16-28 GB: bf16 weights (~48 GB with the text encoder) can never fit, and
-    # the full int8 stack (~28 GB) needs 28 GB, so these tiers stream layers
-    # with offload on to absorb KV/VAE spikes.
-    if gb < 28: return dict(dit='int8_convrot',te='int8_convrot',side=2048,offload=True,vram_gb=20)
-    # 28 GB and up: int8 DiT + int8 TE fit entirely on the GPU. Offload is the
-    # single biggest speed killer on big cards (constant CPU<->GPU shuffling),
-    # so it stays off unless the user re-enables it.
-    return dict(dit='int8_convrot',te='int8_convrot',side=0,offload=False)
+    """Explicit memory tiers; every worker has a physical-GPU ceiling."""
+    actual = float(gb)
+    if not math.isfinite(actual) or actual <= 0:
+        raise ValueError('GPU memory must be a positive finite number')
+    requested = actual if override == 'auto' else float(override)
+    if not math.isfinite(requested) or requested <= 0:
+        raise ValueError('VRAM budget must be a positive finite number')
+    budget = min(actual, requested)
+    tiers = ((4,512,'w4a8'), (6,768,'w4a8'), (8,1024,'w4a8'),
+             (10,1024,'w4a8'), (12,1024,'int8_convrot'),
+             (16,1536,'int8_convrot'), (20,2048,'int8_convrot'),
+             (24,2048,'int8_convrot'), (32,0,'int8_convrot'))
+    tier, side, te = next((row for row in tiers if budget <= row[0]), tiers[-1])
+    reserve = 1.25 if budget <= 8 else 1.0 if budget <= 10 or budget > 16 else .75
+    return dict(dit='int8_convrot', te=te, side=side, offload=budget < 28,
+                vram_gb=budget, reserve_gb=reserve)
+
+
+def generation_side(prof, requested=0, *, control=False, cfg=1, references=0):
+    """Conservative Auto sizes; explicit size selections remain user overrides."""
+    budget = float(prof.get('vram_gb',32))
+    base = int(prof.get('side',0))
+    if requested:
+        return min(int(requested),base) if budget <= 8 and base else int(requested)
+    if control or references > 2:
+        limits = ((8,512),(10,640),(12,768),(16,1024),(24,1536),(32,2048))
+    elif cfg > 1:
+        limits = ((8,768),(10,768),(12,1024),(16,1280),(24,2048),(32,0))
+    else:
+        return base
+    limit = next((side for ceiling,side in limits if budget <= ceiling),0)
+    return min(base,limit) if base and limit else base or limit
+
 
 def bucket(width, height, side=0):
     w,h = min(BUCKETS, key=lambda x: abs(x[0]/x[1] - max(1,width)/max(1,height)))
@@ -214,7 +230,9 @@ def hardware_profile(torch, override='auto'):
         except (TypeError, ValueError):
             override = 'auto'
         else:
-            if requested > gb:
+            if not math.isfinite(requested) or requested <= 0:
+                override = 'auto'
+            elif requested > gb:
                 # Saved presets can pin a profile larger than the actual card
                 # (or a card swap happened). An oversized budget turns off the
                 # safety headroom and OOMs mid-generation; clamp and say so.

@@ -100,6 +100,14 @@ def _sampling_status(completed, total, started, now=None):
     return f"sampling {int(completed)}/{int(total)} — {elapsed}s"
 
 
+def _ram_preflight(bundle, prof):
+    name='_pi_qwen21_comfy_ram'
+    if name not in sys.modules:
+        spec=importlib.util.spec_from_file_location(name,Path(__file__).with_name('ram.py'))
+        module=importlib.util.module_from_spec(spec);sys.modules[name]=module;spec.loader.exec_module(module)
+    return sys.modules[name].preflight(bundle,prof)
+
+
 def _cuda_budget(torch, prof):
     requested = float((prof or {}).get("vram_gb") or 0)
     if requested <= 0 or not torch.cuda.is_available():
@@ -107,11 +115,11 @@ def _cuda_budget(torch, prof):
     total = torch.cuda.get_device_properties(0).total_memory / 2**30
     free_bytes, total_bytes = torch.cuda.mem_get_info(0)
     external = max(0.0, (total_bytes - free_bytes) / 2**30)
-    reserve = 1.25 if requested <= 8 else 0.5
+    reserve = float((prof or {}).get("reserve_gb", 1.25 if requested <= 8 else 0.5))
     usable = min(requested, total) - external - reserve
     if usable <= 0:
         raise RuntimeError(f"VRAM profile {requested:g} GB has no free Comfy worker budget")
-    torch.cuda.set_per_process_memory_fraction(max(0.01, min(1.0, usable / total)), 0)
+    torch.cuda.set_per_process_memory_fraction(min(1.0, usable / total), 0)
     return usable
 
 
@@ -537,6 +545,7 @@ class Session:
         key = str(path)
         clip = self.prompt_encoders.get(key)
         if clip is None:
+            _ram_preflight({"files":{"prompt_encoder":str(path)}},self.prof)
             name = self.backend.register("text_encoders", path)
             clip = self.backend.nodes.CLIPLoader().load_clip(name, "stable_diffusion", self.prof.get("clip_device", "default"))[0]
             _prepare_text_generator(clip, self.backend.model_management)
@@ -582,6 +591,7 @@ class Session:
         identity = (str(path), stat.st_size, stat.st_mtime_ns)
         patch = self.control_patches.get(identity)
         if patch is None:
+            _ram_preflight({"files":{"control":str(path)}},self.prof)
             name = self.backend.register("model_patches", path)
             loaded = self.backend.patch_loader().load_model_patch(name)[0]
             _validate_qwen21_control(loaded)
@@ -772,6 +782,7 @@ def main():
                 prof = command.get("prof") or {}
                 prof = dict(prof, _offload=bool(command.get("offload", True)))
                 comfy_root = prof.get("comfy_root")
+                _ram_preflight(command['bundle'],prof)
                 backend = Backend(comfy_root, prof.get("res4lyf"), prof.get("comfy_deps"), prof)
                 session = Session(backend, command["bundle"], prof)
                 emit("initialized", backend="comfy")
