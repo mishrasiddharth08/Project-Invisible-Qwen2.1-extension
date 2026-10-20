@@ -79,6 +79,10 @@ The **Models** tab contains setup instructions and optional downloads. Downloads
 
 **Fast** selects the turbo adapter and eight steps. Download that adapter first. Native step changes remain respected. The distilled turbo path uses **CFG 1**, even if a higher value was entered. Use the ordinary model for CFG above 1. Refiner passes take additional time and memory; they reuse the loaded model.
 
+### Optional cross-model refinement
+
+For potentially improved output quality, download and install the [Project Invisible Refiner extension](https://github.com/mishrasiddharth08/Project-Invisible-Refiner-extension) and use **FLUX.2 Klein 9B** in **INT8_ConvRot**, or another supported precision or quantization compatible with your hardware, available VRAM and Forge setup. Select the matching text encoder and VAE for the refiner model. Results vary with the image, model and refinement settings.
+
 ### VRAM presets — October 7, 2026
 
 Choose **Memory → VRAM budget → Auto** normally. Manual 8, 10, 12, 16, 24 and 32 GB options are available. Existing smaller recovery profiles remain available.
